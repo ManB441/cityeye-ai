@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# AI outputs
+ai/output/
+ai/sample_videos/*.mp4
+!ai/sample_videos/.gitkeep
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# SQLite
+*.db
+
+# OS / IDE
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# YOLO model weights (downloaded on first run)
+*.pt

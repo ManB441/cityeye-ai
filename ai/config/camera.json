@@ -1,0 +1,26 @@
+{
+  "camera_name": "Demo Camera 1",
+  "latitude": 40.7128,
+  "longitude": -74.0060,
+  "video_source": "sample_videos/traffic.mp4",
+  "model": "yolov8n.pt",
+  "confidence_threshold": 0.4,
+  "vehicle_classes": ["car", "bus", "truck", "motorcycle"],
+  "monitored_road_polygon": [
+    [100, 100],
+    [540, 100],
+    [540, 380],
+    [100, 380]
+  ],
+  "allowed_direction": {
+    "start": [200, 350],
+    "end": [200, 150]
+  },
+  "event_thresholds": {
+    "wrong_way_min_confidence": 0.6,
+    "stopped_vehicle_seconds": 8.0,
+    "stopped_vehicle_max_speed_px": 3.0,
+    "congestion_min_vehicles": 6,
+    "congestion_duration_seconds": 30.0
+  }
+}
