@@ -38,6 +38,19 @@ class StoppedVehicleMatch:
     event_type: EventType = EventType.STOPPED_VEHICLE
 
 
+@dataclass(frozen=True)
+class CongestionMatch:
+    """Event-ready result produced by sustained vehicle density."""
+
+    timestamp: float
+    confidence: float
+    severity: Severity
+    explanation: str
+    vehicle_count: int
+    congestion_duration: float
+    event_type: EventType = EventType.CONGESTION
+
+
 def point_in_polygon(point: Point, polygon: list[Point]) -> bool:
     """Return True for points inside or on the boundary of a polygon."""
     if len(polygon) < 3:
@@ -275,4 +288,112 @@ class StoppedVehicleRule:
             explanation=explanation,
             stationary_duration=round(track.stationary_duration, 3),
             pixel_speed=round(track.pixel_speed, 3),
+        )
+
+
+class CongestionRule:
+    """Detect sustained vehicle density inside the monitored road area."""
+
+    def __init__(
+        self,
+        monitored_polygon: list[Point],
+        min_vehicles: int = 6,
+        min_duration_seconds: float = 30.0,
+        max_track_age_seconds: float = 1.0,
+        max_evaluation_gap_seconds: float = 1.0,
+    ) -> None:
+        if len(monitored_polygon) < 3:
+            raise ValueError("monitored_polygon must contain at least 3 points")
+        if min_vehicles < 2:
+            raise ValueError("min_vehicles must be at least 2")
+        if min_duration_seconds <= 0:
+            raise ValueError("min_duration_seconds must be positive")
+        if max_track_age_seconds <= 0:
+            raise ValueError("max_track_age_seconds must be positive")
+        if max_evaluation_gap_seconds <= 0:
+            raise ValueError("max_evaluation_gap_seconds must be positive")
+
+        self.monitored_polygon = monitored_polygon
+        self.min_vehicles = min_vehicles
+        self.min_duration_seconds = min_duration_seconds
+        self.max_track_age_seconds = max_track_age_seconds
+        self.max_evaluation_gap_seconds = max_evaluation_gap_seconds
+        self.congestion_started_at: float | None = None
+        self.last_evaluated_at: float | None = None
+        self.event_emitted = False
+
+    def evaluate(
+        self,
+        timestamp: float,
+        tracks: list[TrackState],
+    ) -> CongestionMatch | None:
+        """Return one match after enough active vehicles persist long enough."""
+        if timestamp < 0:
+            raise ValueError("timestamp must be non-negative")
+        if self.last_evaluated_at is not None and timestamp <= self.last_evaluated_at:
+            raise ValueError("evaluation timestamps must increase")
+
+        evaluation_gap = (
+            None
+            if self.last_evaluated_at is None
+            else timestamp - self.last_evaluated_at
+        )
+        self.last_evaluated_at = timestamp
+
+        active_track_ids = {
+            track.track_id
+            for track in tracks
+            if track.history
+            and 0 <= timestamp - track.history[-1].timestamp_sec
+            <= self.max_track_age_seconds
+            and point_in_polygon(
+                (
+                    track.history[-1].center_x,
+                    track.history[-1].center_y,
+                ),
+                self.monitored_polygon,
+            )
+        }
+        vehicle_count = len(active_track_ids)
+
+        if vehicle_count < self.min_vehicles:
+            self.congestion_started_at = None
+            self.event_emitted = False
+            return None
+
+        if (
+            self.congestion_started_at is None
+            or evaluation_gap is not None
+            and evaluation_gap > self.max_evaluation_gap_seconds
+        ):
+            self.congestion_started_at = timestamp
+            self.event_emitted = False
+            return None
+
+        congestion_duration = timestamp - self.congestion_started_at
+        if (
+            congestion_duration < self.min_duration_seconds
+            or self.event_emitted
+        ):
+            return None
+
+        count_ratio = vehicle_count / self.min_vehicles
+        confidence = round(min(1.0, 0.75 + 0.25 * (count_ratio - 1.0)), 4)
+        severity = (
+            Severity.HIGH
+            if vehicle_count >= self.min_vehicles * 1.5
+            else Severity.MEDIUM
+        )
+        explanation = (
+            f"{vehicle_count} active vehicles remained inside the monitored "
+            f"road area for {congestion_duration:.1f} seconds."
+        )
+        self.event_emitted = True
+        return CongestionMatch(
+            timestamp=timestamp,
+            confidence=confidence,
+            severity=severity,
+            explanation=explanation,
+            vehicle_count=vehicle_count,
+            congestion_duration=round(congestion_duration, 3),
         )

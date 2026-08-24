@@ -26,6 +26,8 @@
     "stopped_vehicle_max_speed_px_per_sec": 3.0,
     "stopped_vehicle_min_track_points": 3,
     "congestion_min_vehicles": 6,
-    "congestion_duration_seconds": 30.0
+    "congestion_duration_seconds": 30.0,
+    "congestion_max_track_age_seconds": 1.0,
+    "congestion_max_evaluation_gap_seconds": 1.0
   }
 }
