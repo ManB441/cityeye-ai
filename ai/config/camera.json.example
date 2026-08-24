@@ -20,6 +20,8 @@
   },
   "event_thresholds": {
     "wrong_way_min_confidence": 0.6,
+    "wrong_way_min_displacement_px": 20.0,
+    "wrong_way_min_track_points": 3,
     "stopped_vehicle_seconds": 8.0,
     "stopped_vehicle_max_speed_px_per_sec": 3.0,
     "congestion_min_vehicles": 6,
