@@ -20,6 +20,8 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
+from trajectory import TrajectoryManager
+
 # COCO class IDs for vehicles we care about
 COCO_VEHICLE_IDS = {
     2: "car",
@@ -47,6 +49,8 @@ TRACK_FIELDNAMES = [
     "y2",
     "center_x",
     "center_y",
+    "pixel_speed",
+    "stationary_duration",
 ]
 
 
@@ -144,6 +148,8 @@ def build_track_row(
     y1: int,
     x2: int,
     y2: int,
+    pixel_speed: float | None = None,
+    stationary_duration: float | None = None,
 ) -> dict:
     """Convert one vehicle observation into the stable tracks.csv schema."""
     return {
@@ -158,6 +164,10 @@ def build_track_row(
         "y2": y2,
         "center_x": round((x1 + x2) / 2, 1),
         "center_y": round((y1 + y2) / 2, 1),
+        "pixel_speed": round(pixel_speed, 3) if pixel_speed is not None else None,
+        "stationary_duration": (
+            round(stationary_duration, 3) if stationary_duration is not None else None
+        ),
     }
 
 
@@ -194,6 +204,20 @@ def process_video(
     model_path = resolve_model_reference(
         model_reference,
         Path(__file__).resolve().parent,
+    )
+    event_thresholds = config.get("event_thresholds", {})
+    stationary_speed_threshold = float(
+        event_thresholds.get(
+            "stopped_vehicle_max_speed_px_per_sec",
+            event_thresholds.get("stopped_vehicle_max_speed_px", 3.0),
+        )
+    )
+    trajectory_manager = TrajectoryManager(
+        history_size=int(config.get("trajectory_history_size", 30)),
+        stationary_speed_threshold=stationary_speed_threshold,
+        max_observation_gap_sec=float(
+            config.get("trajectory_max_observation_gap_seconds", 1.0)
+        ),
     )
 
     print(f"Loading model: {model_path}")
@@ -252,6 +276,22 @@ def process_video(
                     conf = float(box.conf.item())
                     x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
                     track_id = int(box.id.item()) if box.id is not None else None
+                    center_x = (x1 + x2) / 2
+                    center_y = (y1 + y2) / 2
+                    timestamp_sec = frame_idx / fps
+
+                    pixel_speed = None
+                    stationary_duration = None
+                    if track_id is not None:
+                        track_state = trajectory_manager.update(
+                            track_id=track_id,
+                            frame=frame_idx,
+                            timestamp_sec=timestamp_sec,
+                            center_x=center_x,
+                            center_y=center_y,
+                        )
+                        pixel_speed = track_state.pixel_speed
+                        stationary_duration = track_state.stationary_duration
 
                     draw_detection(frame, x1, y1, x2, y2, class_name, track_id, conf)
                     vehicle_count += 1
@@ -267,6 +307,8 @@ def process_video(
                             y1,
                             x2,
                             y2,
+                            pixel_speed,
+                            stationary_duration,
                         )
                     )
 

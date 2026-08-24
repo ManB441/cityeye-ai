@@ -6,6 +6,8 @@
   "model": "yolov8n.pt",
   "confidence_threshold": 0.4,
   "vehicle_classes": ["car", "bus", "truck", "motorcycle"],
+  "trajectory_history_size": 30,
+  "trajectory_max_observation_gap_seconds": 1.0,
   "monitored_road_polygon": [
     [100, 100],
     [540, 100],
@@ -19,7 +21,7 @@
   "event_thresholds": {
     "wrong_way_min_confidence": 0.6,
     "stopped_vehicle_seconds": 8.0,
-    "stopped_vehicle_max_speed_px": 3.0,
+    "stopped_vehicle_max_speed_px_per_sec": 3.0,
     "congestion_min_vehicles": 6,
     "congestion_duration_seconds": 30.0
   }

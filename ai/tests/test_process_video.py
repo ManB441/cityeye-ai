@@ -42,6 +42,8 @@ def test_build_track_row_with_assigned_track() -> None:
         y1=200,
         x2=300,
         y2=400,
+        pixel_speed=2.5,
+        stationary_duration=2.0,
     )
 
     assert row == {
@@ -56,6 +58,8 @@ def test_build_track_row_with_assigned_track() -> None:
         "y2": 400,
         "center_x": 200.0,
         "center_y": 300.0,
+        "pixel_speed": 2.5,
+        "stationary_duration": 2.0,
     }
 
 
@@ -77,6 +81,8 @@ def test_build_track_row_with_unassigned_track_and_half_pixel_center() -> None:
     assert row["confidence"] == 0.5555
     assert row["center_x"] == 200.5
     assert row["center_y"] == 300.5
+    assert row["pixel_speed"] is None
+    assert row["stationary_duration"] is None
 
 
 def test_validate_video_metadata_keeps_valid_fps() -> None:
@@ -212,6 +218,8 @@ def test_write_tracks_csv_writes_header_for_no_detections(tmp_path: Path) -> Non
         "y2",
         "center_x",
         "center_y",
+        "pixel_speed",
+        "stationary_duration",
     ]
     assert rows == []
 
@@ -238,3 +246,5 @@ def test_write_tracks_csv_preserves_unassigned_track_as_blank(tmp_path: Path) ->
     assert len(saved_rows) == 1
     assert saved_rows[0]["track_id"] == ""
     assert saved_rows[0]["class_name"] == "car"
+    assert saved_rows[0]["pixel_speed"] == ""
+    assert saved_rows[0]["stationary_duration"] == ""
