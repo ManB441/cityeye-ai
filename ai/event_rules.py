@@ -24,6 +24,20 @@ class WrongWayMatch:
     event_type: EventType = EventType.WRONG_WAY
 
 
+@dataclass(frozen=True)
+class StoppedVehicleMatch:
+    """Event-ready result produced when one vehicle remains stationary."""
+
+    track_id: int
+    timestamp: float
+    confidence: float
+    severity: Severity
+    explanation: str
+    stationary_duration: float
+    pixel_speed: float
+    event_type: EventType = EventType.STOPPED_VEHICLE
+
+
 def point_in_polygon(point: Point, polygon: list[Point]) -> bool:
     """Return True for points inside or on the boundary of a polygon."""
     if len(polygon) < 3:
@@ -56,6 +70,28 @@ def point_in_polygon(point: Point, polygon: list[Point]) -> bool:
         previous_x, previous_y = current_x, current_y
 
     return inside
+
+
+def contiguous_observations(
+    track: TrackState,
+    max_observation_gap_sec: float,
+) -> list:
+    """Return only the latest time-contiguous section of one track history."""
+    if max_observation_gap_sec <= 0:
+        raise ValueError("max_observation_gap_sec must be positive")
+    if not track.history:
+        return []
+
+    observations = [track.history[-1]]
+    for observation in reversed(list(track.history)[:-1]):
+        next_observation = observations[0]
+        if (
+            next_observation.timestamp_sec - observation.timestamp_sec
+            > max_observation_gap_sec
+        ):
+            break
+        observations.insert(0, observation)
+    return observations
 
 
 class WrongWayRule:
@@ -109,19 +145,12 @@ class WrongWayRule:
         ):
             return None
 
-        contiguous_observations = [latest]
-        for observation in reversed(list(track.history)[:-1]):
-            next_observation = contiguous_observations[0]
-            if (
-                next_observation.timestamp_sec - observation.timestamp_sec
-                > self.max_observation_gap_sec
-            ):
-                break
-            contiguous_observations.insert(0, observation)
-
         road_observations = [
             observation
-            for observation in contiguous_observations
+            for observation in contiguous_observations(
+                track,
+                self.max_observation_gap_sec,
+            )
             if point_in_polygon(
                 (observation.center_x, observation.center_y),
                 self.monitored_polygon,
@@ -160,4 +189,90 @@ class WrongWayRule:
             confidence=confidence,
             severity=severity,
             explanation=explanation,
+        )
+
+
+class StoppedVehicleRule:
+    """Detect one tracked vehicle stopped inside the monitored road area."""
+
+    def __init__(
+        self,
+        monitored_polygon: list[Point],
+        min_stationary_seconds: float = 8.0,
+        max_speed_px_per_sec: float = 3.0,
+        min_track_points: int = 3,
+        max_observation_gap_sec: float = 1.0,
+    ) -> None:
+        if len(monitored_polygon) < 3:
+            raise ValueError("monitored_polygon must contain at least 3 points")
+        if min_stationary_seconds <= 0:
+            raise ValueError("min_stationary_seconds must be positive")
+        if max_speed_px_per_sec <= 0:
+            raise ValueError("max_speed_px_per_sec must be positive")
+        if min_track_points < 2:
+            raise ValueError("min_track_points must be at least 2")
+        if max_observation_gap_sec <= 0:
+            raise ValueError("max_observation_gap_sec must be positive")
+
+        self.monitored_polygon = monitored_polygon
+        self.min_stationary_seconds = min_stationary_seconds
+        self.max_speed_px_per_sec = max_speed_px_per_sec
+        self.min_track_points = min_track_points
+        self.max_observation_gap_sec = max_observation_gap_sec
+        self.emitted_track_ids: set[int] = set()
+
+    def evaluate(self, track: TrackState) -> StoppedVehicleMatch | None:
+        """Return one match when a reliable track remains stopped long enough."""
+        if track.track_id in self.emitted_track_ids or not track.history:
+            return None
+        if track.pixel_speed is None:
+            return None
+
+        latest = track.history[-1]
+        if not point_in_polygon(
+            (latest.center_x, latest.center_y),
+            self.monitored_polygon,
+        ):
+            return None
+
+        recent_observations = contiguous_observations(
+            track,
+            self.max_observation_gap_sec,
+        )
+        if len(recent_observations) < self.min_track_points:
+            return None
+        if track.pixel_speed > self.max_speed_px_per_sec:
+            return None
+        if track.stationary_duration < self.min_stationary_seconds:
+            return None
+
+        speed_score = max(
+            0.0,
+            1.0 - track.pixel_speed / self.max_speed_px_per_sec,
+        )
+        duration_score = min(
+            1.0,
+            track.stationary_duration / self.min_stationary_seconds,
+        )
+        confidence = round(0.7 * duration_score + 0.3 * speed_score, 4)
+        severity = (
+            Severity.HIGH
+            if track.stationary_duration >= self.min_stationary_seconds * 2
+            else Severity.MEDIUM
+        )
+        explanation = (
+            f"Track {track.track_id} remained nearly stationary for "
+            f"{track.stationary_duration:.1f} seconds at "
+            f"{track.pixel_speed:.1f} pixels/second."
+        )
+
+        self.emitted_track_ids.add(track.track_id)
+        return StoppedVehicleMatch(
+            track_id=track.track_id,
+            timestamp=latest.timestamp_sec,
+            confidence=confidence,
+            severity=severity,
+            explanation=explanation,
+            stationary_duration=round(track.stationary_duration, 3),
+            pixel_speed=round(track.pixel_speed, 3),
         )
