@@ -3,9 +3,12 @@
 CityEye AI — video detection and tracking (MVP slice 1).
 
 Reads a local MP4, runs pretrained YOLO vehicle detection with ByteTrack,
-draws bounding boxes with class labels and track IDs, and writes:
+draws bounding boxes with class labels and track IDs, evaluates traffic-event
+rules, and writes:
   - output/annotated.mp4
   - output/tracks.csv
+  - output/events.json
+  - output/evidence/*.jpg when a real event rule matches
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
+from event_pipeline import EventPipeline
 from trajectory import TrajectoryManager
 
 # COCO class IDs for vehicles we care about
@@ -193,7 +197,7 @@ def process_video(
     config: dict,
     output_dir: Path,
     model_name: str | None = None,
-) -> tuple[Path, Path]:
+) -> tuple[Path, Path, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     annotated_path = output_dir / "annotated.mp4"
     tracks_path = output_dir / "tracks.csv"
@@ -219,6 +223,7 @@ def process_video(
             config.get("trajectory_max_observation_gap_seconds", 1.0)
         ),
     )
+    event_pipeline = EventPipeline(config=config, output_dir=output_dir)
 
     print(f"Loading model: {model_path}")
     model = YOLO(model_path)
@@ -265,6 +270,7 @@ def process_video(
             )
 
             vehicle_count = 0
+            current_track_states = {}
             if results and results[0].boxes is not None and len(results[0].boxes) > 0:
                 boxes = results[0].boxes
                 for box in boxes:
@@ -292,6 +298,7 @@ def process_video(
                         )
                         pixel_speed = track_state.pixel_speed
                         stationary_duration = track_state.stationary_duration
+                        current_track_states[track_id] = track_state
 
                     draw_detection(frame, x1, y1, x2, y2, class_name, track_id, conf)
                     vehicle_count += 1
@@ -323,6 +330,11 @@ def process_video(
                 2,
                 cv2.LINE_AA,
             )
+            event_pipeline.evaluate_frame(
+                timestamp=frame_idx / fps,
+                tracks=list(current_track_states.values()),
+                annotated_frame=frame,
+            )
             writer.write(frame)
             frame_idx += 1
 
@@ -334,11 +346,13 @@ def process_video(
         writer.release()
 
     write_tracks_csv(tracks_path, track_rows)
+    events_path = event_pipeline.write_events_json()
 
     print(f"Done. {frame_idx} frames, {len(track_rows)} track records.")
     print(f"  Annotated video: {annotated_path}")
     print(f"  Tracks CSV:      {tracks_path}")
-    return annotated_path, tracks_path
+    print(f"  Events JSON:     {events_path} ({len(event_pipeline.events)} events)")
+    return annotated_path, tracks_path, events_path
 
 
 def parse_args() -> argparse.Namespace:
@@ -360,7 +374,7 @@ def parse_args() -> argparse.Namespace:
         "--output-dir",
         type=Path,
         default=ai_root / "output",
-        help="Directory for annotated.mp4 and tracks.csv",
+        help="Directory for annotated.mp4, tracks.csv, events.json, and evidence",
     )
     parser.add_argument(
         "--model",

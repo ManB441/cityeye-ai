@@ -8,8 +8,8 @@ Two-week MVP for a team of three developers. Proves CityEye AI can analyze real 
 
 | Phase | Days | Deliverable |
 |-------|------|-------------|
-| **Slice 1 (current)** | 1–3 | MP4 → YOLO detect/track → `annotated.mp4` + `tracks.csv` |
-| Slice 2 | 4–6 | WRONG_WAY, STOPPED_VEHICLE, CONGESTION events + evidence JPGs |
+| Slice 1 | 1–3 | MP4 → YOLO detect/track → `annotated.mp4` + `tracks.csv` |
+| **Slice 2 (current)** | 4–6 | WRONG_WAY, STOPPED_VEHICLE, CONGESTION events + evidence JPGs |
 | Slice 3 | 7–9 | FastAPI + SQLite, Municipal Dashboard, Citizen Map |
 | Slice 4 | 10–14 | Integration, demo data, UI polish, README rehearsal |
 
@@ -23,9 +23,9 @@ Two-week MVP for a team of three developers. Proves CityEye AI can analyze real 
 - Python, OpenCV, FastAPI, SQLite, 2-second API polling
 - Configurable thresholds in JSON; road polygon + allowed direction in config
 
-### Out of scope for slice 1
+### Out of scope for the current AI slice
 
-Event detection, FastAPI backend, React UI, citizen reports, OCR, authentication.
+FastAPI backend, React UI, citizen reports, OCR, and authentication.
 
 ## Repository layout
 
@@ -55,7 +55,7 @@ cp config/camera.json.example config/camera.json
 
 Edit `config/camera.json` if your video path differs.
 
-### Run detection + tracking
+### Run detection, tracking, and event analysis
 
 ```bash
 # Using path from camera.json
@@ -71,6 +71,12 @@ python process_video.py --video /path/to/your/traffic.mp4
 |------|-------------|
 | `ai/output/annotated.mp4` | Input video with bounding boxes, class labels, track IDs |
 | `ai/output/tracks.csv` | Per-frame detections: frame, track_id, class, bbox, confidence |
+| `ai/output/events.json` | Real rule matches; an empty JSON list when no threshold is met |
+| `ai/output/evidence/*.jpg` | Annotated evidence image for each generated event |
+
+All AI events are saved with `PROPOSED` status for human review. Thresholds,
+the monitored polygon, and the allowed road direction are configured in
+`ai/config/camera.json`.
 
 On first run, Ultralytics downloads `yolov8n.pt` (~6 MB) automatically.
 
