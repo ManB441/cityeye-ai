@@ -25,6 +25,18 @@ class Severity(str, Enum):
     HIGH = "HIGH"
 
 
+class ReportCategory(str, Enum):
+    CONGESTION = "CONGESTION"
+    ROAD_HAZARD = "ROAD_HAZARD"
+    BLOCKED_ROAD = "BLOCKED_ROAD"
+    OTHER = "OTHER"
+
+
+class ReportStatus(str, Enum):
+    PENDING = "PENDING"
+    COMMUNITY_CONFIRMED = "COMMUNITY_CONFIRMED"
+
+
 class TrafficEventBase(BaseModel):
     """Fields produced by AI and returned by the municipal API."""
 
@@ -80,4 +92,43 @@ class EventListResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     events: list[TrafficEventResponse]
+    total: int = Field(ge=0)
+
+
+class CitizenReportCreate(BaseModel):
+    """Citizen-submitted fields accepted without user authentication."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    category: ReportCategory
+    description: str = Field(min_length=3, max_length=500)
+    latitude: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    longitude: float = Field(ge=-180, le=180, allow_inf_nan=False)
+    demo_user_id: str = Field(min_length=1, max_length=64)
+
+    @field_validator("description", "demo_user_id", mode="before")
+    @classmethod
+    def strip_and_reject_blank_report_text(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("value must not be blank")
+        return cleaned
+
+
+class CitizenReportResponse(CitizenReportCreate):
+    """Stored citizen report returned by the Backend."""
+
+    report_id: str = Field(min_length=1)
+    reported_at: float = Field(ge=0, allow_inf_nan=False)
+    status: ReportStatus
+
+
+class CitizenReportListResponse(BaseModel):
+    """Stable report-list wrapper for the Citizen Map."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    reports: list[CitizenReportResponse]
     total: int = Field(ge=0)
