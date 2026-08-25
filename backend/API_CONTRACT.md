@@ -33,6 +33,12 @@ Allowed values:
 AI ingestion accepts only `PROPOSED`. `VERIFIED` and `DISMISSED` are municipal
 human decisions.
 
+## Local storage
+
+Events are stored in one local SQLite database. The database file is generated
+at runtime and must not be committed. Event IDs are unique, and duplicate AI
+submissions are rejected instead of creating duplicate dashboard events.
+
 ## Endpoint names
 
 Currently implemented:
