@@ -12,8 +12,15 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from app.database import DuplicateEventError, EventRepository
+from app.database import (
+    CitizenReportRepository,
+    DuplicateEventError,
+    EventRepository,
+)
 from app.schemas import (
+    CitizenReportCreate,
+    CitizenReportListResponse,
+    CitizenReportResponse,
     EventListResponse,
     EventStatus,
     TrafficEventIngest,
@@ -36,6 +43,11 @@ class HealthResponse(BaseModel):
 def get_event_repository(request: Request) -> EventRepository:
     """Return the repository initialized by the FastAPI lifespan."""
     return request.app.state.event_repository
+
+
+def get_citizen_report_repository(request: Request) -> CitizenReportRepository:
+    """Return the citizen-report repository initialized at startup."""
+    return request.app.state.citizen_report_repository
 
 
 def update_event_status(
@@ -95,11 +107,14 @@ def create_app(
         os.getenv("CITYEYE_EVIDENCE_DIR", DEFAULT_EVIDENCE_DIR)
     )
     repository = EventRepository(selected_database_path)
+    citizen_report_repository = CitizenReportRepository(selected_database_path)
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         repository.initialize()
+        citizen_report_repository.initialize()
         application.state.event_repository = repository
+        application.state.citizen_report_repository = citizen_report_repository
         yield
 
     application = FastAPI(
@@ -194,6 +209,55 @@ def create_app(
             event_id,
             EventStatus.DISMISSED,
         )
+
+    @application.post(
+        "/api/citizen-reports",
+        response_model=CitizenReportResponse,
+        status_code=status.HTTP_201_CREATED,
+        tags=["citizen reports"],
+    )
+    def create_citizen_report(
+        report: CitizenReportCreate,
+        report_repository: CitizenReportRepository = Depends(
+            get_citizen_report_repository
+        ),
+    ) -> CitizenReportResponse:
+        """Store one citizen report with Backend-generated metadata."""
+        return report_repository.add(report)
+
+    @application.get(
+        "/api/citizen-reports",
+        response_model=CitizenReportListResponse,
+        tags=["citizen reports"],
+    )
+    def list_citizen_reports(
+        report_repository: CitizenReportRepository = Depends(
+            get_citizen_report_repository
+        ),
+    ) -> CitizenReportListResponse:
+        """Return citizen reports newest first for map polling."""
+        reports = report_repository.list()
+        return CitizenReportListResponse(reports=reports, total=len(reports))
+
+    @application.get(
+        "/api/citizen-reports/{report_id}",
+        response_model=CitizenReportResponse,
+        tags=["citizen reports"],
+    )
+    def get_citizen_report(
+        report_id: str,
+        report_repository: CitizenReportRepository = Depends(
+            get_citizen_report_repository
+        ),
+    ) -> CitizenReportResponse:
+        """Return one citizen report or 404."""
+        report = report_repository.get(report_id)
+        if report is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Citizen report not found: {report_id}",
+            )
+        return report
 
     @application.get(
         "/evidence/{filename}",

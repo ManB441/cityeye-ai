@@ -76,3 +76,12 @@ The Backend generates `report_id`, `reported_at`, and the initial `PENDING`
 status. Supported categories are `CONGESTION`, `ROAD_HAZARD`, `BLOCKED_ROAD`,
 and `OTHER`. `demo_user_id` identifies distinct demo submissions only; it is
 not authentication or a personal user account.
+
+Citizen report endpoints:
+
+- `POST /api/citizen-reports`
+- `GET /api/citizen-reports`
+- `GET /api/citizen-reports/{report_id}`
+
+Clients cannot submit `status`, `report_id`, or `reported_at`. Those values are
+owned by the Backend. Community clustering is implemented in a separate task.
