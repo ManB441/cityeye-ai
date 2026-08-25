@@ -12,13 +12,14 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from app.analysis import read_analysis_summary, resolve_annotated_video
+from app.analysis import read_analysis_summary, read_analysis_timeline, resolve_annotated_video
 from app.database import (
     CitizenReportRepository,
     DuplicateEventError,
     EventRepository,
 )
 from app.schemas import (
+    AnalysisTimeline,
     AnalysisSummary,
     CitizenReportCreate,
     CitizenReportListResponse,
@@ -27,13 +28,17 @@ from app.schemas import (
     EventStatus,
     TrafficEventIngest,
     TrafficEventResponse,
+    ScenarioInfo,
+    ScenarioListResponse,
 )
+from app.scenarios import SCENARIOS, read_scenario_events, scenario_directory
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATABASE_PATH = BACKEND_ROOT / "data" / "cityeye.db"
 DEFAULT_EVIDENCE_DIR = BACKEND_ROOT.parent / "ai" / "output" / "evidence"
 DEFAULT_AI_OUTPUT_DIR = BACKEND_ROOT.parent / "ai" / "output"
+DEFAULT_SCENARIO_OUTPUT_ROOT = BACKEND_ROOT.parent / "ai" / "scenario_outputs"
 
 
 class HealthResponse(BaseModel):
@@ -102,6 +107,7 @@ def create_app(
     database_path: Path | None = None,
     evidence_dir: Path | None = None,
     ai_output_dir: Path | None = None,
+    scenario_output_root: Path | None = None,
 ) -> FastAPI:
     """Build an app using the selected SQLite file."""
     selected_database_path = database_path or Path(
@@ -112,6 +118,9 @@ def create_app(
     )
     selected_ai_output_dir = ai_output_dir or Path(
         os.getenv("CITYEYE_AI_OUTPUT_DIR", DEFAULT_AI_OUTPUT_DIR)
+    )
+    selected_scenario_root = scenario_output_root or Path(
+        os.getenv("CITYEYE_SCENARIO_OUTPUT_ROOT", DEFAULT_SCENARIO_OUTPUT_ROOT)
     )
     repository = EventRepository(selected_database_path)
     citizen_report_repository = CitizenReportRepository(selected_database_path)
@@ -146,6 +155,15 @@ def create_app(
         return read_analysis_summary(selected_ai_output_dir)
 
     @application.get(
+        "/api/analysis/timeline",
+        response_model=AnalysisTimeline,
+        tags=["analysis"],
+    )
+    def analysis_timeline() -> AnalysisTimeline:
+        """Return real frame-by-frame counts synchronized with the processed video."""
+        return read_analysis_timeline(selected_ai_output_dir)
+
+    @application.get(
         "/media/annotated.mp4",
         response_class=FileResponse,
         tags=["analysis"],
@@ -163,6 +181,62 @@ def create_app(
             media_type="video/mp4",
             headers={"Cache-Control": "no-store"},
         )
+
+    def require_scenario(scenario_id: str) -> Path:
+        directory = scenario_directory(selected_scenario_root, scenario_id)
+        if directory is None:
+            raise HTTPException(status_code=404, detail=f"Unknown scenario: {scenario_id}")
+        return directory
+
+    @application.get("/api/scenarios", response_model=ScenarioListResponse, tags=["scenarios"])
+    def list_scenarios() -> ScenarioListResponse:
+        return ScenarioListResponse(scenarios=list(SCENARIOS.values()))
+
+    @application.get("/api/scenarios/{scenario_id}/analysis/summary", response_model=AnalysisSummary, tags=["scenarios"])
+    def scenario_summary(scenario_id: str) -> AnalysisSummary:
+        return read_analysis_summary(require_scenario(scenario_id))
+
+    @application.get("/api/scenarios/{scenario_id}/analysis/timeline", response_model=AnalysisTimeline, tags=["scenarios"])
+    def scenario_timeline(scenario_id: str) -> AnalysisTimeline:
+        return read_analysis_timeline(require_scenario(scenario_id))
+
+    @application.get("/api/scenarios/{scenario_id}/events", response_model=EventListResponse, tags=["scenarios"])
+    def scenario_events(scenario_id: str) -> EventListResponse:
+        try:
+            events = read_scenario_events(require_scenario(scenario_id))
+        except ValueError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+        merged = [repository.get(event.event_id) or event for event in events]
+        return EventListResponse(events=merged, total=len(merged))
+
+    def review_scenario_event(scenario_id: str, event_id: str, decision: EventStatus) -> TrafficEventResponse:
+        events = read_scenario_events(require_scenario(scenario_id))
+        source = next((item for item in events if item.event_id == event_id), None)
+        if source is None:
+            raise HTTPException(status_code=404, detail=f"Event not found: {event_id}")
+        if repository.get(event_id) is None:
+            repository.add(TrafficEventIngest.model_validate(source.model_dump()))
+        return update_event_status(repository, event_id, decision)
+
+    @application.post("/api/scenarios/{scenario_id}/events/{event_id}/verify", response_model=TrafficEventResponse, tags=["scenarios"])
+    def verify_scenario_event(scenario_id: str, event_id: str) -> TrafficEventResponse:
+        return review_scenario_event(scenario_id, event_id, EventStatus.VERIFIED)
+
+    @application.post("/api/scenarios/{scenario_id}/events/{event_id}/dismiss", response_model=TrafficEventResponse, tags=["scenarios"])
+    def dismiss_scenario_event(scenario_id: str, event_id: str) -> TrafficEventResponse:
+        return review_scenario_event(scenario_id, event_id, EventStatus.DISMISSED)
+
+    @application.get("/media/scenarios/{scenario_id}/annotated.mp4", response_class=FileResponse, tags=["scenarios"])
+    def scenario_video(scenario_id: str) -> FileResponse:
+        video_path = resolve_annotated_video(require_scenario(scenario_id))
+        if video_path is None:
+            raise HTTPException(status_code=404, detail="Scenario video is unavailable")
+        return FileResponse(video_path, media_type="video/mp4", headers={"Cache-Control": "no-store"})
+
+    @application.get("/evidence/scenarios/{scenario_id}/{filename}", response_class=FileResponse, tags=["scenarios"])
+    def scenario_evidence(scenario_id: str, filename: str) -> FileResponse:
+        path = resolve_evidence_path(require_scenario(scenario_id) / "evidence", filename)
+        return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
 
     @application.post(
         "/api/events/ingest",
