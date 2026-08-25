@@ -108,6 +108,45 @@ class AnalysisSummary(BaseModel):
     message: str = Field(min_length=1)
 
 
+class AnalysisFrame(BaseModel):
+    """Vehicle counts produced by YOLO/ByteTrack for one video frame."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    frame: int = Field(ge=0)
+    timestamp_sec: float = Field(ge=0, allow_inf_nan=False)
+    active_vehicle_count: int = Field(ge=0)
+    cars: int = Field(ge=0)
+    buses: int = Field(ge=0)
+    trucks: int = Field(ge=0)
+    motorcycles: int = Field(ge=0)
+
+
+class AnalysisTimeline(BaseModel):
+    """Ordered real per-frame counts used to synchronize the Dashboard video."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["READY", "MISSING", "INVALID"]
+    frames: list[AnalysisFrame]
+    message: str = Field(min_length=1)
+
+
+class ScenarioInfo(BaseModel):
+    """Public metadata for one fixed real-AI demonstration scenario."""
+
+    model_config = ConfigDict(extra="forbid")
+    scenario_id: Literal["normal_traffic", "congestion", "stopped_vehicle"]
+    title: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    expected_event: EventType | None
+    source_url: str = Field(min_length=1)
+
+
+class ScenarioListResponse(BaseModel):
+    scenarios: list[ScenarioInfo]
+
+
 class CitizenReportCreate(BaseModel):
     """Citizen-submitted fields accepted without user authentication."""
 

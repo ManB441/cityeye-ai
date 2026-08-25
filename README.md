@@ -125,7 +125,9 @@ citizen map.
 AI summary and annotated video are read from `ai/output` by default; override
 that folder with `CITYEYE_AI_OUTPUT_DIR`. The Backend exposes the real last-frame
 vehicle count at `GET /api/analysis/summary` and the fixed processed MP4 at
-`GET /media/annotated.mp4`.
+`GET /media/annotated.mp4`. `GET /api/analysis/timeline` exposes the real
+per-frame vehicle and class counts used to synchronize the Dashboard with the
+video playback position.
 
 Citizen reports can be created and polled through `/api/citizen-reports`.
 The Backend generates report IDs, timestamps, and the initial `PENDING` status.
@@ -163,9 +165,21 @@ npm run dev
 Open `http://127.0.0.1:5173`. The first Frontend slice displays a responsive
 Municipal Dashboard. Start the FastAPI Backend on port `8000` first; Vite proxies
 `/api`, `/evidence`, and `/media` requests to it. The Dashboard polls real stored
-events and AI output metadata every two seconds, provides working Verify and
-Dismiss actions, displays the last-frame vehicle count, and plays the generated
-annotated video when available. The Leaflet citizen map is implemented separately.
+events and AI output metadata every two seconds and provides working Verify and
+Dismiss actions. Before video playback, live counters start at zero. During
+playback, vehicle classes and events follow the corresponding timestamps from
+real `tracks.csv` and `events.json` output. The Leaflet citizen map is implemented
+separately.
+
+The Dashboard offers three fixed scenarios backed only by real YOLO/ByteTrack
+outputs: `normal_traffic`, `congestion`, and `stopped_vehicle`. Their generated
+files live under `ai/scenario_outputs/<scenario_id>/` and remain outside Git.
+Each folder contains `annotated.mp4`, `tracks.csv`, `events.json`, and generated
+`evidence/*.jpg` files. Source clips: [normal traffic](https://www.pexels.com/video/traffic-in-an-intersecting-road-3002736/),
+[congestion](https://www.pexels.com/video/cars-stuck-in-traffic-3148319/), and
+[stopped vehicle](https://www.pexels.com/video/mechanic-repairing-car-on-busy-street-30125402/).
+The UI resets counters to zero when switching scenarios and reveals only records
+whose real video timestamps have been reached.
 
 Run Frontend checks:
 

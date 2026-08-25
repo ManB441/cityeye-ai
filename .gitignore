@@ -8,6 +8,8 @@ venv/
 
 # AI outputs
 ai/output/
+ai/scenario_outputs/
+ai/config/scenarios/
 ai/sample_videos/*.mp4
 !ai/sample_videos/.gitkeep
 

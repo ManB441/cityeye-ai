@@ -25,3 +25,29 @@ export type AnalysisSummary = {
   annotated_video_available: boolean;
   message: string;
 };
+
+export type AnalysisFrame = {
+  frame: number;
+  timestamp_sec: number;
+  active_vehicle_count: number;
+  cars: number;
+  buses: number;
+  trucks: number;
+  motorcycles: number;
+};
+
+export type AnalysisTimeline = {
+  status: "READY" | "MISSING" | "INVALID";
+  frames: AnalysisFrame[];
+  message: string;
+};
+
+export type ScenarioId = "normal_traffic" | "congestion" | "stopped_vehicle";
+
+export type ScenarioInfo = {
+  scenario_id: ScenarioId;
+  title: string;
+  description: string;
+  expected_event: TrafficEvent["event_type"] | null;
+  source_url: string;
+};

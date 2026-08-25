@@ -45,6 +45,7 @@ Currently implemented:
 
 - `GET /health`
 - `GET /api/analysis/summary`
+- `GET /api/analysis/timeline`
 - `GET /media/annotated.mp4`
 - `POST /api/events/ingest`
 - `GET /api/events`
@@ -52,6 +53,14 @@ Currently implemented:
 - `POST /api/events/{event_id}/verify`
 - `POST /api/events/{event_id}/dismiss`
 - `GET /evidence/{filename}`
+- `GET /api/scenarios`
+- `GET /api/scenarios/{scenario_id}/analysis/summary`
+- `GET /api/scenarios/{scenario_id}/analysis/timeline`
+- `GET /api/scenarios/{scenario_id}/events`
+- `POST /api/scenarios/{scenario_id}/events/{event_id}/verify`
+- `POST /api/scenarios/{scenario_id}/events/{event_id}/dismiss`
+- `GET /media/scenarios/{scenario_id}/annotated.mp4`
+- `GET /evidence/scenarios/{scenario_id}/{filename}`
 
 Evidence responses accept only a single `.jpg` or `.jpeg` filename inside the
 configured evidence directory. They are returned with `Cache-Control: no-store`
@@ -63,6 +72,10 @@ detection row, so real detections are not hidden while ByteTrack is assigning
 an ID. Missing or invalid output is reported explicitly without fabricated
 counts. The media endpoint serves only the fixed generated `annotated.mp4`; it
 never accepts a user-provided path.
+
+The analysis timeline groups real `tracks.csv` rows by video frame and reports
+active vehicle and class counts for synchronization with video playback. It does
+not interpolate missing detections or replace YOLO class labels.
 
 Citizen report endpoints will be documented when that task begins. They are
 not part of the event-storage contract.

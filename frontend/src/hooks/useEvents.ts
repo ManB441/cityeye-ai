@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchEvents, reviewEvent } from "../api/events";
-import type { TrafficEvent } from "../types";
+import type { ScenarioId, TrafficEvent } from "../types";
 
 const POLL_INTERVAL_MS = 2_000;
 
-export function useEvents() {
+export function useEvents(scenarioId: ScenarioId) {
   const [events, setEvents] = useState<TrafficEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,7 +12,7 @@ export function useEvents() {
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     try {
-      const result = await fetchEvents(signal);
+      const result = await fetchEvents(scenarioId, signal);
       setEvents(result.events);
       setError(null);
     } catch (requestError) {
@@ -21,7 +21,7 @@ export function useEvents() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [scenarioId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -36,7 +36,7 @@ export function useEvents() {
   const decide = useCallback(async (eventId: string, decision: "verify" | "dismiss") => {
     setReviewingEventId(eventId);
     try {
-      const updated = await reviewEvent(eventId, decision);
+      const updated = await reviewEvent(eventId, decision, scenarioId);
       setEvents((current) => current.map((event) => (
         event.event_id === updated.event_id ? updated : event
       )));
@@ -46,7 +46,7 @@ export function useEvents() {
     } finally {
       setReviewingEventId(null);
     }
-  }, []);
+  }, [scenarioId]);
 
   return { events, loading, error, reviewingEventId, refresh, decide };
 }
