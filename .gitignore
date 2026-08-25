@@ -15,6 +15,9 @@ ai/sample_videos/*.mp4
 frontend/node_modules/
 frontend/dist/
 frontend/build/
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 # SQLite
 *.db
