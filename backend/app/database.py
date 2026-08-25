@@ -5,9 +5,18 @@ from __future__ import annotations
 from contextlib import contextmanager
 from pathlib import Path
 import sqlite3
-from typing import Iterator
+import time
+from typing import Callable, Iterator
+from uuid import uuid4
 
-from app.schemas import EventStatus, TrafficEventIngest, TrafficEventResponse
+from app.schemas import (
+    CitizenReportCreate,
+    CitizenReportResponse,
+    EventStatus,
+    ReportStatus,
+    TrafficEventIngest,
+    TrafficEventResponse,
+)
 
 
 class DuplicateEventError(ValueError):
@@ -153,3 +162,116 @@ class EventRepository:
     @staticmethod
     def _to_event(row: sqlite3.Row) -> TrafficEventResponse:
         return TrafficEventResponse.model_validate(dict(row))
+
+
+class CitizenReportRepository:
+    """Persist citizen traffic reports in the local SQLite database."""
+
+    def __init__(
+        self,
+        database_path: Path,
+        clock: Callable[[], float] = time.time,
+        id_factory: Callable[[], object] = uuid4,
+    ) -> None:
+        self.database_path = Path(database_path)
+        self.clock = clock
+        self.id_factory = id_factory
+
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        connection = sqlite3.connect(self.database_path, timeout=5.0)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA busy_timeout = 5000")
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def initialize(self) -> None:
+        """Create the citizen_reports table and lookup index."""
+        with self._connect() as connection:
+            connection.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS citizen_reports (
+                    report_id TEXT PRIMARY KEY,
+                    category TEXT NOT NULL CHECK (
+                        category IN (
+                            'CONGESTION', 'ROAD_HAZARD', 'BLOCKED_ROAD', 'OTHER'
+                        )
+                    ),
+                    description TEXT NOT NULL,
+                    latitude REAL NOT NULL CHECK (latitude BETWEEN -90 AND 90),
+                    longitude REAL NOT NULL CHECK (longitude BETWEEN -180 AND 180),
+                    demo_user_id TEXT NOT NULL,
+                    reported_at REAL NOT NULL CHECK (reported_at >= 0),
+                    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (
+                        status IN ('PENDING', 'COMMUNITY_CONFIRMED')
+                    )
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_citizen_reports_cluster_lookup
+                ON citizen_reports(category, reported_at DESC);
+                """
+            )
+
+    def add(self, report: CitizenReportCreate) -> CitizenReportResponse:
+        """Store one report with a server-generated ID and timestamp."""
+        payload = report.model_dump(mode="json")
+        payload.update(
+            {
+                "report_id": str(self.id_factory()),
+                "reported_at": float(self.clock()),
+                "status": ReportStatus.PENDING.value,
+            }
+        )
+        stored_report = CitizenReportResponse.model_validate(payload)
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO citizen_reports (
+                    report_id, category, description, latitude, longitude,
+                    demo_user_id, reported_at, status
+                ) VALUES (
+                    :report_id, :category, :description, :latitude, :longitude,
+                    :demo_user_id, :reported_at, :status
+                )
+                """,
+                stored_report.model_dump(mode="json"),
+            )
+        return stored_report
+
+    def get(self, report_id: str) -> CitizenReportResponse | None:
+        """Return one report by ID or None."""
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT report_id, category, description, latitude, longitude,
+                       demo_user_id, reported_at, status
+                FROM citizen_reports
+                WHERE report_id = ?
+                """,
+                (report_id,),
+            ).fetchone()
+        return self._to_report(row) if row is not None else None
+
+    def list(self) -> list[CitizenReportResponse]:
+        """Return all reports newest first."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT report_id, category, description, latitude, longitude,
+                       demo_user_id, reported_at, status
+                FROM citizen_reports
+                ORDER BY reported_at DESC, report_id ASC
+                """
+            ).fetchall()
+        return [self._to_report(row) for row in rows]
+
+    @staticmethod
+    def _to_report(row: sqlite3.Row) -> CitizenReportResponse:
+        return CitizenReportResponse.model_validate(dict(row))

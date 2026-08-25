@@ -57,3 +57,22 @@ and are intended for the municipal dashboard, not automatic citizen-map display.
 
 Citizen report endpoints will be documented when that task begins. They are
 not part of the event-storage contract.
+
+## Citizen report fields
+
+Citizen report storage accepts:
+
+```json
+{
+  "category": "CONGESTION",
+  "description": "Traffic is moving very slowly.",
+  "latitude": 31.95,
+  "longitude": 35.91,
+  "demo_user_id": "demo-user-1"
+}
+```
+
+The Backend generates `report_id`, `reported_at`, and the initial `PENDING`
+status. Supported categories are `CONGESTION`, `ROAD_HAZARD`, `BLOCKED_ROAD`,
+and `OTHER`. `demo_user_id` identifies distinct demo submissions only; it is
+not authentication or a personal user account.
