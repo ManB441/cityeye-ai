@@ -1,0 +1,73 @@
+"""Read the real local AI outputs used by the Municipal Dashboard."""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from app.schemas import AnalysisSummary
+
+
+REQUIRED_TRACK_COLUMNS = {"frame", "track_id"}
+
+
+def read_analysis_summary(output_dir: Path) -> AnalysisSummary:
+    """Summarize the last processed frame without inventing missing values."""
+    tracks_path = output_dir / "tracks.csv"
+    video_path = output_dir / "annotated.mp4"
+    video_available = _is_safe_file(output_dir, video_path)
+    if not _is_safe_file(output_dir, tracks_path):
+        return AnalysisSummary(
+            status="MISSING", current_vehicle_count=None, last_frame=None,
+            total_track_records=0, annotated_video_available=video_available,
+            message="tracks.csv is not available. Run the AI pipeline first.",
+        )
+    try:
+        with tracks_path.open(newline="", encoding="utf-8") as tracks_file:
+            reader = csv.DictReader(tracks_file)
+            if not reader.fieldnames or not REQUIRED_TRACK_COLUMNS.issubset(reader.fieldnames):
+                raise ValueError("tracks.csv is missing frame or track_id")
+            records = list(reader)
+        parsed_frames = [int(row["frame"]) for row in records]
+    except (OSError, UnicodeError, ValueError) as exc:
+        return AnalysisSummary(
+            status="INVALID", current_vehicle_count=None, last_frame=None,
+            total_track_records=0, annotated_video_available=video_available,
+            message=f"Unable to read tracks.csv: {exc}",
+        )
+    if not records:
+        return AnalysisSummary(
+            status="READY", current_vehicle_count=0, last_frame=None,
+            total_track_records=0, annotated_video_available=video_available,
+            message="The AI pipeline completed with no tracked vehicles.",
+        )
+    last_frame = max(parsed_frames)
+    current_ids = {
+        row["track_id"].strip()
+        for row, frame in zip(records, parsed_frames, strict=True)
+        if frame == last_frame and row["track_id"].strip()
+    }
+    unassigned_detections = sum(
+        1
+        for row, frame in zip(records, parsed_frames, strict=True)
+        if frame == last_frame and not row["track_id"].strip()
+    )
+    return AnalysisSummary(
+        status="READY",
+        current_vehicle_count=len(current_ids) + unassigned_detections,
+        last_frame=last_frame,
+        total_track_records=len(records), annotated_video_available=video_available,
+        message="Summary calculated from the real tracks.csv output.",
+    )
+
+
+def resolve_annotated_video(output_dir: Path) -> Path | None:
+    """Return the fixed annotated MP4 only when it remains inside output_dir."""
+    video_path = output_dir / "annotated.mp4"
+    return video_path.resolve() if _is_safe_file(output_dir, video_path) else None
+
+
+def _is_safe_file(output_dir: Path, candidate: Path) -> bool:
+    output_root = output_dir.resolve()
+    resolved = candidate.resolve()
+    return resolved.parent == output_root and resolved.is_file()

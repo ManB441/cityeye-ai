@@ -95,6 +95,19 @@ class EventListResponse(BaseModel):
     total: int = Field(ge=0)
 
 
+class AnalysisSummary(BaseModel):
+    """Real output metadata used by the Municipal Dashboard."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["READY", "MISSING", "INVALID"]
+    current_vehicle_count: int | None = Field(default=None, ge=0)
+    last_frame: int | None = Field(default=None, ge=0)
+    total_track_records: int = Field(ge=0)
+    annotated_video_available: bool
+    message: str = Field(min_length=1)
+
+
 class CitizenReportCreate(BaseModel):
     """Citizen-submitted fields accepted without user authentication."""
 

@@ -44,6 +44,8 @@ submissions are rejected instead of creating duplicate dashboard events.
 Currently implemented:
 
 - `GET /health`
+- `GET /api/analysis/summary`
+- `GET /media/annotated.mp4`
 - `POST /api/events/ingest`
 - `GET /api/events`
 - `GET /api/events/{event_id}`
@@ -54,6 +56,13 @@ Currently implemented:
 Evidence responses accept only a single `.jpg` or `.jpeg` filename inside the
 configured evidence directory. They are returned with `Cache-Control: no-store`
 and are intended for the municipal dashboard, not automatic citizen-map display.
+
+The analysis summary reads the generated `tracks.csv`. In its last detection
+frame it counts distinct assigned `track_id` values plus each unassigned
+detection row, so real detections are not hidden while ByteTrack is assigning
+an ID. Missing or invalid output is reported explicitly without fabricated
+counts. The media endpoint serves only the fixed generated `annotated.mp4`; it
+never accepts a user-provided path.
 
 Citizen report endpoints will be documented when that task begins. They are
 not part of the event-storage contract.
