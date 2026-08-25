@@ -84,4 +84,9 @@ Citizen report endpoints:
 - `GET /api/citizen-reports/{report_id}`
 
 Clients cannot submit `status`, `report_id`, or `reported_at`. Those values are
-owned by the Backend. Community clustering is implemented in a separate task.
+owned by the Backend.
+
+A report cluster becomes `COMMUNITY_CONFIRMED` only when at least five distinct
+`demo_user_id` values submit the same category within 100 meters and 15 minutes.
+Repeated reports from one demo user count once. Incompatible reports remain
+`PENDING`.

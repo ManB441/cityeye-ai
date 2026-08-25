@@ -119,6 +119,24 @@ def test_get_missing_report_returns_404(client: TestClient) -> None:
     assert response.json()["detail"] == "Citizen report not found: missing"
 
 
+def test_fifth_distinct_api_report_confirms_cluster(client: TestClient) -> None:
+    responses = [
+        client.post(
+            "/api/citizen-reports",
+            json=report_payload(f"cluster-user-{index}"),
+        )
+        for index in range(1, 6)
+    ]
+
+    assert [response.status_code for response in responses] == [201] * 5
+    assert [response.json()["status"] for response in responses[:4]] == [
+        "PENDING"
+    ] * 4
+    assert responses[4].json()["status"] == "COMMUNITY_CONFIRMED"
+    listed = client.get("/api/citizen-reports").json()["reports"]
+    assert {report["status"] for report in listed} == {"COMMUNITY_CONFIRMED"}
+
+
 def test_openapi_lists_citizen_report_endpoints(client: TestClient) -> None:
     paths = client.get("/openapi.json").json()["paths"]
 

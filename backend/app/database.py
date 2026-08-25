@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from math import asin, cos, radians, sin, sqrt
 from pathlib import Path
 import sqlite3
 import time
@@ -172,10 +173,22 @@ class CitizenReportRepository:
         database_path: Path,
         clock: Callable[[], float] = time.time,
         id_factory: Callable[[], object] = uuid4,
+        min_distinct_users: int = 5,
+        cluster_radius_meters: float = 100.0,
+        cluster_window_seconds: float = 15 * 60,
     ) -> None:
+        if min_distinct_users < 2:
+            raise ValueError("min_distinct_users must be at least 2")
+        if cluster_radius_meters <= 0:
+            raise ValueError("cluster_radius_meters must be positive")
+        if cluster_window_seconds <= 0:
+            raise ValueError("cluster_window_seconds must be positive")
         self.database_path = Path(database_path)
         self.clock = clock
         self.id_factory = id_factory
+        self.min_distinct_users = min_distinct_users
+        self.cluster_radius_meters = cluster_radius_meters
+        self.cluster_window_seconds = cluster_window_seconds
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -220,7 +233,7 @@ class CitizenReportRepository:
             )
 
     def add(self, report: CitizenReportCreate) -> CitizenReportResponse:
-        """Store one report with a server-generated ID and timestamp."""
+        """Store one report and confirm a compatible five-user cluster."""
         payload = report.model_dump(mode="json")
         payload.update(
             {
@@ -243,7 +256,37 @@ class CitizenReportRepository:
                 """,
                 stored_report.model_dump(mode="json"),
             )
-        return stored_report
+            compatible_reports = self._compatible_reports(
+                connection,
+                stored_report,
+            )
+            distinct_users = {
+                compatible.demo_user_id for compatible in compatible_reports
+            }
+            if len(distinct_users) >= self.min_distinct_users:
+                report_ids = [compatible.report_id for compatible in compatible_reports]
+                placeholders = ", ".join("?" for _ in report_ids)
+                connection.execute(
+                    f"""
+                    UPDATE citizen_reports
+                    SET status = ?
+                    WHERE report_id IN ({placeholders})
+                    """,
+                    (ReportStatus.COMMUNITY_CONFIRMED.value, *report_ids),
+                )
+
+            row = connection.execute(
+                """
+                SELECT report_id, category, description, latitude, longitude,
+                       demo_user_id, reported_at, status
+                FROM citizen_reports
+                WHERE report_id = ?
+                """,
+                (stored_report.report_id,),
+            ).fetchone()
+        if row is None:
+            raise RuntimeError(f"Stored report could not be read: {stored_report.report_id}")
+        return self._to_report(row)
 
     def get(self, report_id: str) -> CitizenReportResponse | None:
         """Return one report by ID or None."""
@@ -272,6 +315,57 @@ class CitizenReportRepository:
             ).fetchall()
         return [self._to_report(row) for row in rows]
 
+    def _compatible_reports(
+        self,
+        connection: sqlite3.Connection,
+        report: CitizenReportResponse,
+    ) -> list[CitizenReportResponse]:
+        earliest_time = report.reported_at - self.cluster_window_seconds
+        rows = connection.execute(
+            """
+            SELECT report_id, category, description, latitude, longitude,
+                   demo_user_id, reported_at, status
+            FROM citizen_reports
+            WHERE category = ?
+              AND reported_at BETWEEN ? AND ?
+            """,
+            (report.category.value, earliest_time, report.reported_at),
+        ).fetchall()
+        candidates = [self._to_report(row) for row in rows]
+        return [
+            candidate
+            for candidate in candidates
+            if haversine_distance_meters(
+                report.latitude,
+                report.longitude,
+                candidate.latitude,
+                candidate.longitude,
+            )
+            <= self.cluster_radius_meters
+        ]
+
     @staticmethod
     def _to_report(row: sqlite3.Row) -> CitizenReportResponse:
         return CitizenReportResponse.model_validate(dict(row))
+
+
+def haversine_distance_meters(
+    latitude_a: float,
+    longitude_a: float,
+    latitude_b: float,
+    longitude_b: float,
+) -> float:
+    """Return the great-circle distance between two coordinates in meters."""
+    earth_radius_meters = 6_371_000.0
+    latitude_a_rad = radians(latitude_a)
+    latitude_b_rad = radians(latitude_b)
+    latitude_delta = latitude_b_rad - latitude_a_rad
+    longitude_delta = radians(longitude_b - longitude_a)
+    haversine = (
+        sin(latitude_delta / 2) ** 2
+        + cos(latitude_a_rad)
+        * cos(latitude_b_rad)
+        * sin(longitude_delta / 2) ** 2
+    )
+    normalized_haversine = min(1.0, max(0.0, haversine))
+    return 2 * earth_radius_meters * asin(sqrt(normalized_haversine))
