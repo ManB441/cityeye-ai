@@ -90,3 +90,11 @@ A report cluster becomes `COMMUNITY_CONFIRMED` only when at least five distinct
 `demo_user_id` values submit the same category within 100 meters and 15 minutes.
 Repeated reports from one demo user count once. Incompatible reports remain
 `PENDING`.
+
+## Local demo data commands
+
+`python -m app.demo_data seed` creates five clearly labeled Citizen Report
+fixtures through the same repository and clustering logic used by the API.
+`python -m app.demo_data reset` removes only reports whose `demo_user_id` starts
+with `cityeye-demo-user-`. These are local CLI commands, not public API
+endpoints, and they never create simulated AI events.

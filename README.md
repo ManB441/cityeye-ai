@@ -128,6 +128,24 @@ The Backend generates report IDs, timestamps, and the initial `PENDING` status.
 Five distinct demo users reporting the same category within 100 meters and 15
 minutes change the compatible cluster to `COMMUNITY_CONFIRMED`.
 
+Create a repeatable five-report community cluster for the local competition
+demo (these are clearly labeled fixtures, not AI events):
+
+```bash
+cd cityeye-ai/backend
+python -m app.demo_data seed
+```
+
+Remove only the reports created by that command:
+
+```bash
+python -m app.demo_data reset
+```
+
+Both commands accept `--database /path/to/demo.db`. Running `seed` again is
+safe and does not duplicate its five demo users. The reset command does not
+delete real AI events or Citizen Reports submitted with other demo user IDs.
+
 ## Frontend (placeholder)
 
 React + TypeScript scaffold for Days 7–9:
