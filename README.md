@@ -115,7 +115,9 @@ Run Backend tests:
 python -m pytest tests -q
 ```
 
-SQLite and event endpoints are intentionally deferred to the next Backend tasks.
+Event endpoints are available in Swagger at `http://127.0.0.1:8000/docs`.
+The default SQLite file is `backend/data/cityeye.db`; override it with the
+`CITYEYE_DATABASE_PATH` environment variable when needed.
 
 ## Frontend (placeholder)
 

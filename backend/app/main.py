@@ -1,7 +1,26 @@
-"""Minimal FastAPI entry point for the CityEye AI MVP."""
+"""FastAPI entry point for the CityEye AI MVP Backend."""
 
-from fastapi import FastAPI
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+import os
+from pathlib import Path
+from typing import AsyncIterator
+
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from pydantic import BaseModel
+
+from app.database import DuplicateEventError, EventRepository
+from app.schemas import (
+    EventListResponse,
+    EventStatus,
+    TrafficEventIngest,
+    TrafficEventResponse,
+)
+
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_DATABASE_PATH = BACKEND_ROOT / "data" / "cityeye.db"
 
 
 class HealthResponse(BaseModel):
@@ -11,14 +30,133 @@ class HealthResponse(BaseModel):
     service: str
 
 
-app = FastAPI(
-    title="CityEye AI Backend",
-    description="Local MVP API for reviewed traffic events and citizen reports.",
-    version="0.1.0",
-)
+def get_event_repository(request: Request) -> EventRepository:
+    """Return the repository initialized by the FastAPI lifespan."""
+    return request.app.state.event_repository
 
 
-@app.get("/health", response_model=HealthResponse, tags=["system"])
-def health() -> HealthResponse:
-    """Confirm that the local API process is running."""
-    return HealthResponse(status="ok", service="cityeye-ai-backend")
+def update_event_status(
+    repository: EventRepository,
+    event_id: str,
+    status_value: EventStatus,
+) -> TrafficEventResponse:
+    """Update one event or translate a missing row to HTTP 404."""
+    event = repository.update_status(event_id, status_value)
+    if event is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Event not found: {event_id}",
+        )
+    return event
+
+
+def create_app(database_path: Path | None = None) -> FastAPI:
+    """Build an app using the selected SQLite file."""
+    selected_database_path = database_path or Path(
+        os.getenv("CITYEYE_DATABASE_PATH", DEFAULT_DATABASE_PATH)
+    )
+    repository = EventRepository(selected_database_path)
+
+    @asynccontextmanager
+    async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+        repository.initialize()
+        application.state.event_repository = repository
+        yield
+
+    application = FastAPI(
+        title="CityEye AI Backend",
+        description="Local MVP API for reviewed traffic events and citizen reports.",
+        version="0.2.0",
+        lifespan=lifespan,
+    )
+
+    @application.get("/health", response_model=HealthResponse, tags=["system"])
+    def health() -> HealthResponse:
+        """Confirm that the local API process is running."""
+        return HealthResponse(status="ok", service="cityeye-ai-backend")
+
+    @application.post(
+        "/api/events/ingest",
+        response_model=TrafficEventResponse,
+        status_code=status.HTTP_201_CREATED,
+        tags=["events"],
+    )
+    def ingest_event(
+        event: TrafficEventIngest,
+        event_repository: EventRepository = Depends(get_event_repository),
+    ) -> TrafficEventResponse:
+        """Validate and store one AI-proposed traffic event."""
+        try:
+            return event_repository.add(event)
+        except DuplicateEventError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(exc),
+            ) from exc
+
+    @application.get(
+        "/api/events",
+        response_model=EventListResponse,
+        tags=["events"],
+    )
+    def list_events(
+        event_repository: EventRepository = Depends(get_event_repository),
+    ) -> EventListResponse:
+        """Return all events for two-second dashboard polling."""
+        events = event_repository.list()
+        return EventListResponse(events=events, total=len(events))
+
+    @application.get(
+        "/api/events/{event_id}",
+        response_model=TrafficEventResponse,
+        tags=["events"],
+    )
+    def get_event(
+        event_id: str,
+        event_repository: EventRepository = Depends(get_event_repository),
+    ) -> TrafficEventResponse:
+        """Return one traffic event or 404."""
+        event = event_repository.get(event_id)
+        if event is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Event not found: {event_id}",
+            )
+        return event
+
+    @application.post(
+        "/api/events/{event_id}/verify",
+        response_model=TrafficEventResponse,
+        tags=["events"],
+    )
+    def verify_event(
+        event_id: str,
+        event_repository: EventRepository = Depends(get_event_repository),
+    ) -> TrafficEventResponse:
+        """Apply a municipal human verification decision."""
+        return update_event_status(
+            event_repository,
+            event_id,
+            EventStatus.VERIFIED,
+        )
+
+    @application.post(
+        "/api/events/{event_id}/dismiss",
+        response_model=TrafficEventResponse,
+        tags=["events"],
+    )
+    def dismiss_event(
+        event_id: str,
+        event_repository: EventRepository = Depends(get_event_repository),
+    ) -> TrafficEventResponse:
+        """Apply a municipal human dismissal decision."""
+        return update_event_status(
+            event_repository,
+            event_id,
+            EventStatus.DISMISSED,
+        )
+
+    return application
+
+
+app = create_app()

@@ -44,14 +44,14 @@ submissions are rejected instead of creating duplicate dashboard events.
 Currently implemented:
 
 - `GET /health`
-
-Planned Backend tasks:
-
 - `POST /api/events/ingest`
 - `GET /api/events`
 - `GET /api/events/{event_id}`
 - `POST /api/events/{event_id}/verify`
 - `POST /api/events/{event_id}/dismiss`
+
+Planned Backend task:
+
 - `GET /evidence/{filename}`
 
 Citizen report endpoints will be documented when that task begins. They are
