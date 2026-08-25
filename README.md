@@ -80,6 +80,43 @@ the monitored polygon, and the allowed road direction are configured in
 
 On first run, Ultralytics downloads `yolov8n.pt` (~6 MB) automatically.
 
+## Backend — FastAPI skeleton
+
+Create and activate a dedicated Backend environment:
+
+```bash
+cd cityeye-ai/backend
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Run the local API:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Verify it from another terminal:
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+Expected response:
+
+```json
+{"status":"ok","service":"cityeye-ai-backend"}
+```
+
+Run Backend tests:
+
+```bash
+python -m pytest tests -q
+```
+
+SQLite and event endpoints are intentionally deferred to the next Backend tasks.
+
 ## Frontend (placeholder)
 
 React + TypeScript scaffold for Days 7–9:
