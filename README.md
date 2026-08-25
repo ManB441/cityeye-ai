@@ -125,6 +125,8 @@ citizen map.
 
 Citizen reports can be created and polled through `/api/citizen-reports`.
 The Backend generates report IDs, timestamps, and the initial `PENDING` status.
+Five distinct demo users reporting the same category within 100 meters and 15
+minutes change the compatible cluster to `COMMUNITY_CONFIRMED`.
 
 ## Frontend (placeholder)
 
