@@ -114,6 +114,7 @@ h2 { margin-bottom: 0; font-size: 1.25rem; }
   box-shadow: inset 0 0 60px rgb(0 0 0 / 22%);
 }
 .video-placeholder span { max-width: 360px; padding: 13px 17px; border: 1px solid rgb(121 230 221 / 16%); border-radius: 10px; background: rgb(7 20 38 / 62%); }
+.processed-video { display: block; width: 100%; min-height: 430px; max-height: 560px; margin-top: 20px; border-radius: 15px; background: var(--navy-950); object-fit: contain; }
 .event-card { margin-top: 20px; padding: 19px; border: 1px solid #e0e7f0; border-radius: 15px; background: linear-gradient(150deg, white, #f9fbfe); }
 .event-list { display: grid; gap: 14px; }
 .state-card { margin-top: 20px; padding: 24px 16px; border: 1px dashed #b9c7d7; border-radius: 12px; color: #718096; text-align: center; background: #f8fafc; }
@@ -139,4 +140,5 @@ small { display: block; margin-top: 10px; color: #8a95a7; }
   .metric-grid, .dashboard-grid { grid-template-columns: 1fr; }
   .fixture-badge, .live-badge { align-self: flex-start; }
   .video-placeholder { min-height: 260px; }
+  .processed-video { min-height: 260px; }
 }

@@ -122,6 +122,10 @@ Evidence images are read from `ai/output/evidence` by default; override that
 directory with `CITYEYE_EVIDENCE_DIR`. Evidence is available to the municipal
 dashboard at `GET /evidence/{filename}` and is not automatically public on the
 citizen map.
+AI summary and annotated video are read from `ai/output` by default; override
+that folder with `CITYEYE_AI_OUTPUT_DIR`. The Backend exposes the real last-frame
+vehicle count at `GET /api/analysis/summary` and the fixed processed MP4 at
+`GET /media/annotated.mp4`.
 
 Citizen reports can be created and polled through `/api/citizen-reports`.
 The Backend generates report IDs, timestamps, and the initial `PENDING` status.
@@ -158,10 +162,10 @@ npm run dev
 
 Open `http://127.0.0.1:5173`. The first Frontend slice displays a responsive
 Municipal Dashboard. Start the FastAPI Backend on port `8000` first; Vite proxies
-`/api` and `/evidence` requests to it. The Dashboard polls real stored events
-every two seconds and provides working Verify and Dismiss actions. Vehicle count
-and annotated-video display remain unavailable until their media integration
-task. The Leaflet citizen map is implemented separately.
+`/api`, `/evidence`, and `/media` requests to it. The Dashboard polls real stored
+events and AI output metadata every two seconds, provides working Verify and
+Dismiss actions, displays the last-frame vehicle count, and plays the generated
+annotated video when available. The Leaflet citizen map is implemented separately.
 
 Run Frontend checks:
 

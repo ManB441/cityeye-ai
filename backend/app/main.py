@@ -12,12 +12,14 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from app.analysis import read_analysis_summary, resolve_annotated_video
 from app.database import (
     CitizenReportRepository,
     DuplicateEventError,
     EventRepository,
 )
 from app.schemas import (
+    AnalysisSummary,
     CitizenReportCreate,
     CitizenReportListResponse,
     CitizenReportResponse,
@@ -31,6 +33,7 @@ from app.schemas import (
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATABASE_PATH = BACKEND_ROOT / "data" / "cityeye.db"
 DEFAULT_EVIDENCE_DIR = BACKEND_ROOT.parent / "ai" / "output" / "evidence"
+DEFAULT_AI_OUTPUT_DIR = BACKEND_ROOT.parent / "ai" / "output"
 
 
 class HealthResponse(BaseModel):
@@ -98,6 +101,7 @@ def resolve_evidence_path(evidence_dir: Path, filename: str) -> Path:
 def create_app(
     database_path: Path | None = None,
     evidence_dir: Path | None = None,
+    ai_output_dir: Path | None = None,
 ) -> FastAPI:
     """Build an app using the selected SQLite file."""
     selected_database_path = database_path or Path(
@@ -105,6 +109,9 @@ def create_app(
     )
     selected_evidence_dir = evidence_dir or Path(
         os.getenv("CITYEYE_EVIDENCE_DIR", DEFAULT_EVIDENCE_DIR)
+    )
+    selected_ai_output_dir = ai_output_dir or Path(
+        os.getenv("CITYEYE_AI_OUTPUT_DIR", DEFAULT_AI_OUTPUT_DIR)
     )
     repository = EventRepository(selected_database_path)
     citizen_report_repository = CitizenReportRepository(selected_database_path)
@@ -128,6 +135,34 @@ def create_app(
     def health() -> HealthResponse:
         """Confirm that the local API process is running."""
         return HealthResponse(status="ok", service="cityeye-ai-backend")
+
+    @application.get(
+        "/api/analysis/summary",
+        response_model=AnalysisSummary,
+        tags=["analysis"],
+    )
+    def analysis_summary() -> AnalysisSummary:
+        """Return vehicle count and availability from real AI output files."""
+        return read_analysis_summary(selected_ai_output_dir)
+
+    @application.get(
+        "/media/annotated.mp4",
+        response_class=FileResponse,
+        tags=["analysis"],
+    )
+    def annotated_video() -> FileResponse:
+        """Serve the fixed processed video without accepting a user path."""
+        video_path = resolve_annotated_video(selected_ai_output_dir)
+        if video_path is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Annotated video not found. Run the AI pipeline first.",
+            )
+        return FileResponse(
+            video_path,
+            media_type="video/mp4",
+            headers={"Cache-Control": "no-store"},
+        )
 
     @application.post(
         "/api/events/ingest",

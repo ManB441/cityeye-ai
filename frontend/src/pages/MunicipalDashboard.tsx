@@ -1,5 +1,6 @@
 import { evidenceUrl } from "../api/events";
 import { useEvents } from "../hooks/useEvents";
+import { useAnalysis } from "../hooks/useAnalysis";
 import type { TrafficEvent } from "../types";
 
 function EventCard({ event, reviewing, onDecision }: {
@@ -33,6 +34,7 @@ function EventCard({ event, reviewing, onDecision }: {
 
 export function MunicipalDashboard() {
   const { events, loading, error, reviewingEventId, refresh, decide } = useEvents();
+  const { summary, error: analysisError, refresh: refreshAnalysis } = useAnalysis();
   const proposedCount = events.filter((event) => event.status === "PROPOSED").length;
   const hasCongestion = events.some((event) => event.event_type === "CONGESTION" && event.status !== "DISMISSED");
   const trafficStatus = hasCongestion ? "Congested" : proposedCount > 0 ? "Attention" : "Normal";
@@ -49,10 +51,10 @@ export function MunicipalDashboard() {
         <div className="live-badge">LIVE BACKEND DATA · 2s POLLING</div>
       </section>
 
-      {error && <div className="error-banner" role="alert"><span>{error}</span><button type="button" onClick={() => void refresh()}>Retry</button></div>}
+      {(error || analysisError) && <div className="error-banner" role="alert"><span>{error ?? analysisError}</span><button type="button" onClick={() => { void refresh(); void refreshAnalysis(); }}>Retry</button></div>}
 
       <section className="metric-grid" aria-label="Current traffic summary">
-        <article className="metric-card"><span>Current vehicles</span><strong>Unavailable</strong></article>
+        <article className="metric-card"><span>Current vehicles</span><strong>{summary?.current_vehicle_count ?? "Unavailable"}</strong></article>
         <article className="metric-card"><span>Traffic status</span><strong>{trafficStatus}</strong></article>
         <article className="metric-card"><span>Proposed events</span><strong>{proposedCount}</strong></article>
       </section>
@@ -61,11 +63,17 @@ export function MunicipalDashboard() {
         <article className="panel video-panel">
           <div className="panel-heading">
             <div><p className="eyebrow">Processed video</p><h2>Camera analysis</h2></div>
-            <span className="status-dot">Pending media endpoint</span>
+            <span className="status-dot">{summary?.status ?? "Loading"}</span>
           </div>
-          <div className="video-placeholder" role="img" aria-label="Processed video placeholder">
-            <span>Annotated video integration is a separate task. No simulated stream is shown.</span>
-          </div>
+          {summary?.annotated_video_available ? (
+            <video className="processed-video" controls preload="metadata" src="/media/annotated.mp4">
+              Your browser does not support MP4 video.
+            </video>
+          ) : (
+            <div className="video-placeholder" role="img" aria-label="Processed video unavailable">
+              <span>{summary?.message ?? "Checking real AI output files…"}</span>
+            </div>
+          )}
         </article>
 
         <article className="panel event-panel">

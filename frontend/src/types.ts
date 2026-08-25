@@ -16,3 +16,12 @@ export type EventListResponse = {
   events: TrafficEvent[];
   total: number;
 };
+
+export type AnalysisSummary = {
+  status: "READY" | "MISSING" | "INVALID";
+  current_vehicle_count: number | null;
+  last_frame: number | null;
+  total_track_records: number;
+  annotated_video_available: boolean;
+  message: string;
+};
