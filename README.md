@@ -157,9 +157,11 @@ npm run dev
 ```
 
 Open `http://127.0.0.1:5173`. The first Frontend slice displays a responsive
-Municipal Dashboard layout using data explicitly labeled `FIXTURE DATA — NOT AI
-OUTPUT`. Backend polling and the Leaflet citizen map are implemented in later
-tasks; fixture review buttons remain disabled until that integration exists.
+Municipal Dashboard. Start the FastAPI Backend on port `8000` first; Vite proxies
+`/api` and `/evidence` requests to it. The Dashboard polls real stored events
+every two seconds and provides working Verify and Dismiss actions. Vehicle count
+and annotated-video display remain unavailable until their media integration
+task. The Leaflet citizen map is implemented separately.
 
 Run Frontend checks:
 
