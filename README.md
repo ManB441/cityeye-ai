@@ -156,6 +156,18 @@ npm install
 npm run dev
 ```
 
+Open `http://127.0.0.1:5173`. The first Frontend slice displays a responsive
+Municipal Dashboard layout using data explicitly labeled `FIXTURE DATA — NOT AI
+OUTPUT`. Backend polling and the Leaflet citizen map are implemented in later
+tasks; fixture review buttons remain disabled until that integration exists.
+
+Run Frontend checks:
+
+```bash
+npm test
+npm run build
+```
+
 ## License
 
 University competition project — see team documentation for license details.
