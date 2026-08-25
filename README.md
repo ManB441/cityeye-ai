@@ -118,6 +118,10 @@ python -m pytest tests -q
 Event endpoints are available in Swagger at `http://127.0.0.1:8000/docs`.
 The default SQLite file is `backend/data/cityeye.db`; override it with the
 `CITYEYE_DATABASE_PATH` environment variable when needed.
+Evidence images are read from `ai/output/evidence` by default; override that
+directory with `CITYEYE_EVIDENCE_DIR`. Evidence is available to the municipal
+dashboard at `GET /evidence/{filename}` and is not automatically public on the
+citizen map.
 
 ## Frontend (placeholder)
 

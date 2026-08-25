@@ -49,10 +49,11 @@ Currently implemented:
 - `GET /api/events/{event_id}`
 - `POST /api/events/{event_id}/verify`
 - `POST /api/events/{event_id}/dismiss`
-
-Planned Backend task:
-
 - `GET /evidence/{filename}`
+
+Evidence responses accept only a single `.jpg` or `.jpeg` filename inside the
+configured evidence directory. They are returned with `Cache-Control: no-store`
+and are intended for the municipal dashboard, not automatic citizen-map display.
 
 Citizen report endpoints will be documented when that task begins. They are
 not part of the event-storage contract.
