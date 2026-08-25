@@ -123,6 +123,9 @@ directory with `CITYEYE_EVIDENCE_DIR`. Evidence is available to the municipal
 dashboard at `GET /evidence/{filename}` and is not automatically public on the
 citizen map.
 
+Citizen reports can be created and polled through `/api/citizen-reports`.
+The Backend generates report IDs, timestamps, and the initial `PENDING` status.
+
 ## Frontend (placeholder)
 
 React + TypeScript scaffold for Days 7–9:
