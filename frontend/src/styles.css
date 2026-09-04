@@ -150,3 +150,94 @@ small { display: block; margin-top: 10px; color: #8a95a7; }
   .video-placeholder { min-height: 260px; }
   .processed-video { min-height: 260px; }
 }
+
+/* Municipal dashboard layout */
+.dashboard {
+  width: min(1500px, 94vw);
+  padding: 32px 0 56px;
+}
+.heading-subtitle { margin: 0; color: #657289; font-size: .95rem; }
+.system-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border: 1px solid rgb(34 199 188 / 32%);
+  border-radius: 999px;
+  color: #08756f;
+  background: #eafaf8;
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.system-badge > span { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.system-badge.waiting { color: #657289; border-color: var(--border); background: #f7f9fb; }
+.monitoring-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr);
+  align-items: start;
+  gap: 16px;
+  margin-top: 24px;
+}
+.dashboard .panel,
+.dashboard .metric-card { border-radius: 16px; background: #fff; box-shadow: 0 8px 28px rgb(25 48 78 / 7%); backdrop-filter: none; }
+.dashboard .panel { min-width: 0; padding: 20px; }
+.camera-label { display: block; margin-top: 5px; color: #657289; font-size: .82rem; }
+.video-status { display: flex; align-items: center; gap: 12px; }
+.video-clock { color: #657289; font-size: .78rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+.dashboard .processed-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  max-height: none;
+  height: auto;
+  margin-top: 18px;
+  border-radius: 12px;
+}
+.dashboard .video-placeholder { min-height: 0; aspect-ratio: 16 / 9; margin-top: 18px; border-radius: 12px; }
+.event-panel { min-height: 0; max-height: min(720px, calc(100vh - 180px)); overflow: auto; scrollbar-width: thin; }
+.event-count { display: grid; min-width: 32px; height: 32px; place-items: center; border-radius: 10px; color: #08756f; background: #eafaf8; font-weight: 850; }
+.event-list { gap: 12px; margin-top: 16px; }
+.event-list .event-card { margin-top: 0; }
+.dashboard .event-card { padding: 16px; border-radius: 14px; background: #fff; }
+.event-kicker { display: block; margin-bottom: 6px; color: #087f79; font-size: .67rem; font-weight: 850; letter-spacing: .11em; text-transform: uppercase; }
+.dashboard .event-card p { margin: 10px 0 14px; }
+.dashboard .evidence-image { max-height: 170px; margin: 14px 0; border-radius: 10px; }
+.dashboard .metric-grid { grid-template-columns: repeat(8, minmax(105px, 1fr)); gap: 10px; margin: 16px 0 0; }
+.dashboard .metric-card { min-height: 82px; padding: 14px 15px; }
+.dashboard .metric-card strong { margin-top: 6px; font-size: 1.42rem; }
+.traffic-pill { display: inline-flex !important; width: fit-content; padding: 5px 9px; border-radius: 999px; color: #08756f !important; background: #eafaf8; font-size: .95rem !important; letter-spacing: 0 !important; }
+.traffic-pill.attention { color: #85500b !important; background: #fff5df; }
+.traffic-pill.congested { color: #a62e2e !important; background: #ffeded; }
+.scenario-section { margin-top: 30px; padding-top: 24px; border-top: 1px solid var(--border); }
+.section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; }
+.section-heading > span { color: #718096; font-size: .78rem; }
+.scenario-section .scenario-grid { margin-top: 14px; }
+.scenario-section .scenario-card { min-height: 0; padding: 15px; border-radius: 13px; box-shadow: none; }
+.scenario-section .scenario-card strong { font-size: 1rem; }
+.scenario-section .scenario-card small { margin-top: 2px; }
+
+@media (max-width: 1100px) {
+  .dashboard .metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 880px) {
+  .monitoring-grid { grid-template-columns: 1fr; }
+  .event-panel { max-height: none; overflow: visible; }
+}
+
+@media (max-width: 760px) {
+  .dashboard { width: min(92vw, 680px); padding-top: 24px; }
+  .dashboard .page-heading { align-items: flex-start; }
+  .dashboard .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .section-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .dashboard .processed-video,
+  .dashboard .video-placeholder { min-height: 0; }
+}
+
+@media (max-width: 420px) {
+  .dashboard .metric-grid { grid-template-columns: 1fr; }
+  .dashboard .panel { padding: 16px; }
+}

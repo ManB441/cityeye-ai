@@ -20,7 +20,10 @@ function EventCard({ event, reviewing, onDecision, scenarioId }: {
   return (
     <div className="event-card">
       <div className="event-title-row">
-        <strong>{event.event_type}</strong>
+        <div>
+          <span className="event-kicker">AI traffic event</span>
+          <strong>{event.event_type}</strong>
+        </div>
         <span className={`severity ${event.severity.toLowerCase()}`}>{event.severity}</span>
       </div>
       <p>{event.explanation}</p>
@@ -60,8 +63,9 @@ export function MunicipalDashboard() {
   const proposedCount = visibleEvents.filter((event) => event.status === "PROPOSED").length;
   const hasCongestion = visibleEvents.some((event) => event.event_type === "CONGESTION" && event.status !== "DISMISSED");
   const trafficStatus = hasCongestion ? "Congested" : proposedCount > 0 ? "Attention" : "Normal";
-  const cameraName = events[0]?.camera_name ?? "No active camera event";
   const selectedScenario = scenarios.find((scenario) => scenario.scenario_id === scenarioId);
+  const cameraName = events[0]?.camera_name ?? selectedScenario?.title ?? "Loading camera";
+  const systemActive = summary?.status === "READY";
 
   useEffect(() => {
     const controller = new AbortController();
@@ -81,39 +85,28 @@ export function MunicipalDashboard() {
         <div>
           <p className="eyebrow">Municipal operations</p>
           <h1>Traffic Monitoring Dashboard</h1>
-          <p>Local competition MVP · {cameraName}</p>
+          <p className="heading-subtitle">Operational view · {cameraName}</p>
         </div>
-        <div className="live-badge">REAL PRECOMPUTED AI OUTPUT · VIDEO-SYNCED</div>
-      </section>
-
-      <section className="scenario-grid" aria-label="Traffic demonstration scenarios">
-        {scenarios.map((scenario) => (
-          <button key={scenario.scenario_id} type="button"
-            className={`scenario-card ${scenario.scenario_id === scenarioId ? "selected" : ""}`}
-            onClick={() => selectScenario(scenario.scenario_id)}>
-            <span>Scenario</span><strong>{scenario.title}</strong><small>{scenario.description}</small>
-          </button>
-        ))}
+        <div className={`system-badge ${systemActive ? "active" : "waiting"}`}>
+          <span aria-hidden="true" />
+          {systemActive ? "AI System Active" : "Checking AI System"}
+        </div>
       </section>
 
       {(error || analysisError) && <div className="error-banner" role="alert"><span>{error ?? analysisError}</span><button type="button" onClick={() => { void refresh(); void refreshAnalysis(); }}>Retry</button></div>}
 
-      <section className="metric-grid" aria-label="Current traffic summary">
-        <article className="metric-card"><span>Active tracked</span><strong>{currentFrame.active_vehicle_count}</strong></article>
-        <article className="metric-card"><span>Traffic status</span><strong>{trafficStatus}</strong></article>
-        <article className="metric-card"><span>Proposed events</span><strong>{proposedCount}</strong></article>
-        <article className="metric-card"><span>Cars</span><strong>{currentFrame.cars}</strong></article>
-        <article className="metric-card"><span>Buses</span><strong>{currentFrame.buses}</strong></article>
-        <article className="metric-card"><span>Trucks</span><strong>{currentFrame.trucks}</strong></article>
-        <article className="metric-card"><span>Motorcycles</span><strong>{currentFrame.motorcycles}</strong></article>
-        <article className="metric-card"><span>Video position</span><strong>{videoTime.toFixed(1)}s</strong></article>
-      </section>
-
-      <section className="dashboard-grid">
+      <section className="monitoring-grid" aria-label="AI traffic monitoring">
         <article className="panel video-panel">
           <div className="panel-heading">
-            <div><p className="eyebrow">Processed video</p><h2>Camera analysis</h2></div>
-            <span className="status-dot">{summary?.status ?? "Loading"}</span>
+            <div>
+              <p className="eyebrow">Processed camera feed</p>
+              <h2>Camera Analysis</h2>
+              <span className="camera-label">{cameraName}</span>
+            </div>
+            <div className="video-status">
+              <span className="status-dot">{summary?.status ?? "Loading"}</span>
+              <span className="video-clock">{videoTime.toFixed(1)}s</span>
+            </div>
           </div>
           {summary?.annotated_video_available ? (
             <video key={scenarioId} className="processed-video" controls preload="metadata" src={`/media/scenarios/${scenarioId}/annotated.mp4`}
@@ -132,7 +125,10 @@ export function MunicipalDashboard() {
         </article>
 
         <article className="panel event-panel">
-          <div className="panel-heading"><div><p className="eyebrow">Event queue</p><h2>Live events</h2></div><span>{events.length}</span></div>
+          <div className="panel-heading event-panel-heading">
+            <div><p className="eyebrow">Event queue</p><h2>Live Events</h2></div>
+            <span className="event-count">{visibleEvents.length}</span>
+          </div>
           {loading && <div className="state-card">Loading events…</div>}
           {!loading && !analysisStarted && <div className="state-card">Press Play to synchronize real tracking data and events.</div>}
           {!loading && analysisStarted && visibleEvents.length === 0 && <div className="state-card">No AI event has occurred at this video time.</div>}
@@ -140,6 +136,33 @@ export function MunicipalDashboard() {
             {visibleEvents.map((event) => <EventCard key={event.event_id} event={event} scenarioId={scenarioId} reviewing={reviewingEventId === event.event_id} onDecision={(decision) => void decide(event.event_id, decision)} />)}
           </div>
         </article>
+      </section>
+
+      <section className="metric-grid" aria-label="Current traffic summary">
+        <article className="metric-card primary-metric"><span>Active tracked</span><strong>{currentFrame.active_vehicle_count}</strong></article>
+        <article className="metric-card"><span>Cars</span><strong>{currentFrame.cars}</strong></article>
+        <article className="metric-card"><span>Buses</span><strong>{currentFrame.buses}</strong></article>
+        <article className="metric-card"><span>Trucks</span><strong>{currentFrame.trucks}</strong></article>
+        <article className="metric-card"><span>Motorcycles</span><strong>{currentFrame.motorcycles}</strong></article>
+        <article className="metric-card traffic-metric"><span>Traffic status</span><strong className={`traffic-pill ${trafficStatus.toLowerCase()}`}>{trafficStatus}</strong></article>
+        <article className="metric-card"><span>Proposed events</span><strong>{proposedCount}</strong></article>
+        <article className="metric-card"><span>Video position</span><strong>{videoTime.toFixed(1)}s</strong></article>
+      </section>
+
+      <section className="scenario-section">
+        <div className="section-heading">
+          <div><p className="eyebrow">Demonstration feeds</p><h2>Choose Traffic Scenario</h2></div>
+          <span>Real precomputed AI output · video-synced</span>
+        </div>
+        <div className="scenario-grid" aria-label="Traffic demonstration scenarios">
+          {scenarios.map((scenario) => (
+            <button key={scenario.scenario_id} type="button"
+              className={`scenario-card ${scenario.scenario_id === scenarioId ? "selected" : ""}`}
+              onClick={() => selectScenario(scenario.scenario_id)}>
+              <span>Scenario</span><strong>{scenario.title}</strong><small>{scenario.description}</small>
+            </button>
+          ))}
+        </div>
       </section>
     </main>
   );
