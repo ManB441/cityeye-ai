@@ -130,7 +130,11 @@ def test_scenario_endpoints_use_only_allowlisted_real_outputs(tmp_path: Path) ->
         '"evidence_image":"evidence/event.jpg","status":"PROPOSED"}]', encoding="utf-8"
     )
     with make_client(tmp_path, tmp_path / "output") as client:
-        assert client.get("/api/scenarios").status_code == 200
+        scenarios = client.get("/api/scenarios")
+        assert scenarios.status_code == 200
+        assert "rainy_traffic" in {
+            item["scenario_id"] for item in scenarios.json()["scenarios"]
+        }
         assert client.get("/api/scenarios/congestion/analysis/timeline").json()["frames"][0]["cars"] == 1
         assert client.get("/api/scenarios/congestion/events").json()["total"] == 1
         assert client.get("/media/scenarios/congestion/annotated.mp4").content == b"h264-video"

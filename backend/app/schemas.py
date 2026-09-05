@@ -136,7 +136,7 @@ class ScenarioInfo(BaseModel):
     """Public metadata for one fixed real-AI demonstration scenario."""
 
     model_config = ConfigDict(extra="forbid")
-    scenario_id: Literal["normal_traffic", "congestion", "stopped_vehicle"]
+    scenario_id: Literal["normal_traffic", "congestion", "stopped_vehicle", "rainy_traffic"]
     title: str = Field(min_length=1)
     description: str = Field(min_length=1)
     expected_event: EventType | None

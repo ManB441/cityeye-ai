@@ -54,6 +54,7 @@ function mockBackend(events = [proposedEvent], summary = readySummary) {
       { scenario_id: "normal_traffic", title: "Normal Traffic", description: "Free flowing", expected_event: null, source_url: "https://example.com/normal" },
       { scenario_id: "congestion", title: "Heavy Congestion", description: "Dense traffic", expected_event: "CONGESTION", source_url: "https://example.com/congestion" },
       { scenario_id: "stopped_vehicle", title: "Stopped Vehicle", description: "Disabled car", expected_event: "STOPPED_VEHICLE", source_url: "https://example.com/stopped" },
+      { scenario_id: "rainy_traffic", title: "Rainy Traffic", description: "Wet-road traffic", expected_event: null, source_url: "https://example.com/rainy" },
     ] });
     if (url.endsWith("/analysis/summary")) return jsonResponse(summary);
     if (url.endsWith("/analysis/timeline")) return jsonResponse(readyTimeline);
@@ -116,7 +117,7 @@ describe("CityEye municipal dashboard", () => {
     expect(video).toHaveAttribute("src", "/media/scenarios/normal_traffic/annotated.mp4");
   });
 
-  it("switches between the three real scenarios and resets playback metrics", async () => {
+  it("switches between all real scenarios and resets playback metrics", async () => {
     const fetchMock = mockBackend();
     render(<MemoryRouter initialEntries={["/dashboard"]}><App /></MemoryRouter>);
     fireEvent.click(await screen.findByRole("button", { name: /heavy congestion/i }));
@@ -125,6 +126,15 @@ describe("CityEye municipal dashboard", () => {
     ));
     const video = screen.getByText(/browser does not support mp4/i).closest("video");
     expect(video).toHaveAttribute("src", "/media/scenarios/congestion/annotated.mp4");
+    playAt(1);
+    fireEvent.click(screen.getByRole("button", { name: /rainy traffic/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/scenarios/rainy_traffic/analysis/summary", expect.any(Object),
+    ));
+    const rainyVideo = screen.getByText(/browser does not support mp4/i).closest("video");
+    expect(rainyVideo).toHaveAttribute("src", "/media/scenarios/rainy_traffic/annotated.mp4");
+    const metrics = screen.getByRole("region", { name: "Current traffic summary" });
+    expect(within(metrics).getByText("Active tracked").parentElement).toHaveTextContent("0");
   });
 
   it("shows a truthful Citizen Map placeholder", () => {

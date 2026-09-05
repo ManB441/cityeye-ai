@@ -42,7 +42,7 @@ export type AnalysisTimeline = {
   message: string;
 };
 
-export type ScenarioId = "normal_traffic" | "congestion" | "stopped_vehicle";
+export type ScenarioId = "normal_traffic" | "congestion" | "stopped_vehicle" | "rainy_traffic";
 
 export type ScenarioInfo = {
   scenario_id: ScenarioId;

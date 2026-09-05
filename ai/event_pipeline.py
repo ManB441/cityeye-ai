@@ -8,7 +8,12 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from event_rules import CongestionRule, StoppedVehicleRule, WrongWayRule
+from event_rules import (
+    CongestionRule,
+    StoppedVehicleRule,
+    VehicleObservation,
+    WrongWayRule,
+)
 from events import TrafficEvent, create_proposed_event
 from trajectory import TrackState
 
@@ -67,15 +72,37 @@ class EventPipeline:
         )
         self.congestion_rule = CongestionRule(
             monitored_polygon=polygon,
-            min_vehicles=int(thresholds.get("congestion_min_vehicles", 6)),
+            min_vehicles=int(thresholds.get("congestion_min_vehicles", 16)),
+            moderate_min_vehicles=int(
+                thresholds.get(
+                    "congestion_moderate_min_vehicles",
+                    min(12, int(thresholds.get("congestion_min_vehicles", 16))),
+                )
+            ),
+            min_density=float(thresholds.get("congestion_min_density", 0.04)),
+            max_spacing=float(
+                thresholds.get("congestion_max_normalized_spacing", 0.12)
+            ),
+            max_movement=float(
+                thresholds.get("congestion_max_normalized_movement", 0.12)
+            ),
+            min_detection_confidence=float(
+                thresholds.get("congestion_min_detection_confidence", 0.30)
+            ),
+            perspective_weight_strength=float(
+                thresholds.get("congestion_perspective_weight_strength", 0.5)
+            ),
             min_duration_seconds=float(
-                thresholds.get("congestion_duration_seconds", 30.0)
+                thresholds.get("congestion_duration_seconds", 5.0)
             ),
             max_track_age_seconds=float(
                 thresholds.get("congestion_max_track_age_seconds", 1.0)
             ),
             max_evaluation_gap_seconds=float(
                 thresholds.get("congestion_max_evaluation_gap_seconds", 1.0)
+            ),
+            release_grace_seconds=float(
+                thresholds.get("congestion_release_grace_seconds", 0.75)
             ),
         )
         self.output_dir = output_dir
@@ -88,6 +115,7 @@ class EventPipeline:
         timestamp: float,
         tracks: list[TrackState],
         annotated_frame: np.ndarray,
+        detections: list[VehicleObservation] | None = None,
     ) -> list[TrafficEvent]:
         """Evaluate all rules once and save evidence for new real matches."""
         new_matches = []
@@ -103,6 +131,7 @@ class EventPipeline:
         congestion = self.congestion_rule.evaluate(
             timestamp,
             list(unique_tracks.values()),
+            observations=detections,
         )
         if congestion is not None:
             new_matches.append(congestion)

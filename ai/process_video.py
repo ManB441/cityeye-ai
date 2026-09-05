@@ -24,6 +24,7 @@ import numpy as np
 from ultralytics import YOLO
 
 from event_pipeline import EventPipeline
+from event_rules import VehicleObservation
 from trajectory import TrajectoryManager
 
 # COCO class IDs for vehicles we care about
@@ -202,7 +203,10 @@ def process_video(
     annotated_path = output_dir / "annotated.mp4"
     tracks_path = output_dir / "tracks.csv"
 
-    confidence_threshold = float(config.get("confidence_threshold", 0.4))
+    confidence_threshold = float(config.get("confidence_threshold", 0.25))
+    inference_image_size = int(config.get("inference_image_size", 960))
+    iou_threshold = float(config.get("iou_threshold", 0.7))
+    debug_traffic = bool(config.get("debug_traffic_analysis", False))
     allowed_classes = set(config.get("vehicle_classes", list(COCO_VEHICLE_IDS.values())))
     model_reference = model_name or config.get("model", "yolov8n.pt")
     model_path = resolve_model_reference(
@@ -265,12 +269,15 @@ def process_video(
                 persist=True,
                 tracker="bytetrack.yaml",
                 conf=confidence_threshold,
+                imgsz=inference_image_size,
+                iou=iou_threshold,
                 classes=list(COCO_VEHICLE_IDS.keys()),
                 verbose=False,
             )
 
             vehicle_count = 0
             current_track_states = {}
+            vehicle_observations: list[VehicleObservation] = []
             if results and results[0].boxes is not None and len(results[0].boxes) > 0:
                 boxes = results[0].boxes
                 for box in boxes:
@@ -299,6 +306,12 @@ def process_video(
                         pixel_speed = track_state.pixel_speed
                         stationary_duration = track_state.stationary_duration
                         current_track_states[track_id] = track_state
+
+                    vehicle_observations.append(VehicleObservation(
+                        center_x=center_x, center_y=center_y,
+                        x1=x1, y1=y1, x2=x2, y2=y2,
+                        confidence=conf, track_id=track_id, pixel_speed=pixel_speed,
+                    ))
 
                     draw_detection(frame, x1, y1, x2, y2, class_name, track_id, conf)
                     vehicle_count += 1
@@ -334,6 +347,22 @@ def process_video(
                 timestamp=frame_idx / fps,
                 tracks=list(current_track_states.values()),
                 annotated_frame=frame,
+                detections=vehicle_observations,
+            )
+            metrics = event_pipeline.congestion_rule.last_metrics
+            traffic_status = (
+                f"Traffic: {metrics.state.value} | ROI: {metrics.vehicles_in_roi} "
+                f"| Density: {metrics.traffic_density:.3f}"
+            )
+            cv2.putText(
+                frame,
+                traffic_status,
+                (10, 60),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.65,
+                (255, 255, 255),
+                2,
+                cv2.LINE_AA,
             )
             writer.write(frame)
             frame_idx += 1
@@ -341,6 +370,14 @@ def process_video(
             if frame_idx % 30 == 0:
                 pct = (frame_idx / total_frames * 100) if total_frames > 0 else 0
                 print(f"  {frame_idx}/{total_frames} frames ({pct:.0f}%)")
+                if debug_traffic:
+                    print(
+                        "  traffic "
+                        f"detections={metrics.detections} vehicles_in_roi={metrics.vehicles_in_roi} "
+                        f"tracked_vehicles={metrics.tracked_vehicles} density={metrics.traffic_density:.4f} "
+                        f"movement={metrics.average_movement} candidate={metrics.congestion_candidate} "
+                        f"duration={metrics.congestion_duration:.1f}s state={metrics.state.value}"
+                    )
     finally:
         cap.release()
         writer.release()

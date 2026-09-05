@@ -171,13 +171,14 @@ playback, vehicle classes and events follow the corresponding timestamps from
 real `tracks.csv` and `events.json` output. The Leaflet citizen map is implemented
 separately.
 
-The Dashboard offers three fixed scenarios backed only by real YOLO/ByteTrack
-outputs: `normal_traffic`, `congestion`, and `stopped_vehicle`. Their generated
+The Dashboard offers four fixed scenarios backed only by real YOLO/ByteTrack
+outputs: `normal_traffic`, `congestion`, `stopped_vehicle`, and `rainy_traffic`. Their generated
 files live under `ai/scenario_outputs/<scenario_id>/` and remain outside Git.
 Each folder contains `annotated.mp4`, `tracks.csv`, `events.json`, and generated
 `evidence/*.jpg` files. Source clips: [normal traffic](https://www.pexels.com/video/traffic-in-an-intersecting-road-3002736/),
 [congestion](https://www.pexels.com/video/cars-stuck-in-traffic-3148319/), and
 [stopped vehicle](https://www.pexels.com/video/mechanic-repairing-car-on-busy-street-30125402/).
+Rainy Traffic is a user-provided wet-road test clip and does not imply weather detection.
 The UI resets counters to zero when switching scenarios and reveals only records
 whose real video timestamps have been reached.
 

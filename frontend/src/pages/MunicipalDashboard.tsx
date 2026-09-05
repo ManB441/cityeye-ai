@@ -121,7 +121,7 @@ export function MunicipalDashboard() {
               <span>{summary?.message ?? "Checking real AI output files…"}</span>
             </div>
           )}
-          {selectedScenario && <p className="source-credit">Video source: <a href={selectedScenario.source_url} target="_blank" rel="noreferrer">Pexels · free-to-use source</a></p>}
+          {selectedScenario && <p className="source-credit">Video source: {selectedScenario.source_url === "user-provided" ? "User-provided test clip" : <a href={selectedScenario.source_url} target="_blank" rel="noreferrer">Pexels · free-to-use source</a>}</p>}
         </article>
 
         <article className="panel event-panel">
