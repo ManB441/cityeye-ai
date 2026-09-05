@@ -16,7 +16,7 @@ Two-week MVP for a team of three developers. Proves CityEye AI can analyze real 
 ### Required features (full MVP)
 
 - Video sources: local MP4, webcam, optional RTSP
-- Pretrained lightweight YOLO (people, cars, buses, trucks, motorcycles)
+- Pretrained lightweight YOLO (people, bicycles, cars, buses, trucks, motorcycles)
 - ByteTrack (or YOLO built-in tracker)
 - Events: WRONG_WAY, STOPPED_VEHICLE, CONGESTION
 - React app: Municipal Dashboard + Citizen Traffic Map (Leaflet/OSM)

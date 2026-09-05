@@ -35,10 +35,16 @@ COCO_VEHICLE_IDS = {
     7: "truck",
 }
 COCO_PERSON_ID = 0
-COCO_ROAD_USER_IDS = {COCO_PERSON_ID: "person", **COCO_VEHICLE_IDS}
+COCO_BICYCLE_ID = 1
+COCO_ROAD_USER_IDS = {
+    COCO_PERSON_ID: "person",
+    COCO_BICYCLE_ID: "bicycle",
+    **COCO_VEHICLE_IDS,
+}
 
 CLASS_COLORS = {
     "person": (255, 220, 0),
+    "bicycle": (255, 180, 60),
     "car": (0, 200, 0),
     "motorcycle": (255, 140, 0),
     "bus": (200, 0, 200),
@@ -60,6 +66,7 @@ TRACK_FIELDNAMES = [
     "pixel_speed",
     "stationary_duration",
     "person_in_road",
+    "bicycle_in_road",
     "possible_rider",
 ]
 
@@ -161,6 +168,7 @@ def build_track_row(
     pixel_speed: float | None = None,
     stationary_duration: float | None = None,
     person_in_road: bool | None = None,
+    bicycle_in_road: bool | None = None,
     possible_rider: bool | None = None,
 ) -> dict:
     """Convert one vehicle observation into the stable tracks.csv schema."""
@@ -181,6 +189,7 @@ def build_track_row(
             round(stationary_duration, 3) if stationary_duration is not None else None
         ),
         "person_in_road": person_in_road,
+        "bicycle_in_road": bicycle_in_road,
         "possible_rider": possible_rider,
     }
 
@@ -195,15 +204,21 @@ def intersection_over_smaller_box(first: dict, second: dict) -> float:
     return intersection / min(first_area, second_area)
 
 
-def mark_possible_motorcycle_riders(rows: list[dict], overlap_threshold: float = 0.35) -> None:
-    """Flag people strongly overlapping motorcycles for future interpretation."""
-    motorcycles = [row for row in rows if row["class_name"] == "motorcycle"]
+def mark_possible_riders(rows: list[dict], overlap_threshold: float = 0.35) -> None:
+    """Flag people strongly overlapping motorcycles or bicycles."""
+    rideables = [
+        row for row in rows
+        if row["class_name"] in {"motorcycle", "bicycle"}
+    ]
     for row in rows:
         if row["class_name"] == "person":
             row["possible_rider"] = any(
-                intersection_over_smaller_box(row, motorcycle) >= overlap_threshold
-                for motorcycle in motorcycles
+                intersection_over_smaller_box(row, rideable) >= overlap_threshold
+                for rideable in rideables
             )
+
+
+mark_possible_motorcycle_riders = mark_possible_riders
 
 
 def validate_video_metadata(fps: float, width: int, height: int) -> float:
@@ -248,6 +263,9 @@ def process_video(
     person_detection_enabled = bool(config.get("person_detection_enabled", True))
     person_confidence_threshold = float(
         config.get("person_confidence_threshold", 0.22)
+    )
+    bicycle_confidence_threshold = float(
+        config.get("bicycle_confidence_threshold", 0.22)
     )
     model_reference = model_name or config.get("model", "yolov8n.pt")
     model_path = resolve_model_reference(
@@ -312,7 +330,11 @@ def process_video(
                 frame,
                 persist=True,
                 tracker=str(tracker_reference),
-                conf=min(confidence_threshold, person_confidence_threshold),
+                conf=min(
+                    confidence_threshold,
+                    person_confidence_threshold,
+                    bicycle_confidence_threshold,
+                ),
                 imgsz=inference_image_size,
                 iou=iou_threshold,
                 classes=list(COCO_ROAD_USER_IDS.keys()),
@@ -324,6 +346,8 @@ def process_video(
             vehicle_observations: list[VehicleObservation] = []
             frame_rows: list[dict] = []
             raw_people = people_after_confidence = people_in_roi = tracked_people = 0
+            raw_bicycles = bicycles_after_confidence = bicycles_in_roi = 0
+            tracked_bicycles = 0
             raw_motorcycles = motorcycles_after_confidence = tracked_motorcycles = 0
             if results and results[0].boxes is not None and len(results[0].boxes) > 0:
                 boxes = results[0].boxes
@@ -332,6 +356,8 @@ def process_video(
                     class_name = COCO_ROAD_USER_IDS.get(cls_id)
                     if class_name == "person":
                         raw_people += 1
+                    elif class_name == "bicycle":
+                        raw_bicycles += 1
                     elif class_name == "motorcycle":
                         raw_motorcycles += 1
                     if class_name is None:
@@ -342,6 +368,10 @@ def process_video(
                         if not person_detection_enabled or conf < person_confidence_threshold:
                             continue
                         people_after_confidence += 1
+                    elif class_name == "bicycle":
+                        if conf < bicycle_confidence_threshold:
+                            continue
+                        bicycles_after_confidence += 1
                     elif class_name not in allowed_vehicle_classes or conf < confidence_threshold:
                         continue
                     elif class_name == "motorcycle":
@@ -366,18 +396,27 @@ def process_video(
                         stationary_duration = track_state.stationary_duration
                         if class_name == "person":
                             tracked_people += 1
+                        elif class_name == "bicycle":
+                            tracked_bicycles += 1
                         else:
                             current_track_states[track_id] = track_state
                             if class_name == "motorcycle":
                                 tracked_motorcycles += 1
 
                     person_in_road = None
+                    bicycle_in_road = None
                     if class_name == "person":
                         person_in_road = point_in_polygon(
                             ((x1 + x2) / 2, y2),
                             event_pipeline.congestion_rule.monitored_polygon,
                         )
                         people_in_roi += int(bool(person_in_road))
+                    elif class_name == "bicycle":
+                        bicycle_in_road = point_in_polygon(
+                            ((x1 + x2) / 2, y2),
+                            event_pipeline.congestion_rule.monitored_polygon,
+                        )
+                        bicycles_in_roi += int(bicycle_in_road)
                     else:
                         vehicle_observations.append(VehicleObservation(
                             center_x=center_x, center_y=center_y,
@@ -402,11 +441,12 @@ def process_video(
                             pixel_speed,
                             stationary_duration,
                             person_in_road,
+                            bicycle_in_road,
                             False if class_name == "person" else None,
                         )
                     )
 
-            mark_possible_motorcycle_riders(frame_rows)
+            mark_possible_riders(frame_rows)
             track_rows.extend(frame_rows)
 
             status = f"Frame {frame_idx} | Vehicles: {vehicle_count}"
@@ -464,6 +504,14 @@ def process_video(
                         f"people_after_confidence={people_after_confidence} "
                         f"people_in_roi={people_in_roi} tracked_people={tracked_people} "
                         f"displayed_people={people_after_confidence}"
+                    )
+                    print(
+                        "  bicycles "
+                        f"raw_bicycle_detections={raw_bicycles} "
+                        f"bicycles_after_confidence={bicycles_after_confidence} "
+                        f"bicycles_in_roi={bicycles_in_roi} "
+                        f"tracked_bicycles={tracked_bicycles} "
+                        f"displayed_bicycles={bicycles_after_confidence}"
                     )
                     print(
                         "  motorcycles "

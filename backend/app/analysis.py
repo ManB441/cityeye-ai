@@ -40,6 +40,7 @@ def read_analysis_summary(output_dir: Path) -> AnalysisSummary:
     if not records:
         return AnalysisSummary(
             status="READY", current_vehicle_count=0, current_people_count=0,
+            current_bicycle_count=0,
             last_frame=None,
             total_track_records=0, annotated_video_available=video_available,
             message="The AI pipeline completed with no tracked vehicles.",
@@ -53,6 +54,10 @@ def read_analysis_summary(output_dir: Path) -> AnalysisSummary:
         row for row, frame in zip(records, parsed_frames, strict=True)
         if frame == last_frame and row["class_name"].strip().lower() == "person"
     ]
+    bicycle_rows = [
+        row for row, frame in zip(records, parsed_frames, strict=True)
+        if frame == last_frame and row["class_name"].strip().lower() == "bicycle"
+    ]
     current_ids = {
         row["track_id"].strip()
         for row in vehicle_rows
@@ -65,6 +70,7 @@ def read_analysis_summary(output_dir: Path) -> AnalysisSummary:
         status="READY",
         current_vehicle_count=len(current_ids) + unassigned_detections,
         current_people_count=len(people_rows),
+        current_bicycle_count=len(bicycle_rows),
         last_frame=last_frame,
         total_track_records=len(records), annotated_video_available=video_available,
         message="Summary calculated from the real tracks.csv output.",
@@ -109,9 +115,17 @@ def read_analysis_timeline(output_dir: Path) -> AnalysisTimeline:
             classes = list(unique_tracks.values()) + unassigned
             counts = {name: classes.count(name) for name in VEHICLE_CLASSES}
             people_rows = [row for row in rows if row["class_name"].strip().lower() == "person"]
+            bicycle_rows = [
+                row for row in rows
+                if row["class_name"].strip().lower() == "bicycle"
+            ]
             people_in_road = sum(
                 row.get("person_in_road", "").strip().lower() == "true"
                 for row in people_rows
+            )
+            bicycles_in_road = sum(
+                row.get("bicycle_in_road", "").strip().lower() == "true"
+                for row in bicycle_rows
             )
             frames.append(AnalysisFrame(
                 frame=frame_number,
@@ -122,6 +136,10 @@ def read_analysis_timeline(output_dir: Path) -> AnalysisTimeline:
                 people=len(people_rows), people_in_road=people_in_road,
                 tracked_people=sum(
                     bool(row["track_id"].strip()) for row in people_rows
+                ),
+                bicycles=len(bicycle_rows), bicycles_in_road=bicycles_in_road,
+                tracked_bicycles=sum(
+                    bool(row["track_id"].strip()) for row in bicycle_rows
                 ),
             ))
     except (OSError, UnicodeError, ValueError) as exc:
