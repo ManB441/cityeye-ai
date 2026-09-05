@@ -16,7 +16,7 @@ Two-week MVP for a team of three developers. Proves CityEye AI can analyze real 
 ### Required features (full MVP)
 
 - Video sources: local MP4, webcam, optional RTSP
-- Pretrained lightweight YOLO (cars, buses, trucks, motorcycles)
+- Pretrained lightweight YOLO (people, cars, buses, trucks, motorcycles)
 - ByteTrack (or YOLO built-in tracker)
 - Events: WRONG_WAY, STOPPED_VEHICLE, CONGESTION
 - React app: Municipal Dashboard + Citizen Traffic Map (Leaflet/OSM)
@@ -70,7 +70,7 @@ python process_video.py --video /path/to/your/traffic.mp4
 | File | Description |
 |------|-------------|
 | `ai/output/annotated.mp4` | Input video with bounding boxes, class labels, track IDs |
-| `ai/output/tracks.csv` | Per-frame detections: frame, track_id, class, bbox, confidence |
+| `ai/output/tracks.csv` | Per-frame road-user detections, tracking, person road-zone status, and possible rider association |
 | `ai/output/events.json` | Real rule matches; an empty JSON list when no threshold is met |
 | `ai/output/evidence/*.jpg` | Annotated evidence image for each generated event |
 

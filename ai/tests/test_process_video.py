@@ -14,6 +14,7 @@ from process_video import (
     load_config,
     resolve_model_reference,
     resolve_video_path,
+    mark_possible_motorcycle_riders,
     validate_video_metadata,
     write_tracks_csv,
 )
@@ -60,6 +61,8 @@ def test_build_track_row_with_assigned_track() -> None:
         "center_y": 300.0,
         "pixel_speed": 2.5,
         "stationary_duration": 2.0,
+        "person_in_road": None,
+        "possible_rider": None,
     }
 
 
@@ -220,6 +223,8 @@ def test_write_tracks_csv_writes_header_for_no_detections(tmp_path: Path) -> Non
         "center_y",
         "pixel_speed",
         "stationary_duration",
+        "person_in_road",
+        "possible_rider",
     ]
     assert rows == []
 
@@ -248,3 +253,25 @@ def test_write_tracks_csv_preserves_unassigned_track_as_blank(tmp_path: Path) ->
     assert saved_rows[0]["class_name"] == "car"
     assert saved_rows[0]["pixel_speed"] == ""
     assert saved_rows[0]["stationary_duration"] == ""
+
+
+def test_marks_person_overlapping_motorcycle_as_possible_rider() -> None:
+    rows = [
+        {"class_name": "person", "x1": 10, "y1": 10, "x2": 20, "y2": 30, "possible_rider": False},
+        {"class_name": "motorcycle", "x1": 8, "y1": 20, "x2": 24, "y2": 36, "possible_rider": None},
+    ]
+
+    mark_possible_motorcycle_riders(rows)
+
+    assert rows[0]["possible_rider"] is True
+
+
+def test_does_not_mark_unrelated_person_as_motorcycle_rider() -> None:
+    rows = [
+        {"class_name": "person", "x1": 100, "y1": 100, "x2": 120, "y2": 150, "possible_rider": False},
+        {"class_name": "motorcycle", "x1": 10, "y1": 20, "x2": 30, "y2": 40, "possible_rider": None},
+    ]
+
+    mark_possible_motorcycle_riders(rows)
+
+    assert rows[0]["possible_rider"] is False

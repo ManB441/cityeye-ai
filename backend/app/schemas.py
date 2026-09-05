@@ -102,6 +102,7 @@ class AnalysisSummary(BaseModel):
 
     status: Literal["READY", "MISSING", "INVALID"]
     current_vehicle_count: int | None = Field(default=None, ge=0)
+    current_people_count: int | None = Field(default=None, ge=0)
     last_frame: int | None = Field(default=None, ge=0)
     total_track_records: int = Field(ge=0)
     annotated_video_available: bool
@@ -120,6 +121,9 @@ class AnalysisFrame(BaseModel):
     buses: int = Field(ge=0)
     trucks: int = Field(ge=0)
     motorcycles: int = Field(ge=0)
+    people: int = Field(ge=0)
+    people_in_road: int = Field(ge=0)
+    tracked_people: int = Field(ge=0)
 
 
 class AnalysisTimeline(BaseModel):

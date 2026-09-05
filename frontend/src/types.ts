@@ -20,6 +20,7 @@ export type EventListResponse = {
 export type AnalysisSummary = {
   status: "READY" | "MISSING" | "INVALID";
   current_vehicle_count: number | null;
+  current_people_count: number | null;
   last_frame: number | null;
   total_track_records: number;
   annotated_video_available: boolean;
@@ -34,6 +35,9 @@ export type AnalysisFrame = {
   buses: number;
   trucks: number;
   motorcycles: number;
+  people: number;
+  people_in_road: number;
+  tracked_people: number;
 };
 
 export type AnalysisTimeline = {

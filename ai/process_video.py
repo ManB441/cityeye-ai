@@ -24,7 +24,7 @@ import numpy as np
 from ultralytics import YOLO
 
 from event_pipeline import EventPipeline
-from event_rules import VehicleObservation
+from event_rules import VehicleObservation, point_in_polygon
 from trajectory import TrajectoryManager
 
 # COCO class IDs for vehicles we care about
@@ -34,8 +34,11 @@ COCO_VEHICLE_IDS = {
     5: "bus",
     7: "truck",
 }
+COCO_PERSON_ID = 0
+COCO_ROAD_USER_IDS = {COCO_PERSON_ID: "person", **COCO_VEHICLE_IDS}
 
 CLASS_COLORS = {
+    "person": (255, 220, 0),
     "car": (0, 200, 0),
     "motorcycle": (255, 140, 0),
     "bus": (200, 0, 200),
@@ -56,6 +59,8 @@ TRACK_FIELDNAMES = [
     "center_y",
     "pixel_speed",
     "stationary_duration",
+    "person_in_road",
+    "possible_rider",
 ]
 
 
@@ -155,6 +160,8 @@ def build_track_row(
     y2: int,
     pixel_speed: float | None = None,
     stationary_duration: float | None = None,
+    person_in_road: bool | None = None,
+    possible_rider: bool | None = None,
 ) -> dict:
     """Convert one vehicle observation into the stable tracks.csv schema."""
     return {
@@ -173,7 +180,30 @@ def build_track_row(
         "stationary_duration": (
             round(stationary_duration, 3) if stationary_duration is not None else None
         ),
+        "person_in_road": person_in_road,
+        "possible_rider": possible_rider,
     }
+
+
+def intersection_over_smaller_box(first: dict, second: dict) -> float:
+    """Measure strong spatial association without requiring identical box sizes."""
+    intersection_width = max(0, min(first["x2"], second["x2"]) - max(first["x1"], second["x1"]))
+    intersection_height = max(0, min(first["y2"], second["y2"]) - max(first["y1"], second["y1"]))
+    intersection = intersection_width * intersection_height
+    first_area = max(1, (first["x2"] - first["x1"]) * (first["y2"] - first["y1"]))
+    second_area = max(1, (second["x2"] - second["x1"]) * (second["y2"] - second["y1"]))
+    return intersection / min(first_area, second_area)
+
+
+def mark_possible_motorcycle_riders(rows: list[dict], overlap_threshold: float = 0.35) -> None:
+    """Flag people strongly overlapping motorcycles for future interpretation."""
+    motorcycles = [row for row in rows if row["class_name"] == "motorcycle"]
+    for row in rows:
+        if row["class_name"] == "person":
+            row["possible_rider"] = any(
+                intersection_over_smaller_box(row, motorcycle) >= overlap_threshold
+                for motorcycle in motorcycles
+            )
 
 
 def validate_video_metadata(fps: float, width: int, height: int) -> float:
@@ -207,7 +237,18 @@ def process_video(
     inference_image_size = int(config.get("inference_image_size", 960))
     iou_threshold = float(config.get("iou_threshold", 0.7))
     debug_traffic = bool(config.get("debug_traffic_analysis", False))
-    allowed_classes = set(config.get("vehicle_classes", list(COCO_VEHICLE_IDS.values())))
+    tracker_reference = Path(
+        config.get("tracker", "config/bytetrack_cityeye.yaml")
+    )
+    if not tracker_reference.is_absolute():
+        tracker_reference = Path(__file__).resolve().parent / tracker_reference
+    allowed_vehicle_classes = set(
+        config.get("vehicle_classes", list(COCO_VEHICLE_IDS.values()))
+    )
+    person_detection_enabled = bool(config.get("person_detection_enabled", True))
+    person_confidence_threshold = float(
+        config.get("person_confidence_threshold", 0.22)
+    )
     model_reference = model_name or config.get("model", "yolov8n.pt")
     model_path = resolve_model_reference(
         model_reference,
@@ -256,7 +297,10 @@ def process_video(
     track_rows: list[dict] = []
     frame_idx = 0
 
-    print(f"Processing {video_path.name} ({width}x{height} @ {fps:.1f} fps, ~{total_frames} frames)")
+    print(
+        f"Processing {video_path.name} "
+        f"({width}x{height} @ {fps:.1f} fps, ~{total_frames} frames)"
+    )
 
     try:
         while True:
@@ -267,26 +311,41 @@ def process_video(
             results = model.track(
                 frame,
                 persist=True,
-                tracker="bytetrack.yaml",
-                conf=confidence_threshold,
+                tracker=str(tracker_reference),
+                conf=min(confidence_threshold, person_confidence_threshold),
                 imgsz=inference_image_size,
                 iou=iou_threshold,
-                classes=list(COCO_VEHICLE_IDS.keys()),
+                classes=list(COCO_ROAD_USER_IDS.keys()),
                 verbose=False,
             )
 
             vehicle_count = 0
             current_track_states = {}
             vehicle_observations: list[VehicleObservation] = []
+            frame_rows: list[dict] = []
+            raw_people = people_after_confidence = people_in_roi = tracked_people = 0
+            raw_motorcycles = motorcycles_after_confidence = tracked_motorcycles = 0
             if results and results[0].boxes is not None and len(results[0].boxes) > 0:
                 boxes = results[0].boxes
                 for box in boxes:
                     cls_id = int(box.cls.item())
-                    class_name = COCO_VEHICLE_IDS.get(cls_id)
-                    if class_name is None or class_name not in allowed_classes:
+                    class_name = COCO_ROAD_USER_IDS.get(cls_id)
+                    if class_name == "person":
+                        raw_people += 1
+                    elif class_name == "motorcycle":
+                        raw_motorcycles += 1
+                    if class_name is None:
                         continue
 
                     conf = float(box.conf.item())
+                    if class_name == "person":
+                        if not person_detection_enabled or conf < person_confidence_threshold:
+                            continue
+                        people_after_confidence += 1
+                    elif class_name not in allowed_vehicle_classes or conf < confidence_threshold:
+                        continue
+                    elif class_name == "motorcycle":
+                        motorcycles_after_confidence += 1
                     x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
                     track_id = int(box.id.item()) if box.id is not None else None
                     center_x = (x1 + x2) / 2
@@ -305,18 +364,31 @@ def process_video(
                         )
                         pixel_speed = track_state.pixel_speed
                         stationary_duration = track_state.stationary_duration
-                        current_track_states[track_id] = track_state
+                        if class_name == "person":
+                            tracked_people += 1
+                        else:
+                            current_track_states[track_id] = track_state
+                            if class_name == "motorcycle":
+                                tracked_motorcycles += 1
 
-                    vehicle_observations.append(VehicleObservation(
-                        center_x=center_x, center_y=center_y,
-                        x1=x1, y1=y1, x2=x2, y2=y2,
-                        confidence=conf, track_id=track_id, pixel_speed=pixel_speed,
-                    ))
+                    person_in_road = None
+                    if class_name == "person":
+                        person_in_road = point_in_polygon(
+                            ((x1 + x2) / 2, y2),
+                            event_pipeline.congestion_rule.monitored_polygon,
+                        )
+                        people_in_roi += int(bool(person_in_road))
+                    else:
+                        vehicle_observations.append(VehicleObservation(
+                            center_x=center_x, center_y=center_y,
+                            x1=x1, y1=y1, x2=x2, y2=y2,
+                            confidence=conf, track_id=track_id, pixel_speed=pixel_speed,
+                        ))
+                        vehicle_count += 1
 
                     draw_detection(frame, x1, y1, x2, y2, class_name, track_id, conf)
-                    vehicle_count += 1
 
-                    track_rows.append(
+                    frame_rows.append(
                         build_track_row(
                             frame_idx,
                             fps,
@@ -329,8 +401,13 @@ def process_video(
                             y2,
                             pixel_speed,
                             stationary_duration,
+                            person_in_road,
+                            False if class_name == "person" else None,
                         )
                     )
+
+            mark_possible_motorcycle_riders(frame_rows)
+            track_rows.extend(frame_rows)
 
             status = f"Frame {frame_idx} | Vehicles: {vehicle_count}"
             cv2.putText(
@@ -373,10 +450,25 @@ def process_video(
                 if debug_traffic:
                     print(
                         "  traffic "
-                        f"detections={metrics.detections} vehicles_in_roi={metrics.vehicles_in_roi} "
-                        f"tracked_vehicles={metrics.tracked_vehicles} density={metrics.traffic_density:.4f} "
-                        f"movement={metrics.average_movement} candidate={metrics.congestion_candidate} "
+                        f"detections={metrics.detections} "
+                        f"vehicles_in_roi={metrics.vehicles_in_roi} "
+                        f"tracked_vehicles={metrics.tracked_vehicles} "
+                        f"density={metrics.traffic_density:.4f} "
+                        f"movement={metrics.average_movement} "
+                        f"candidate={metrics.congestion_candidate} "
                         f"duration={metrics.congestion_duration:.1f}s state={metrics.state.value}"
+                    )
+                    print(
+                        "  people "
+                        f"raw_person_detections={raw_people} "
+                        f"people_after_confidence={people_after_confidence} "
+                        f"people_in_roi={people_in_roi} tracked_people={tracked_people} "
+                        f"displayed_people={people_after_confidence}"
+                    )
+                    print(
+                        "  motorcycles "
+                        f"raw={raw_motorcycles} after_confidence={motorcycles_after_confidence} "
+                        f"tracked={tracked_motorcycles} displayed={motorcycles_after_confidence}"
                     )
     finally:
         cap.release()
@@ -394,7 +486,9 @@ def process_video(
 
 def parse_args() -> argparse.Namespace:
     ai_root = Path(__file__).resolve().parent
-    parser = argparse.ArgumentParser(description="CityEye AI — detect and track vehicles in video")
+    parser = argparse.ArgumentParser(
+        description="CityEye AI — detect and track road users in video"
+    )
     parser.add_argument(
         "--config",
         type=Path,
