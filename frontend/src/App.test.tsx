@@ -32,6 +32,7 @@ function jsonResponse(payload: unknown, status = 200): Response {
 const readySummary = {
   status: "READY",
   current_vehicle_count: 2,
+  current_people_count: 0,
   last_frame: 377,
   total_track_records: 48,
   annotated_video_available: true,
@@ -41,8 +42,8 @@ const readySummary = {
 const readyTimeline = {
   status: "READY",
   frames: [
-    { frame: 1, timestamp_sec: 0.1, active_vehicle_count: 1, cars: 1, buses: 0, trucks: 0, motorcycles: 0 },
-    { frame: 10, timestamp_sec: 1.0, active_vehicle_count: 3, cars: 1, buses: 0, trucks: 1, motorcycles: 1 },
+    { frame: 1, timestamp_sec: 0.1, active_vehicle_count: 1, cars: 1, buses: 0, trucks: 0, motorcycles: 0, people: 0, people_in_road: 0, tracked_people: 0 },
+    { frame: 10, timestamp_sec: 1.0, active_vehicle_count: 3, cars: 1, buses: 0, trucks: 1, motorcycles: 1, people: 2, people_in_road: 1, tracked_people: 2 },
   ],
   message: "Timeline calculated from real YOLO and ByteTrack output.",
 };
@@ -54,6 +55,7 @@ function mockBackend(events = [proposedEvent], summary = readySummary) {
       { scenario_id: "normal_traffic", title: "Normal Traffic", description: "Free flowing", expected_event: null, source_url: "https://example.com/normal" },
       { scenario_id: "congestion", title: "Heavy Congestion", description: "Dense traffic", expected_event: "CONGESTION", source_url: "https://example.com/congestion" },
       { scenario_id: "stopped_vehicle", title: "Stopped Vehicle", description: "Disabled car", expected_event: "STOPPED_VEHICLE", source_url: "https://example.com/stopped" },
+      { scenario_id: "rainy_traffic", title: "Rainy Traffic", description: "Wet-road traffic", expected_event: null, source_url: "https://example.com/rainy" },
     ] });
     if (url.endsWith("/analysis/summary")) return jsonResponse(summary);
     if (url.endsWith("/analysis/timeline")) return jsonResponse(readyTimeline);
@@ -112,11 +114,12 @@ describe("CityEye municipal dashboard", () => {
     expect(within(metrics).getByText("Active tracked").parentElement).toHaveTextContent("3");
     expect(within(metrics).getByText("Trucks").parentElement).toHaveTextContent("1");
     expect(within(metrics).getByText("Motorcycles").parentElement).toHaveTextContent("1");
+    expect(within(metrics).getByText("People").parentElement).toHaveTextContent("2");
     const video = screen.getByText(/browser does not support mp4/i).closest("video");
     expect(video).toHaveAttribute("src", "/media/scenarios/normal_traffic/annotated.mp4");
   });
 
-  it("switches between the three real scenarios and resets playback metrics", async () => {
+  it("switches between all real scenarios and resets playback metrics", async () => {
     const fetchMock = mockBackend();
     render(<MemoryRouter initialEntries={["/dashboard"]}><App /></MemoryRouter>);
     fireEvent.click(await screen.findByRole("button", { name: /heavy congestion/i }));
@@ -125,6 +128,15 @@ describe("CityEye municipal dashboard", () => {
     ));
     const video = screen.getByText(/browser does not support mp4/i).closest("video");
     expect(video).toHaveAttribute("src", "/media/scenarios/congestion/annotated.mp4");
+    playAt(1);
+    fireEvent.click(screen.getByRole("button", { name: /rainy traffic/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/scenarios/rainy_traffic/analysis/summary", expect.any(Object),
+    ));
+    const rainyVideo = screen.getByText(/browser does not support mp4/i).closest("video");
+    expect(rainyVideo).toHaveAttribute("src", "/media/scenarios/rainy_traffic/annotated.mp4");
+    const metrics = screen.getByRole("region", { name: "Current traffic summary" });
+    expect(within(metrics).getByText("Active tracked").parentElement).toHaveTextContent("0");
   });
 
   it("shows a truthful Citizen Map placeholder", () => {

@@ -8,7 +8,7 @@ from pathlib import Path
 from app.schemas import AnalysisFrame, AnalysisSummary, AnalysisTimeline
 
 
-REQUIRED_TRACK_COLUMNS = {"frame", "track_id"}
+REQUIRED_TRACK_COLUMNS = {"frame", "track_id", "class_name"}
 TIMELINE_TRACK_COLUMNS = {"frame", "timestamp_sec", "track_id", "class_name"}
 VEHICLE_CLASSES = ("car", "bus", "truck", "motorcycle")
 
@@ -39,24 +39,32 @@ def read_analysis_summary(output_dir: Path) -> AnalysisSummary:
         )
     if not records:
         return AnalysisSummary(
-            status="READY", current_vehicle_count=0, last_frame=None,
+            status="READY", current_vehicle_count=0, current_people_count=0,
+            last_frame=None,
             total_track_records=0, annotated_video_available=video_available,
             message="The AI pipeline completed with no tracked vehicles.",
         )
     last_frame = max(parsed_frames)
+    vehicle_rows = [
+        row for row, frame in zip(records, parsed_frames, strict=True)
+        if frame == last_frame and row["class_name"].strip().lower() in VEHICLE_CLASSES
+    ]
+    people_rows = [
+        row for row, frame in zip(records, parsed_frames, strict=True)
+        if frame == last_frame and row["class_name"].strip().lower() == "person"
+    ]
     current_ids = {
         row["track_id"].strip()
-        for row, frame in zip(records, parsed_frames, strict=True)
-        if frame == last_frame and row["track_id"].strip()
+        for row in vehicle_rows
+        if row["track_id"].strip()
     }
     unassigned_detections = sum(
-        1
-        for row, frame in zip(records, parsed_frames, strict=True)
-        if frame == last_frame and not row["track_id"].strip()
+        1 for row in vehicle_rows if not row["track_id"].strip()
     )
     return AnalysisSummary(
         status="READY",
         current_vehicle_count=len(current_ids) + unassigned_detections,
+        current_people_count=len(people_rows),
         last_frame=last_frame,
         total_track_records=len(records), annotated_video_available=video_available,
         message="Summary calculated from the real tracks.csv output.",
@@ -100,15 +108,27 @@ def read_analysis_timeline(output_dir: Path) -> AnalysisTimeline:
                     unassigned.append(class_name)
             classes = list(unique_tracks.values()) + unassigned
             counts = {name: classes.count(name) for name in VEHICLE_CLASSES}
+            people_rows = [row for row in rows if row["class_name"].strip().lower() == "person"]
+            people_in_road = sum(
+                row.get("person_in_road", "").strip().lower() == "true"
+                for row in people_rows
+            )
             frames.append(AnalysisFrame(
                 frame=frame_number,
                 timestamp_sec=float(rows[0]["timestamp_sec"]),
-                active_vehicle_count=len(classes),
+                active_vehicle_count=sum(counts.values()),
                 cars=counts["car"], buses=counts["bus"],
                 trucks=counts["truck"], motorcycles=counts["motorcycle"],
+                people=len(people_rows), people_in_road=people_in_road,
+                tracked_people=sum(
+                    bool(row["track_id"].strip()) for row in people_rows
+                ),
             ))
     except (OSError, UnicodeError, ValueError) as exc:
-        return AnalysisTimeline(status="INVALID", frames=[], message=f"Unable to read tracks.csv: {exc}")
+        return AnalysisTimeline(
+            status="INVALID", frames=[],
+            message=f"Unable to read tracks.csv: {exc}",
+        )
     return AnalysisTimeline(
         status="READY", frames=frames,
         message="Timeline calculated from real YOLO and ByteTrack output.",

@@ -1,4 +1,4 @@
-"""Safe access to the three precomputed real-AI demonstration scenarios."""
+"""Safe access to the precomputed real-AI demonstration scenarios."""
 
 from __future__ import annotations
 
@@ -15,19 +15,25 @@ SCENARIOS = {
         scenario_id="normal_traffic", title="Normal Traffic",
         description="Free-flowing intersection traffic with no event threshold reached.",
         expected_event=None,
-        source_url="https://www.pexels.com/video/traffic-in-an-intersecting-road-3002736/",
+        source_url="user-provided",
     ),
     "congestion": ScenarioInfo(
         scenario_id="congestion", title="Heavy Congestion",
-        description="Dense traffic remains in the monitored road area long enough to trigger congestion.",
+        description="Dense traffic clip for evaluating congestion-threshold behavior.",
         expected_event="CONGESTION",
-        source_url="https://www.pexels.com/video/cars-stuck-in-traffic-3148319/",
+        source_url="user-provided",
     ),
     "stopped_vehicle": ScenarioInfo(
         scenario_id="stopped_vehicle", title="Stopped Vehicle",
         description="A disabled car remains stationary while surrounding traffic continues moving.",
         expected_event="STOPPED_VEHICLE",
         source_url="https://www.pexels.com/video/mechanic-repairing-car-on-busy-street-30125402/",
+    ),
+    "rainy_traffic": ScenarioInfo(
+        scenario_id="rainy_traffic", title="Rainy Traffic",
+        description="Traffic monitoring under rainy and wet-road conditions.",
+        expected_event=None,
+        source_url="user-provided",
     ),
 }
 

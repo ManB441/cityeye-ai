@@ -1,0 +1,8 @@
+# CityEye tuning keeps valid small road users while preserving ByteTrack stability.
+tracker_type: bytetrack
+track_high_thresh: 0.22
+track_low_thresh: 0.10
+new_track_thresh: 0.22
+track_buffer: 30
+match_thresh: 0.80
+fuse_score: true

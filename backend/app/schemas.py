@@ -102,6 +102,7 @@ class AnalysisSummary(BaseModel):
 
     status: Literal["READY", "MISSING", "INVALID"]
     current_vehicle_count: int | None = Field(default=None, ge=0)
+    current_people_count: int | None = Field(default=None, ge=0)
     last_frame: int | None = Field(default=None, ge=0)
     total_track_records: int = Field(ge=0)
     annotated_video_available: bool
@@ -120,6 +121,9 @@ class AnalysisFrame(BaseModel):
     buses: int = Field(ge=0)
     trucks: int = Field(ge=0)
     motorcycles: int = Field(ge=0)
+    people: int = Field(ge=0)
+    people_in_road: int = Field(ge=0)
+    tracked_people: int = Field(ge=0)
 
 
 class AnalysisTimeline(BaseModel):
@@ -136,7 +140,7 @@ class ScenarioInfo(BaseModel):
     """Public metadata for one fixed real-AI demonstration scenario."""
 
     model_config = ConfigDict(extra="forbid")
-    scenario_id: Literal["normal_traffic", "congestion", "stopped_vehicle"]
+    scenario_id: Literal["normal_traffic", "congestion", "stopped_vehicle", "rainy_traffic"]
     title: str = Field(min_length=1)
     description: str = Field(min_length=1)
     expected_event: EventType | None

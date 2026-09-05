@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from math import hypot
 
 from events import EventType, Severity
@@ -10,6 +11,38 @@ from trajectory import TrackState
 
 
 Point = tuple[float, float]
+
+
+class TrafficState(str, Enum):
+    NORMAL = "NORMAL"
+    MODERATE = "MODERATE"
+    HEAVY_CONGESTION = "HEAVY_CONGESTION"
+
+
+@dataclass(frozen=True)
+class VehicleObservation:
+    center_x: float
+    center_y: float
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    confidence: float
+    track_id: int | None = None
+    pixel_speed: float | None = None
+
+
+@dataclass(frozen=True)
+class TrafficMetrics:
+    detections: int
+    vehicles_in_roi: int
+    tracked_vehicles: int
+    traffic_density: float
+    average_spacing: float | None
+    average_movement: float | None
+    congestion_candidate: bool
+    congestion_duration: float
+    state: TrafficState
 
 
 @dataclass(frozen=True)
@@ -48,6 +81,8 @@ class CongestionMatch:
     explanation: str
     vehicle_count: int
     congestion_duration: float
+    traffic_density: float = 0.0
+    traffic_state: TrafficState = TrafficState.HEAVY_CONGESTION
     event_type: EventType = EventType.CONGESTION
 
 
@@ -292,13 +327,20 @@ class StoppedVehicleRule:
 
 
 class CongestionRule:
-    """Detect sustained vehicle density inside the monitored road area."""
+    """Classify traffic using count, occupancy, spacing, movement, and time."""
 
     def __init__(
         self,
         monitored_polygon: list[Point],
-        min_vehicles: int = 6,
-        min_duration_seconds: float = 30.0,
+        min_vehicles: int = 16,
+        moderate_min_vehicles: int | None = None,
+        min_density: float = 0.04,
+        max_spacing: float = 0.12,
+        max_movement: float = 0.12,
+        min_detection_confidence: float = 0.30,
+        perspective_weight_strength: float = 0.5,
+        min_duration_seconds: float = 5.0,
+        release_grace_seconds: float = 0.75,
         max_track_age_seconds: float = 1.0,
         max_evaluation_gap_seconds: float = 1.0,
     ) -> None:
@@ -306,6 +348,19 @@ class CongestionRule:
             raise ValueError("monitored_polygon must contain at least 3 points")
         if min_vehicles < 2:
             raise ValueError("min_vehicles must be at least 2")
+        moderate_min_vehicles = moderate_min_vehicles or max(
+            2, int(min_vehicles * 0.75)
+        )
+        if not 2 <= moderate_min_vehicles <= min_vehicles:
+            raise ValueError("moderate_min_vehicles must be between 2 and min_vehicles")
+        if min_density <= 0 or max_spacing <= 0 or max_movement <= 0:
+            raise ValueError("density, spacing, and movement thresholds must be positive")
+        if not 0 <= min_detection_confidence <= 1:
+            raise ValueError("min_detection_confidence must be between 0 and 1")
+        if release_grace_seconds < 0:
+            raise ValueError("release_grace_seconds must not be negative")
+        if not 0 <= perspective_weight_strength <= 2:
+            raise ValueError("perspective_weight_strength must be between 0 and 2")
         if min_duration_seconds <= 0:
             raise ValueError("min_duration_seconds must be positive")
         if max_track_age_seconds <= 0:
@@ -315,17 +370,125 @@ class CongestionRule:
 
         self.monitored_polygon = monitored_polygon
         self.min_vehicles = min_vehicles
+        self.moderate_min_vehicles = moderate_min_vehicles
+        self.min_density = min_density
+        self.max_spacing = max_spacing
+        self.max_movement = max_movement
+        self.min_detection_confidence = min_detection_confidence
+        self.perspective_weight_strength = perspective_weight_strength
         self.min_duration_seconds = min_duration_seconds
+        self.release_grace_seconds = release_grace_seconds
         self.max_track_age_seconds = max_track_age_seconds
         self.max_evaluation_gap_seconds = max_evaluation_gap_seconds
         self.congestion_started_at: float | None = None
         self.last_evaluated_at: float | None = None
         self.event_emitted = False
+        self.last_candidate_at: float | None = None
+        self.last_metrics = TrafficMetrics(
+            0, 0, 0, 0.0, None, None, False, 0.0, TrafficState.NORMAL
+        )
+        edges = zip(monitored_polygon, monitored_polygon[1:] + monitored_polygon[:1])
+        self.roi_area = abs(
+            sum(x1 * y2 - x2 * y1 for (x1, y1), (x2, y2) in edges)
+        ) / 2
+        if self.roi_area <= 0:
+            raise ValueError("monitored_polygon must have a positive area")
+        ys = [point[1] for point in monitored_polygon]
+        self.roi_min_y, self.roi_max_y = min(ys), max(ys)
+
+    def calculate_metrics(
+        self, timestamp: float, observations: list[VehicleObservation]
+    ) -> TrafficMetrics:
+        accepted = [
+            observation
+            for observation in observations
+            if observation.confidence >= self.min_detection_confidence
+            and point_in_polygon(
+                (observation.center_x, observation.center_y), self.monitored_polygon
+            )
+        ]
+        scale = self.roi_area ** 0.5
+        weighted_area = 0.0
+        for item in accepted:
+            vertical = (item.center_y - self.roi_min_y) / max(
+                1.0, self.roi_max_y - self.roi_min_y
+            )
+            weight = 1.0 + self.perspective_weight_strength * (
+                1.0 - max(0.0, min(1.0, vertical))
+            )
+            weighted_area += (
+                max(0.0, item.x2 - item.x1)
+                * max(0.0, item.y2 - item.y1)
+                * weight
+            )
+        density = min(1.0, weighted_area / self.roi_area)
+        nearest = []
+        for index, item in enumerate(accepted):
+            distances = [
+                hypot(item.center_x - other.center_x, item.center_y - other.center_y)
+                / scale
+                for other_index, other in enumerate(accepted)
+                if other_index != index
+            ]
+            if distances:
+                nearest.append(min(distances))
+        speeds = [item.pixel_speed/scale for item in accepted if item.pixel_speed is not None]
+        spacing = sum(nearest)/len(nearest) if nearest else None
+        movement = sum(speeds)/len(speeds) if speeds else None
+        count = len(accepted)
+        dense = density >= self.min_density
+        close = spacing is not None and spacing <= self.max_spacing
+        movement_ok = movement is None or movement <= self.max_movement
+        candidate = (
+            count >= self.min_vehicles and (dense or close)
+        ) or (
+            count >= self.moderate_min_vehicles
+            and dense
+            and close
+            and movement_ok
+        )
+        if candidate:
+            self.last_candidate_at = timestamp
+        grace = (
+            self.last_candidate_at is not None
+            and timestamp - self.last_candidate_at <= self.release_grace_seconds
+        )
+        sustained = candidate or (self.congestion_started_at is not None and grace)
+        if not sustained:
+            self.congestion_started_at = None
+            self.event_emitted = False
+        elif self.congestion_started_at is None:
+            self.congestion_started_at = timestamp
+        duration = (
+            0.0
+            if self.congestion_started_at is None
+            else timestamp - self.congestion_started_at
+        )
+        if duration >= self.min_duration_seconds:
+            state = TrafficState.HEAVY_CONGESTION
+        elif sustained or count >= self.moderate_min_vehicles:
+            state = TrafficState.MODERATE
+        else:
+            state = TrafficState.NORMAL
+        return TrafficMetrics(
+            detections=len(observations),
+            vehicles_in_roi=count,
+            tracked_vehicles=len(
+                {item.track_id for item in accepted if item.track_id is not None}
+            ),
+            traffic_density=round(density, 4),
+            average_spacing=None if spacing is None else round(spacing, 4),
+            average_movement=None if movement is None else round(movement, 4),
+            congestion_candidate=candidate,
+            congestion_duration=round(duration, 3),
+            state=state,
+        )
 
     def evaluate(
         self,
         timestamp: float,
         tracks: list[TrackState],
+        observations: list[VehicleObservation] | None = None,
     ) -> CongestionMatch | None:
         """Return one match after enough active vehicles persist long enough."""
         if timestamp < 0:
@@ -340,43 +503,34 @@ class CongestionRule:
         )
         self.last_evaluated_at = timestamp
 
-        active_track_ids = {
-            track.track_id
-            for track in tracks
-            if track.history
-            and 0 <= timestamp - track.history[-1].timestamp_sec
-            <= self.max_track_age_seconds
-            and point_in_polygon(
-                (
-                    track.history[-1].center_x,
-                    track.history[-1].center_y,
-                ),
-                self.monitored_polygon,
-            )
-        }
-        vehicle_count = len(active_track_ids)
-
-        if vehicle_count < self.min_vehicles:
-            self.congestion_started_at = None
+        if evaluation_gap is not None and evaluation_gap > self.max_evaluation_gap_seconds:
+            self.congestion_started_at = self.last_candidate_at = None
             self.event_emitted = False
+        if observations is None:
+            unique_tracks = {track.track_id: track for track in tracks}
+            observations = [
+                VehicleObservation(
+                    center_x=track.history[-1].center_x,
+                    center_y=track.history[-1].center_y,
+                    x1=track.history[-1].center_x - 1,
+                    y1=track.history[-1].center_y - 1,
+                    x2=track.history[-1].center_x + 1,
+                    y2=track.history[-1].center_y + 1,
+                    confidence=1.0,
+                    track_id=track.track_id,
+                    pixel_speed=track.pixel_speed,
+                )
+                for track in unique_tracks.values()
+                if track.history
+                and 0
+                <= timestamp - track.history[-1].timestamp_sec
+                <= self.max_track_age_seconds
+            ]
+        self.last_metrics = self.calculate_metrics(timestamp, observations)
+        if self.last_metrics.state is not TrafficState.HEAVY_CONGESTION or self.event_emitted:
             return None
-
-        if (
-            self.congestion_started_at is None
-            or evaluation_gap is not None
-            and evaluation_gap > self.max_evaluation_gap_seconds
-        ):
-            self.congestion_started_at = timestamp
-            self.event_emitted = False
-            return None
-
-        congestion_duration = timestamp - self.congestion_started_at
-        if (
-            congestion_duration < self.min_duration_seconds
-            or self.event_emitted
-        ):
-            return None
-
+        vehicle_count = self.last_metrics.vehicles_in_roi
+        congestion_duration = self.last_metrics.congestion_duration
         count_ratio = vehicle_count / self.min_vehicles
         confidence = round(min(1.0, 0.75 + 0.25 * (count_ratio - 1.0)), 4)
         severity = (
@@ -385,8 +539,9 @@ class CongestionRule:
             else Severity.MEDIUM
         )
         explanation = (
-            f"{vehicle_count} active vehicles remained inside the monitored "
-            f"road area for {congestion_duration:.1f} seconds."
+            f"Heavy congestion confirmed with {vehicle_count} vehicles, ROI density "
+            f"{self.last_metrics.traffic_density:.3f}, and {congestion_duration:.1f} "
+            "seconds of sustained crowding."
         )
         self.event_emitted = True
         return CongestionMatch(
@@ -396,4 +551,6 @@ class CongestionRule:
             explanation=explanation,
             vehicle_count=vehicle_count,
             congestion_duration=round(congestion_duration, 3),
+            traffic_density=self.last_metrics.traffic_density,
+            traffic_state=self.last_metrics.state,
         )

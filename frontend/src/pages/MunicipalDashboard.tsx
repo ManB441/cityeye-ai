@@ -8,6 +8,7 @@ import type { AnalysisFrame, ScenarioId, ScenarioInfo, TrafficEvent } from "../t
 const EMPTY_FRAME: AnalysisFrame = {
   frame: 0, timestamp_sec: 0, active_vehicle_count: 0,
   cars: 0, buses: 0, trucks: 0, motorcycles: 0,
+  people: 0, people_in_road: 0, tracked_people: 0,
 };
 
 function EventCard({ event, reviewing, onDecision, scenarioId }: {
@@ -121,7 +122,7 @@ export function MunicipalDashboard() {
               <span>{summary?.message ?? "Checking real AI output files…"}</span>
             </div>
           )}
-          {selectedScenario && <p className="source-credit">Video source: <a href={selectedScenario.source_url} target="_blank" rel="noreferrer">Pexels · free-to-use source</a></p>}
+          {selectedScenario && <p className="source-credit">Video source: {selectedScenario.source_url === "user-provided" ? "User-provided test clip" : <a href={selectedScenario.source_url} target="_blank" rel="noreferrer">Pexels · free-to-use source</a>}</p>}
         </article>
 
         <article className="panel event-panel">
@@ -144,6 +145,7 @@ export function MunicipalDashboard() {
         <article className="metric-card"><span>Buses</span><strong>{currentFrame.buses}</strong></article>
         <article className="metric-card"><span>Trucks</span><strong>{currentFrame.trucks}</strong></article>
         <article className="metric-card"><span>Motorcycles</span><strong>{currentFrame.motorcycles}</strong></article>
+        <article className="metric-card"><span>People</span><strong>{currentFrame.people}</strong></article>
         <article className="metric-card traffic-metric"><span>Traffic status</span><strong className={`traffic-pill ${trafficStatus.toLowerCase()}`}>{trafficStatus}</strong></article>
         <article className="metric-card"><span>Proposed events</span><strong>{proposedCount}</strong></article>
         <article className="metric-card"><span>Video position</span><strong>{videoTime.toFixed(1)}s</strong></article>

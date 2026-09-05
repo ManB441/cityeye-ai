@@ -16,7 +16,7 @@ Two-week MVP for a team of three developers. Proves CityEye AI can analyze real 
 ### Required features (full MVP)
 
 - Video sources: local MP4, webcam, optional RTSP
-- Pretrained lightweight YOLO (cars, buses, trucks, motorcycles)
+- Pretrained lightweight YOLO (people, cars, buses, trucks, motorcycles)
 - ByteTrack (or YOLO built-in tracker)
 - Events: WRONG_WAY, STOPPED_VEHICLE, CONGESTION
 - React app: Municipal Dashboard + Citizen Traffic Map (Leaflet/OSM)
@@ -70,7 +70,7 @@ python process_video.py --video /path/to/your/traffic.mp4
 | File | Description |
 |------|-------------|
 | `ai/output/annotated.mp4` | Input video with bounding boxes, class labels, track IDs |
-| `ai/output/tracks.csv` | Per-frame detections: frame, track_id, class, bbox, confidence |
+| `ai/output/tracks.csv` | Per-frame road-user detections, tracking, person road-zone status, and possible rider association |
 | `ai/output/events.json` | Real rule matches; an empty JSON list when no threshold is met |
 | `ai/output/evidence/*.jpg` | Annotated evidence image for each generated event |
 
@@ -171,13 +171,14 @@ playback, vehicle classes and events follow the corresponding timestamps from
 real `tracks.csv` and `events.json` output. The Leaflet citizen map is implemented
 separately.
 
-The Dashboard offers three fixed scenarios backed only by real YOLO/ByteTrack
-outputs: `normal_traffic`, `congestion`, and `stopped_vehicle`. Their generated
+The Dashboard offers four fixed scenarios backed only by real YOLO/ByteTrack
+outputs: `normal_traffic`, `congestion`, `stopped_vehicle`, and `rainy_traffic`. Their generated
 files live under `ai/scenario_outputs/<scenario_id>/` and remain outside Git.
 Each folder contains `annotated.mp4`, `tracks.csv`, `events.json`, and generated
 `evidence/*.jpg` files. Source clips: [normal traffic](https://www.pexels.com/video/traffic-in-an-intersecting-road-3002736/),
 [congestion](https://www.pexels.com/video/cars-stuck-in-traffic-3148319/), and
 [stopped vehicle](https://www.pexels.com/video/mechanic-repairing-car-on-busy-street-30125402/).
+Rainy Traffic is a user-provided wet-road test clip and does not imply weather detection.
 The UI resets counters to zero when switching scenarios and reveals only records
 whose real video timestamps have been reached.
 
