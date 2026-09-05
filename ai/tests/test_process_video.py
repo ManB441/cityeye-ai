@@ -62,6 +62,7 @@ def test_build_track_row_with_assigned_track() -> None:
         "pixel_speed": 2.5,
         "stationary_duration": 2.0,
         "person_in_road": None,
+        "bicycle_in_road": None,
         "possible_rider": None,
     }
 
@@ -224,6 +225,7 @@ def test_write_tracks_csv_writes_header_for_no_detections(tmp_path: Path) -> Non
         "pixel_speed",
         "stationary_duration",
         "person_in_road",
+        "bicycle_in_road",
         "possible_rider",
     ]
     assert rows == []
@@ -275,3 +277,14 @@ def test_does_not_mark_unrelated_person_as_motorcycle_rider() -> None:
     mark_possible_motorcycle_riders(rows)
 
     assert rows[0]["possible_rider"] is False
+
+
+def test_marks_person_overlapping_bicycle_as_possible_rider() -> None:
+    rows = [
+        {"class_name": "person", "x1": 10, "y1": 10, "x2": 20, "y2": 30, "possible_rider": False},
+        {"class_name": "bicycle", "x1": 8, "y1": 20, "x2": 24, "y2": 36, "possible_rider": None},
+    ]
+
+    mark_possible_motorcycle_riders(rows)
+
+    assert rows[0]["possible_rider"] is True

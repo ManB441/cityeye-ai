@@ -31,7 +31,8 @@ def test_summary_counts_distinct_ids_in_last_frame(tmp_path: Path) -> None:
     assert response.status_code == 200
     assert response.json() == {
         "status": "READY", "current_vehicle_count": 3,
-        "current_people_count": 0, "last_frame": 11,
+        "current_people_count": 0, "current_bicycle_count": 0,
+        "last_frame": 11,
         "total_track_records": 5, "annotated_video_available": False,
         "message": "Summary calculated from the real tracks.csv output.",
     }
@@ -83,10 +84,12 @@ def test_timeline_returns_real_per_frame_class_counts(tmp_path: Path) -> None:
         "frames": [
             {"frame": 10, "timestamp_sec": 1.0, "active_vehicle_count": 2,
                  "cars": 1, "buses": 0, "trucks": 1, "motorcycles": 0,
-                 "people": 0, "people_in_road": 0, "tracked_people": 0},
+                 "people": 0, "people_in_road": 0, "tracked_people": 0,
+                 "bicycles": 0, "bicycles_in_road": 0, "tracked_bicycles": 0},
             {"frame": 11, "timestamp_sec": 1.1, "active_vehicle_count": 3,
                  "cars": 1, "buses": 1, "trucks": 0, "motorcycles": 1,
-                 "people": 0, "people_in_road": 0, "tracked_people": 0},
+                 "people": 0, "people_in_road": 0, "tracked_people": 0,
+                 "bicycles": 0, "bicycles_in_road": 0, "tracked_bicycles": 0},
         ],
         "message": "Timeline calculated from real YOLO and ByteTrack output.",
     }
@@ -96,8 +99,9 @@ def test_people_are_reported_without_increasing_vehicle_count(tmp_path: Path) ->
     output_dir = tmp_path / "output"
     output_dir.mkdir()
     (output_dir / "tracks.csv").write_text(
-        "frame,timestamp_sec,track_id,class_name,person_in_road\n"
-        "1,0.1,1,car,\n1,0.1,2,person,True\n1,0.1,,person,False\n",
+        "frame,timestamp_sec,track_id,class_name,person_in_road,bicycle_in_road\n"
+        "1,0.1,1,car,,\n1,0.1,2,person,True,\n"
+        "1,0.1,,person,False,\n1,0.1,3,bicycle,,True\n",
         encoding="utf-8",
     )
 
@@ -107,10 +111,14 @@ def test_people_are_reported_without_increasing_vehicle_count(tmp_path: Path) ->
 
     assert summary["current_vehicle_count"] == 1
     assert summary["current_people_count"] == 2
+    assert summary["current_bicycle_count"] == 1
     assert frame["active_vehicle_count"] == 1
     assert frame["people"] == 2
     assert frame["people_in_road"] == 1
     assert frame["tracked_people"] == 1
+    assert frame["bicycles"] == 1
+    assert frame["bicycles_in_road"] == 1
+    assert frame["tracked_bicycles"] == 1
 
 
 def test_timeline_reports_missing_tracks_honestly(tmp_path: Path) -> None:

@@ -33,6 +33,7 @@ const readySummary = {
   status: "READY",
   current_vehicle_count: 2,
   current_people_count: 0,
+  current_bicycle_count: 0,
   last_frame: 377,
   total_track_records: 48,
   annotated_video_available: true,
@@ -42,8 +43,8 @@ const readySummary = {
 const readyTimeline = {
   status: "READY",
   frames: [
-    { frame: 1, timestamp_sec: 0.1, active_vehicle_count: 1, cars: 1, buses: 0, trucks: 0, motorcycles: 0, people: 0, people_in_road: 0, tracked_people: 0 },
-    { frame: 10, timestamp_sec: 1.0, active_vehicle_count: 3, cars: 1, buses: 0, trucks: 1, motorcycles: 1, people: 2, people_in_road: 1, tracked_people: 2 },
+    { frame: 1, timestamp_sec: 0.1, active_vehicle_count: 1, cars: 1, buses: 0, trucks: 0, motorcycles: 0, people: 0, people_in_road: 0, tracked_people: 0, bicycles: 0, bicycles_in_road: 0, tracked_bicycles: 0 },
+    { frame: 10, timestamp_sec: 1.0, active_vehicle_count: 3, cars: 1, buses: 0, trucks: 1, motorcycles: 1, people: 2, people_in_road: 1, tracked_people: 2, bicycles: 1, bicycles_in_road: 1, tracked_bicycles: 1 },
   ],
   message: "Timeline calculated from real YOLO and ByteTrack output.",
 };
@@ -115,6 +116,7 @@ describe("CityEye municipal dashboard", () => {
     expect(within(metrics).getByText("Trucks").parentElement).toHaveTextContent("1");
     expect(within(metrics).getByText("Motorcycles").parentElement).toHaveTextContent("1");
     expect(within(metrics).getByText("People").parentElement).toHaveTextContent("2");
+    expect(within(metrics).getByText("Bicycles").parentElement).toHaveTextContent("1");
     const video = screen.getByText(/browser does not support mp4/i).closest("video");
     expect(video).toHaveAttribute("src", "/media/scenarios/normal_traffic/annotated.mp4");
   });
