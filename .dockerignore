@@ -1,0 +1,15 @@
+.git
+**/.venv
+**/__pycache__
+**/.pytest_cache
+frontend/node_modules
+frontend/dist
+backend/data
+ai/output
+ai/scenario_outputs
+ai/live_output
+ai/evaluation_dataset
+ai/sample_videos
+*.pt
+*.db
+.DS_Store

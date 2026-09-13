@@ -1,0 +1,51 @@
+name: cityeye-ai
+
+services:
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      CITYEYE_DATABASE_PATH: /data/cityeye.db
+      CITYEYE_AI_OUTPUT_DIR: /ai/output
+      CITYEYE_EVIDENCE_DIR: /ai/output/evidence
+      CITYEYE_SCENARIO_OUTPUT_ROOT: /ai/scenario_outputs
+      CITYEYE_LIVE_OUTPUT_DIR: /ai/live_output
+    volumes:
+      - cityeye_database:/data
+      - ./ai/output:/ai/output:ro
+      - ./ai/scenario_outputs:/ai/scenario_outputs:ro
+      - ./ai/live_output:/ai/live_output:ro
+    ports:
+      - "${CITYEYE_BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${CITYEYE_FRONTEND_PORT:-5173}:80"
+
+  live-ai:
+    profiles: ["live"]
+    build:
+      context: ./ai
+    restart: unless-stopped
+    environment:
+      CITYEYE_RTSP_URL: ${CITYEYE_RTSP_URL:-}
+    volumes:
+      - ./ai/live_output:/app/live_output
+      - cityeye_yolo_cache:/tmp/ultralytics
+
+volumes:
+  cityeye_database:
+  cityeye_yolo_cache:

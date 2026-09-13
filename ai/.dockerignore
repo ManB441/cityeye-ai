@@ -1,0 +1,12 @@
+.venv
+__pycache__
+.pytest_cache
+output
+scenario_outputs
+live_output
+evaluation_dataset
+sample_videos
+tests
+*.pt
+*.pyc
+.DS_Store
