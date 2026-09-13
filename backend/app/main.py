@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import logging
 import os
 from pathlib import Path
 from pathlib import PurePosixPath
+from time import perf_counter
 from typing import AsyncIterator
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import FileResponse
@@ -18,6 +21,7 @@ from app.database import (
     DuplicateEventError,
     EventRepository,
 )
+from app.observability import artifact_health, configure_logging, database_health
 from app.schemas import (
     AnalysisTimeline,
     AnalysisSummary,
@@ -46,6 +50,15 @@ class HealthResponse(BaseModel):
 
     status: str
     service: str
+
+
+class ReadinessResponse(BaseModel):
+    """Dependency-aware service readiness returned to operators."""
+
+    status: str
+    service: str
+    environment: str
+    components: dict[str, dict[str, str]]
 
 
 def get_event_repository(request: Request) -> EventRepository:
@@ -122,6 +135,8 @@ def create_app(
     selected_scenario_root = scenario_output_root or Path(
         os.getenv("CITYEYE_SCENARIO_OUTPUT_ROOT", DEFAULT_SCENARIO_OUTPUT_ROOT)
     )
+    environment = os.getenv("CITYEYE_ENVIRONMENT", "development")
+    logger = configure_logging()
     repository = EventRepository(selected_database_path)
     citizen_report_repository = CitizenReportRepository(selected_database_path)
 
@@ -140,10 +155,70 @@ def create_app(
         lifespan=lifespan,
     )
 
+    @application.middleware("http")
+    async def request_logging(request: Request, call_next):
+        request_id = request.headers.get("X-Request-ID") or str(uuid4())
+        started = perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception(
+                "request_failed",
+                extra={
+                    "environment": environment,
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "duration_ms": round((perf_counter() - started) * 1000, 2),
+                },
+            )
+            raise
+        response.headers["X-Request-ID"] = request_id
+        logger.info(
+            "request_completed",
+            extra={
+                "environment": environment,
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": round((perf_counter() - started) * 1000, 2),
+            },
+        )
+        return response
+
     @application.get("/health", response_model=HealthResponse, tags=["system"])
     def health() -> HealthResponse:
         """Confirm that the local API process is running."""
         return HealthResponse(status="ok", service="cityeye-ai-backend")
+
+    @application.get("/health/live", response_model=HealthResponse, tags=["system"])
+    def liveness() -> HealthResponse:
+        """Confirm that the API process is alive without checking dependencies."""
+        return HealthResponse(status="ok", service="cityeye-ai-backend")
+
+    @application.get(
+        "/health/ready",
+        response_model=ReadinessResponse,
+        responses={503: {"model": ReadinessResponse}},
+        tags=["system"],
+    )
+    def readiness() -> ReadinessResponse:
+        """Check required dependencies and report optional AI artifact state."""
+        components = {
+            "database": database_health(selected_database_path),
+            "ai_artifacts": artifact_health(selected_ai_output_dir),
+        }
+        ready = components["database"]["status"] == "ok"
+        payload = ReadinessResponse(
+            status="ready" if ready else "not_ready",
+            service="cityeye-ai-backend",
+            environment=environment,
+            components=components,
+        )
+        if not ready:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=payload.model_dump())
+        return payload
 
     @application.get(
         "/api/analysis/summary",

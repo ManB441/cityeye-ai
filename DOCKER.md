@@ -61,6 +61,36 @@ Runtime Python dependencies and base-image digests are pinned so rebuilding the
 same commit does not silently upgrade FastAPI, Ultralytics, PyTorch, Node, or
 Nginx. Test-only dependencies remain in the developer requirements files.
 
+## Operations and health checks
+
+The stack distinguishes process liveness from dependency readiness:
+
+- `GET /health/live` confirms that the Backend process is alive.
+- `GET /health/ready` verifies SQLite and reports AI artifact availability.
+- Missing AI output is reported as `degraded`, not as a hard failure, because
+  the camera worker is optional until a live source is configured.
+- Docker waits for Backend readiness before starting Frontend and restarts
+  failed services with `unless-stopped`.
+
+Application requests are logged as one JSON object per line. Every response has
+an `X-Request-ID`; send your own value to trace one request across a proxy. Docker
+rotates logs to prevent them from filling the host disk.
+
+Useful operator commands:
+
+```bash
+docker compose ps
+docker compose logs --tail=100 backend
+docker compose logs -f backend live-ai
+curl http://127.0.0.1:8000/health/ready
+```
+
+For a clean shutdown that allows in-flight requests to finish:
+
+```bash
+docker compose down
+```
+
 ## Optional live camera worker
 
 The live AI worker is an optional profile until a real RTSP camera URL is
