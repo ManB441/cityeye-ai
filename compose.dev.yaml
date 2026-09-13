@@ -1,6 +1,6 @@
 services:
   backend:
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --no-access-log
     environment:
       CITYEYE_ENVIRONMENT: development
       CITYEYE_LOG_LEVEL: debug
