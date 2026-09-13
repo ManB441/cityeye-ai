@@ -6,6 +6,8 @@ services:
       context: ./backend
     restart: unless-stopped
     environment:
+      CITYEYE_ENVIRONMENT: ${CITYEYE_ENVIRONMENT:-demo}
+      CITYEYE_LOG_LEVEL: ${CITYEYE_LOG_LEVEL:-info}
       CITYEYE_DATABASE_PATH: /data/cityeye.db
       CITYEYE_AI_OUTPUT_DIR: /ai/output
       CITYEYE_EVIDENCE_DIR: /ai/output/evidence
@@ -41,6 +43,7 @@ services:
       context: ./ai
     restart: unless-stopped
     environment:
+      CITYEYE_ENVIRONMENT: ${CITYEYE_ENVIRONMENT:-demo}
       CITYEYE_RTSP_URL: ${CITYEYE_RTSP_URL:-}
     volumes:
       - ./ai/live_output:/app/live_output
