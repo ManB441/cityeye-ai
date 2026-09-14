@@ -62,6 +62,7 @@ def test_production_disables_api_docs(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("CITYEYE_ENVIRONMENT", "production")
     monkeypatch.setenv("CITYEYE_TRUSTED_HOSTS", "cityeye.example.gov")
     monkeypatch.setenv("CITYEYE_CORS_ORIGINS", "https://cityeye.example.gov")
+    monkeypatch.setenv("CITYEYE_AUTH_REQUIRED", "false")
     application = create_app(database_path=tmp_path / "cityeye.db")
 
     with TestClient(application, base_url="https://cityeye.example.gov") as client:

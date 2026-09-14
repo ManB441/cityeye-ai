@@ -10,6 +10,11 @@ services:
       CITYEYE_LOG_LEVEL: ${CITYEYE_LOG_LEVEL:-info}
       CITYEYE_CORS_ORIGINS: ${CITYEYE_CORS_ORIGINS:-}
       CITYEYE_TRUSTED_HOSTS: ${CITYEYE_TRUSTED_HOSTS:-*}
+      CITYEYE_AUTH_REQUIRED: ${CITYEYE_AUTH_REQUIRED:-false}
+      CITYEYE_SESSION_TTL_SECONDS: ${CITYEYE_SESSION_TTL_SECONDS:-28800}
+      CITYEYE_BOOTSTRAP_ADMIN_USERNAME: ${CITYEYE_BOOTSTRAP_ADMIN_USERNAME:-}
+      CITYEYE_BOOTSTRAP_ADMIN_PASSWORD_FILE: /run/secrets/admin_password
+      CITYEYE_INGEST_TOKEN_FILE: /run/secrets/ingest_token
       CITYEYE_DATABASE_PATH: /data/cityeye.db
       CITYEYE_AI_OUTPUT_DIR: /ai/output
       CITYEYE_EVIDENCE_DIR: /ai/output/evidence
@@ -17,6 +22,7 @@ services:
       CITYEYE_LIVE_OUTPUT_DIR: /ai/live_output
     volumes:
       - cityeye_database:/data
+      - ./secrets:/run/secrets:ro
       - ./ai/output:/ai/output:ro
       - ./ai/scenario_outputs:/ai/scenario_outputs:ro
       - ./ai/live_output:/ai/live_output:ro
