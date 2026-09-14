@@ -50,12 +50,21 @@ need customization; `.env` is excluded from Git.
 
 ## Production environment
 
-Use the production template as a starting point and inject secrets through the
-deployment platform rather than writing them to the file:
+Copy the production template and replace every `CHANGE-ME` value before start.
+Production startup intentionally fails when trusted hosts are missing, contain
+a wildcard, or when a configured CORS origin does not use HTTPS:
 
 ```bash
-docker compose --env-file config/environments/production.env.example up -d --build
+cp config/environments/production.env.example .env.production
+# Edit .env.production with the real HTTPS origin and public hostname.
+docker compose --env-file .env.production up -d --build
 ```
+
+The Backend accepts cross-origin browser requests only from
+`CITYEYE_CORS_ORIGINS` and accepts HTTP hosts only from
+`CITYEYE_TRUSTED_HOSTS`. API documentation is disabled automatically in
+production. Both Backend and Frontend return restrictive browser security
+headers. TLS must terminate at the deployment load balancer or reverse proxy.
 
 Runtime Python dependencies and base-image digests are pinned so rebuilding the
 same commit does not silently upgrade FastAPI, Ultralytics, PyTorch, Node, or
@@ -131,8 +140,26 @@ The live AI worker is an optional profile until a real RTSP camera URL is
 available:
 
 ```bash
-export CITYEYE_RTSP_URL='rtsp://username:password@camera-host:554/stream'
+mkdir -p secrets
+# Write the RTSP URL to secrets/rtsp_url and chmod it to 600.
 docker compose --profile live up --build
 ```
 
+The file is mounted read-only at `/run/secrets/rtsp_url`; it is not exposed in
+the container environment or Docker inspection output. See `secrets/README.md`.
 Never commit an RTSP URL containing camera credentials.
+
+## Security checks
+
+- External request IDs are accepted only when they contain safe characters and
+  are at most 128 characters; otherwise the Backend generates a new UUID.
+- Common RTSP passwords, API keys, tokens, and secrets are redacted from
+  application logs.
+- CORS uses an exact origin allowlist and never accepts `*`.
+- Production rejects wildcard trusted hosts, non-HTTPS CORS origins, and
+  unchanged placeholder values.
+- `/docs`, `/redoc`, and `/openapi.json` are disabled in production.
+
+Keep `.env.production` and everything under `secrets/` out of Git. In a hosted
+deployment, use the platform secret manager rather than copying secret files
+manually.

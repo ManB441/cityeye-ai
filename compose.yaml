@@ -8,6 +8,8 @@ services:
     environment:
       CITYEYE_ENVIRONMENT: ${CITYEYE_ENVIRONMENT:-demo}
       CITYEYE_LOG_LEVEL: ${CITYEYE_LOG_LEVEL:-info}
+      CITYEYE_CORS_ORIGINS: ${CITYEYE_CORS_ORIGINS:-}
+      CITYEYE_TRUSTED_HOSTS: ${CITYEYE_TRUSTED_HOSTS:-*}
       CITYEYE_DATABASE_PATH: /data/cityeye.db
       CITYEYE_AI_OUTPUT_DIR: /ai/output
       CITYEYE_EVIDENCE_DIR: /ai/output/evidence
@@ -91,9 +93,10 @@ services:
     restart: unless-stopped
     environment:
       CITYEYE_ENVIRONMENT: ${CITYEYE_ENVIRONMENT:-demo}
-      CITYEYE_RTSP_URL: ${CITYEYE_RTSP_URL:-}
+      CITYEYE_RTSP_URL_FILE: /run/secrets/rtsp_url
     volumes:
       - ./ai/live_output:/app/live_output
+      - ./secrets:/run/secrets:ro
       - cityeye_yolo_cache:/tmp/ultralytics
     stop_grace_period: 30s
     logging:
