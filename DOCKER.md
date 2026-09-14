@@ -91,6 +91,40 @@ For a clean shutdown that allows in-flight requests to finish:
 docker compose down
 ```
 
+## Database backups and recovery
+
+The `database-backup` service creates a verified SQLite backup when it starts
+and repeats on `CITYEYE_BACKUP_INTERVAL_SECONDS`. Backups live in the separate
+`cityeye_database_backups` Docker volume. Each backup has a SHA-256 manifest,
+passes `PRAGMA integrity_check`, and is published atomically. Retention is
+controlled by `CITYEYE_BACKUP_RETENTION_COUNT`. Docker also marks the backup
+worker unhealthy if its latest backup is missing, stale, corrupt, or has a
+checksum mismatch.
+
+Create and list backups manually:
+
+```bash
+docker compose run --rm database-backup python -m app.backups backup
+docker compose run --rm database-backup python -m app.backups list
+```
+
+Restore is intentionally an operator action. Stop services that write to the
+database, choose a filename from the list, restore it, and start the stack:
+
+```bash
+docker compose stop frontend backend database-backup
+docker compose run --rm --no-deps database-backup \
+  python -m app.backups restore cityeye-YYYYMMDDTHHMMSS.ffffffZ.sqlite3
+docker compose up -d
+curl --fail http://127.0.0.1:${CITYEYE_BACKEND_PORT:-8000}/health/ready
+```
+
+The restore command rejects files outside the backup volume, verifies the
+manifest checksum and SQLite integrity, and replaces the database atomically.
+Docker volumes protect data from container replacement, but they remain on one
+host. Production must also copy encrypted backups to separate storage and test
+off-host recovery regularly.
+
 ## Optional live camera worker
 
 The live AI worker is an optional profile until a real RTSP camera URL is
