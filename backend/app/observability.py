@@ -8,7 +8,33 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
+import re
 from typing import Any
+
+
+SENSITIVE_PATTERNS = (
+    re.compile(r"(rtsp://[^:/\s]+:)[^@/\s]+(@)", re.IGNORECASE),
+    re.compile(
+        r"((?:password|passwd|token|api[_-]?key|secret)[\s=:]+)[^\s,;]+",
+        re.IGNORECASE,
+    ),
+)
+REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
+
+
+def redact_sensitive(value: str) -> str:
+    """Remove common credentials from text before it reaches logs."""
+    redacted = value
+    redacted = SENSITIVE_PATTERNS[0].sub(r"\1***\2", redacted)
+    redacted = SENSITIVE_PATTERNS[1].sub(r"\1***", redacted)
+    return redacted
+
+
+def safe_request_id(value: str | None) -> str | None:
+    """Accept only bounded, header-safe request identifiers."""
+    if value and REQUEST_ID_PATTERN.fullmatch(value):
+        return value
+    return None
 
 
 class JsonFormatter(logging.Formatter):
@@ -19,7 +45,7 @@ class JsonFormatter(logging.Formatter):
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "logger": record.name,
-            "message": record.getMessage(),
+            "message": redact_sensitive(record.getMessage()),
         }
         for field in (
             "environment",
@@ -33,7 +59,9 @@ class JsonFormatter(logging.Formatter):
             if value is not None:
                 payload[field] = value
         if record.exc_info:
-            payload["exception"] = self.formatException(record.exc_info)
+            payload["exception"] = redact_sensitive(
+                self.formatException(record.exc_info)
+            )
         return json.dumps(payload, separators=(",", ":"), default=str)
 
 

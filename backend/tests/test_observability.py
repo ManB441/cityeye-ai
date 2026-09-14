@@ -3,11 +3,19 @@ import logging
 from pathlib import Path
 import sys
 
+import pytest
+
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
-from app.observability import JsonFormatter, artifact_health, database_health
+from app.observability import (
+    JsonFormatter,
+    artifact_health,
+    database_health,
+    redact_sensitive,
+    safe_request_id,
+)
 
 
 def test_json_formatter_emits_operational_fields() -> None:
@@ -40,3 +48,21 @@ def test_artifact_health_reports_ready_when_required_files_exist(tmp_path: Path)
     (tmp_path / "annotated.mp4").touch()
 
     assert artifact_health(tmp_path) == {"status": "ok"}
+
+
+def test_sensitive_values_are_redacted() -> None:
+    message = (
+        "camera=rtsp://operator:camera-pass@example.test/stream "
+        "api_key=top-secret"
+    )
+
+    redacted = redact_sensitive(message)
+
+    assert "camera-pass" not in redacted
+    assert "top-secret" not in redacted
+    assert "operator:***@" in redacted
+
+
+@pytest.mark.parametrize("value", ["bad id", "line\nbreak", "x" * 129, "💥"])
+def test_unsafe_request_ids_are_rejected(value: str) -> None:
+    assert safe_request_id(value) is None

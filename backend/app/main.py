@@ -12,8 +12,10 @@ from typing import AsyncIterator
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.analysis import read_analysis_summary, read_analysis_timeline, resolve_annotated_video
 from app.database import (
@@ -21,7 +23,13 @@ from app.database import (
     DuplicateEventError,
     EventRepository,
 )
-from app.observability import artifact_health, configure_logging, database_health
+from app.observability import (
+    artifact_health,
+    configure_logging,
+    database_health,
+    safe_request_id,
+)
+from app.security import SECURITY_HEADERS, SecuritySettings
 from app.schemas import (
     AnalysisTimeline,
     AnalysisSummary,
@@ -135,7 +143,8 @@ def create_app(
     selected_scenario_root = scenario_output_root or Path(
         os.getenv("CITYEYE_SCENARIO_OUTPUT_ROOT", DEFAULT_SCENARIO_OUTPUT_ROOT)
     )
-    environment = os.getenv("CITYEYE_ENVIRONMENT", "development")
+    security_settings = SecuritySettings.from_environment()
+    environment = security_settings.environment
     logger = configure_logging()
     repository = EventRepository(selected_database_path)
     citizen_report_repository = CitizenReportRepository(selected_database_path)
@@ -153,11 +162,29 @@ def create_app(
         description="Local MVP API for reviewed traffic events and citizen reports.",
         version="0.2.0",
         lifespan=lifespan,
+        docs_url="/docs" if security_settings.docs_enabled else None,
+        redoc_url="/redoc" if security_settings.docs_enabled else None,
+        openapi_url="/openapi.json" if security_settings.docs_enabled else None,
     )
+
+    if security_settings.cors_origins:
+        application.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(security_settings.cors_origins),
+            allow_credentials=False,
+            allow_methods=["GET", "POST"],
+            allow_headers=["Content-Type", "X-Request-ID"],
+            expose_headers=["X-Request-ID"],
+        )
+    if security_settings.trusted_hosts != ("*",):
+        application.add_middleware(
+            TrustedHostMiddleware,
+            allowed_hosts=list(security_settings.trusted_hosts),
+        )
 
     @application.middleware("http")
     async def request_logging(request: Request, call_next):
-        request_id = request.headers.get("X-Request-ID") or str(uuid4())
+        request_id = safe_request_id(request.headers.get("X-Request-ID")) or str(uuid4())
         started = perf_counter()
         try:
             response = await call_next(request)
@@ -174,6 +201,8 @@ def create_app(
             )
             raise
         response.headers["X-Request-ID"] = request_id
+        for header, value in SECURITY_HEADERS.items():
+            response.headers[header] = value
         logger.info(
             "request_completed",
             extra={
