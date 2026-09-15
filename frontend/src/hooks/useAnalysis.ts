@@ -2,8 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchAnalysisSummary, fetchAnalysisTimeline } from "../api/analysis";
 import type { AnalysisSummary, AnalysisTimeline, ScenarioId } from "../types";
 
-const POLL_INTERVAL_MS = 2_000;
-
 export function useAnalysis(scenarioId: ScenarioId) {
   const [summary, setSummary] = useState<AnalysisSummary | null>(null);
   const [timeline, setTimeline] = useState<AnalysisTimeline | null>(null);
@@ -26,11 +24,7 @@ export function useAnalysis(scenarioId: ScenarioId) {
   useEffect(() => {
     const controller = new AbortController();
     void refresh(controller.signal);
-    const timer = window.setInterval(() => void refresh(), POLL_INTERVAL_MS);
-    return () => {
-      controller.abort();
-      window.clearInterval(timer);
-    };
+    return () => controller.abort();
   }, [refresh]);
 
   return { summary, timeline, error, refresh };

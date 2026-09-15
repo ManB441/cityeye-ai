@@ -1,200 +1,47 @@
 import { useEffect, useMemo, useState } from "react";
-import { evidenceUrl } from "../api/events";
 import { fetchScenarios } from "../api/analysis";
-import { useEvents } from "../hooks/useEvents";
+import { IncidentCard, IncidentDetail } from "../components/Incident";
+import { SourceSidebar } from "../components/SourceSidebar";
+import type { AuthState } from "../hooks/useAuth";
 import { useAnalysis } from "../hooks/useAnalysis";
-import { useAuth } from "../hooks/useAuth";
+import { useEvents } from "../hooks/useEvents";
 import type { AnalysisFrame, ScenarioId, ScenarioInfo, TrafficEvent } from "../types";
 
-const EMPTY_FRAME: AnalysisFrame = {
-  frame: 0, timestamp_sec: 0, active_vehicle_count: 0,
-  cars: 0, buses: 0, trucks: 0, motorcycles: 0,
-  people: 0, people_in_road: 0, tracked_people: 0,
-  bicycles: 0, bicycles_in_road: 0, tracked_bicycles: 0,
-};
+const EMPTY_FRAME: AnalysisFrame = { frame: 0, timestamp_sec: 0, active_vehicle_count: 0, cars: 0, buses: 0, trucks: 0, motorcycles: 0, people: 0, people_in_road: 0, tracked_people: 0, bicycles: 0, bicycles_in_road: 0, tracked_bicycles: 0 };
 
-function EventCard({ event, reviewing, onDecision, scenarioId, canReview }: {
-  event: TrafficEvent;
-  reviewing: boolean;
-  onDecision: (decision: "verify" | "dismiss") => void;
-  scenarioId: ScenarioId;
-  canReview: boolean;
-}) {
-  const proposed = event.status === "PROPOSED";
-  return (
-    <div className="event-card">
-      <div className="event-title-row">
-        <div>
-          <span className="event-kicker">AI traffic event</span>
-          <strong>{event.event_type}</strong>
-        </div>
-        <span className={`severity ${event.severity.toLowerCase()}`}>{event.severity}</span>
-      </div>
-      <p>{event.explanation}</p>
-      <dl>
-        <div><dt>Status</dt><dd>{event.status}</dd></div>
-        <div><dt>Confidence</dt><dd>{Math.round(event.confidence * 100)}%</dd></div>
-        <div><dt>Video time</dt><dd>{event.timestamp.toFixed(1)}s</dd></div>
-        <div><dt>Camera</dt><dd>{event.camera_name}</dd></div>
-      </dl>
-      <img className="evidence-image" src={evidenceUrl(event.evidence_image, scenarioId)} alt={`Evidence for ${event.event_type}`} />
-      <div className="event-actions">
-        <button type="button" disabled={!proposed || reviewing || !canReview} onClick={() => onDecision("verify")}>Verify</button>
-        <button type="button" className="secondary" disabled={!proposed || reviewing || !canReview} onClick={() => onDecision("dismiss")}>Dismiss</button>
-      </div>
-      {!canReview && proposed && <small>Reviewer or Admin access is required to decide this event.</small>}
-      {!proposed && <small>Municipal decision recorded: {event.status}</small>}
-    </div>
-  );
-}
-
-export function MunicipalDashboard() {
-  const auth = useAuth();
+export function MunicipalDashboard({ auth }: { auth: AuthState }) {
   const [scenarioId, setScenarioId] = useState<ScenarioId>("normal_traffic");
   const [scenarios, setScenarios] = useState<ScenarioInfo[]>([]);
-  const { events, loading, error, reviewingEventId, refresh, decide } = useEvents(scenarioId);
-  const { summary, timeline, error: analysisError, refresh: refreshAnalysis } = useAnalysis(scenarioId);
   const [videoTime, setVideoTime] = useState(0);
   const [analysisStarted, setAnalysisStarted] = useState(false);
-  const currentFrame = useMemo(() => {
-    if (!analysisStarted || !timeline?.frames.length) return EMPTY_FRAME;
-    let selected = EMPTY_FRAME;
-    for (const frame of timeline.frames) {
-      if (frame.timestamp_sec > videoTime) break;
-      selected = frame;
-    }
-    return selected;
-  }, [analysisStarted, timeline, videoTime]);
+  const [selectedEvent, setSelectedEvent] = useState<TrafficEvent | null>(null);
+  const [scenarioError, setScenarioError] = useState<string | null>(null);
+  const { events, loading, error, reviewingEventId, refresh, decide } = useEvents(scenarioId);
+  const { summary, timeline, error: analysisError, refresh: refreshAnalysis } = useAnalysis(scenarioId);
+  useEffect(() => { const controller = new AbortController(); void fetchScenarios(controller.signal).then((items) => { setScenarios(items); setScenarioError(null); }).catch((requestError) => { if (!(requestError instanceof DOMException && requestError.name === "AbortError")) setScenarioError(requestError instanceof Error ? requestError.message : "Unable to load sources"); }); return () => controller.abort(); }, []);
+  const currentFrame = useMemo(() => { if (!timeline?.frames.length) return EMPTY_FRAME; let selected = EMPTY_FRAME; for (const frame of timeline.frames) { if (frame.timestamp_sec > videoTime) break; selected = frame; } return selected; }, [timeline, videoTime]);
   const visibleEvents = events.filter((event) => analysisStarted && event.timestamp <= videoTime);
   const proposedCount = visibleEvents.filter((event) => event.status === "PROPOSED").length;
-  const hasCongestion = visibleEvents.some((event) => event.event_type === "CONGESTION" && event.status !== "DISMISSED");
-  const trafficStatus = hasCongestion ? "Congested" : proposedCount > 0 ? "Attention" : "Normal";
+  const congested = visibleEvents.some((event) => event.event_type === "CONGESTION" && event.status !== "DISMISSED");
+  const trafficStatus = congested ? "Congested" : proposedCount ? "Attention" : "Normal";
   const selectedScenario = scenarios.find((scenario) => scenario.scenario_id === scenarioId);
-  const cameraName = events[0]?.camera_name ?? selectedScenario?.title ?? "Loading camera";
-  const systemActive = summary?.status === "READY";
-  const canReview = !auth.authRequired || auth.user?.role === "REVIEWER" || auth.user?.role === "ADMIN";
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void fetchScenarios(controller.signal).then(setScenarios);
-    return () => controller.abort();
-  }, []);
-
-  function selectScenario(next: ScenarioId) {
-    setScenarioId(next);
-    setVideoTime(0);
-    setAnalysisStarted(false);
-  }
-
-  return (
-    <main className="dashboard">
-      <section className="page-heading">
-        <div>
-          <p className="eyebrow">Municipal operations</p>
-          <h1>Traffic Monitoring Dashboard</h1>
-          <p className="heading-subtitle">Operational view · {cameraName}</p>
-        </div>
-        <div className={`system-badge ${systemActive ? "active" : "waiting"}`}>
-          <span aria-hidden="true" />
-          {systemActive ? "AI System Active" : "Checking AI System"}
-        </div>
-      </section>
-
-      <section className="access-panel" aria-label="Municipal access">
-        {auth.authRequired && !auth.user ? (
-          <form onSubmit={(event) => {
-            event.preventDefault();
-            void auth.login(username, password).then(() => setPassword(""));
-          }}>
-            <div><strong>Municipal sign in</strong><span>Required for Verify and Dismiss decisions</span></div>
-            <label>Username<input autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} required /></label>
-            <label>Password<input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
-            <button type="submit" disabled={auth.loading}>Sign in</button>
-          </form>
-        ) : (
-          <div className="access-summary">
-            <span><strong>{auth.user?.username ?? "Checking access"}</strong><small>{auth.user?.role ?? (auth.loading ? "Loading" : "Read only")}</small></span>
-            {auth.authRequired && auth.user && <button type="button" className="secondary" onClick={() => void auth.logout()}>Sign out</button>}
-          </div>
-        )}
-        {auth.error && <span className="access-error" role="alert">{auth.error}</span>}
-      </section>
-
-      {(error || analysisError) && <div className="error-banner" role="alert"><span>{error ?? analysisError}</span><button type="button" onClick={() => { void refresh(); void refreshAnalysis(); }}>Retry</button></div>}
-
-      <section className="monitoring-grid" aria-label="AI traffic monitoring">
-        <article className="panel video-panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Processed camera feed</p>
-              <h2>Camera Analysis</h2>
-              <span className="camera-label">{cameraName}</span>
-            </div>
-            <div className="video-status">
-              <span className="status-dot">{summary?.status ?? "Loading"}</span>
-              <span className="video-clock">{videoTime.toFixed(1)}s</span>
-            </div>
-          </div>
-          {summary?.annotated_video_available ? (
-            <video key={scenarioId} className="processed-video" controls preload="metadata" src={`/media/scenarios/${scenarioId}/annotated.mp4`}
-              onPlay={(event) => { setAnalysisStarted(true); setVideoTime(event.currentTarget.currentTime); }}
-              onTimeUpdate={(event) => setVideoTime(event.currentTarget.currentTime)}
-              onSeeked={(event) => { setAnalysisStarted(true); setVideoTime(event.currentTarget.currentTime); }}
-              onEnded={(event) => setVideoTime(event.currentTarget.currentTime)}>
-              Your browser does not support MP4 video.
-            </video>
-          ) : (
-            <div className="video-placeholder" role="img" aria-label="Processed video unavailable">
-              <span>{summary?.message ?? "Checking real AI output files…"}</span>
-            </div>
-          )}
-          {selectedScenario && <p className="source-credit">Video source: {selectedScenario.source_url === "user-provided" ? "User-provided test clip" : <a href={selectedScenario.source_url} target="_blank" rel="noreferrer">Pexels · free-to-use source</a>}</p>}
-        </article>
-
-        <article className="panel event-panel">
-          <div className="panel-heading event-panel-heading">
-            <div><p className="eyebrow">Event queue</p><h2>Live Events</h2></div>
-            <span className="event-count">{visibleEvents.length}</span>
-          </div>
-          {loading && <div className="state-card">Loading events…</div>}
-          {!loading && !analysisStarted && <div className="state-card">Press Play to synchronize real tracking data and events.</div>}
-          {!loading && analysisStarted && visibleEvents.length === 0 && <div className="state-card">No AI event has occurred at this video time.</div>}
-          <div className="event-list">
-            {visibleEvents.map((event) => <EventCard key={event.event_id} event={event} scenarioId={scenarioId} canReview={canReview} reviewing={reviewingEventId === event.event_id} onDecision={(decision) => void decide(event.event_id, decision)} />)}
-          </div>
-        </article>
-      </section>
-
-      <section className="metric-grid" aria-label="Current traffic summary">
-        <article className="metric-card primary-metric"><span>Active tracked</span><strong>{currentFrame.active_vehicle_count}</strong></article>
-        <article className="metric-card"><span>Cars</span><strong>{currentFrame.cars}</strong></article>
-        <article className="metric-card"><span>Buses</span><strong>{currentFrame.buses}</strong></article>
-        <article className="metric-card"><span>Trucks</span><strong>{currentFrame.trucks}</strong></article>
-        <article className="metric-card"><span>Motorcycles</span><strong>{currentFrame.motorcycles}</strong></article>
-        <article className="metric-card"><span>People</span><strong>{currentFrame.people}</strong></article>
-        <article className="metric-card"><span>Bicycles</span><strong>{currentFrame.bicycles}</strong></article>
-        <article className="metric-card traffic-metric"><span>Traffic status</span><strong className={`traffic-pill ${trafficStatus.toLowerCase()}`}>{trafficStatus}</strong></article>
-        <article className="metric-card"><span>Proposed events</span><strong>{proposedCount}</strong></article>
-        <article className="metric-card"><span>Video position</span><strong>{videoTime.toFixed(1)}s</strong></article>
-      </section>
-
-      <section className="scenario-section">
-        <div className="section-heading">
-          <div><p className="eyebrow">Demonstration feeds</p><h2>Choose Traffic Scenario</h2></div>
-          <span>Real precomputed AI output · video-synced</span>
-        </div>
-        <div className="scenario-grid" aria-label="Traffic demonstration scenarios">
-          {scenarios.map((scenario) => (
-            <button key={scenario.scenario_id} type="button"
-              className={`scenario-card ${scenario.scenario_id === scenarioId ? "selected" : ""}`}
-              onClick={() => selectScenario(scenario.scenario_id)}>
-              <span>Scenario</span><strong>{scenario.title}</strong><small>{scenario.description}</small>
-            </button>
-          ))}
-        </div>
-      </section>
+  const cameraName = events[0]?.camera_name ?? selectedScenario?.title ?? "Loading source";
+  const canReview = !auth.loading && !auth.error && (!auth.authRequired || auth.user?.role === "REVIEWER" || auth.user?.role === "ADMIN");
+  function selectScenario(next: ScenarioId) { setScenarioId(next); setVideoTime(0); setAnalysisStarted(false); setSelectedEvent(null); }
+  async function decideOn(event: TrafficEvent, decision: "verify" | "dismiss") { await decide(event.event_id, decision); setSelectedEvent((current) => current?.event_id === event.event_id ? { ...current, status: decision === "verify" ? "VERIFIED" : "DISMISSED" } : current); }
+  const combinedError = scenarioError ?? error ?? analysisError;
+  return <div className="command-layout">
+    <SourceSidebar scenarios={scenarios} selected={scenarioId} onSelect={selectScenario} />
+    <main className="command-main">
+      <section className="workspace-heading"><div><span className="section-label">COMMAND CENTER</span><h1>{cameraName}</h1><p>Municipal traffic monitoring workspace</p></div><div className="recording-badge"><i />RECORDED<small>Municipality Test Footage</small></div></section>
+      {combinedError && <div className="command-error" role="alert"><span>{combinedError}</span><button onClick={() => { void refresh(); void refreshAnalysis(); }}>Retry</button></div>}
+      <article className="feed-panel"><div className="feed-toolbar"><div><span>PROCESSED CAMERA FEED</span><strong>{selectedScenario?.title ?? cameraName}</strong></div><div><span className={`feed-state ${summary?.status === "READY" ? "ready" : "waiting"}`}>{summary?.status ?? "CHECKING"}</span><time>{videoTime.toFixed(1)}s</time></div></div>
+        {summary?.annotated_video_available ? <video key={scenarioId} className="command-video" controls preload="metadata" src={`/media/scenarios/${scenarioId}/annotated.mp4`} onPlay={(event) => { setAnalysisStarted(true); setVideoTime(event.currentTarget.currentTime); }} onTimeUpdate={(event) => setVideoTime(event.currentTarget.currentTime)} onSeeked={(event) => { setAnalysisStarted(true); setVideoTime(event.currentTarget.currentTime); }} onEnded={(event) => setVideoTime(event.currentTarget.currentTime)}>Your browser does not support MP4 video.</video> : <div className="command-video-placeholder"><span>{summary?.message ?? "Checking real AI output files…"}</span></div>}
+        <div className="feed-footer"><span>YOLO + ByteTrack annotated output</span><span>Frame {timeline?.frames.length ? currentFrame.frame : "—"}</span><span>{selectedScenario?.source_url === "user-provided" ? "User-provided clip" : "Licensed test footage"}</span></div></article>
+      <section className="metric-strip" aria-label="Current traffic summary">{[["Vehicles", currentFrame.active_vehicle_count], ["Cars", currentFrame.cars], ["Buses", currentFrame.buses], ["Trucks", currentFrame.trucks], ["Motorcycles", currentFrame.motorcycles], ["People", currentFrame.people], ["Bicycles", currentFrame.bicycles]].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}<article><span>Traffic status</span><strong className={`traffic-state ${trafficStatus.toLowerCase()}`}>{trafficStatus}</strong></article></section>
+      <section className="data-note"><span>REAL VIDEO-SYNCED DATA</span><p>Metrics update from the existing analysis timeline as recorded footage plays. Flow and queue trend are not available.</p></section>
     </main>
-  );
+    <aside className="incident-rail"><div className="rail-heading"><div><span>LIVE INCIDENTS</span><small>Video-synchronized queue</small></div><b>{visibleEvents.length}</b></div>{loading && <div className="rail-empty">Loading incidents…</div>}{!loading && !analysisStarted && <div className="rail-empty"><i>▶</i><strong>Start recorded footage</strong><span>Incidents will appear at their real video timestamp.</span></div>}{!loading && analysisStarted && visibleEvents.length === 0 && <div className="rail-empty"><strong>No incident at this time</strong><span>The AI event queue is clear for the current video position.</span></div>}<div className="rail-list">{visibleEvents.map((event) => <IncidentCard key={event.event_id} event={event} scenarioId={scenarioId} canReview={canReview} reviewing={reviewingEventId === event.event_id} onView={() => setSelectedEvent(event)} onDecision={(decision) => void decideOn(event, decision)} />)}</div></aside>
+    {selectedEvent && <IncidentDetail event={selectedEvent} scenarioId={scenarioId} canReview={canReview} reviewing={reviewingEventId === selectedEvent.event_id} onClose={() => setSelectedEvent(null)} onDecision={(decision) => void decideOn(selectedEvent, decision)} />}
+  </div>;
 }

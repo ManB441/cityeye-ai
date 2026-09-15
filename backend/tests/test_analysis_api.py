@@ -176,6 +176,27 @@ def test_scenario_endpoints_use_only_allowlisted_real_outputs(tmp_path: Path) ->
         assert client.get("/api/scenarios/../../private/analysis/summary").status_code in {404, 405}
 
 
+def test_scenario_event_accepts_measured_stopped_vehicle_details(tmp_path: Path) -> None:
+    scenario = tmp_path / "scenarios" / "stopped_vehicle"
+    scenario.mkdir(parents=True)
+    (scenario / "events.json").write_text(
+        '[{"event_id":"stop-1","event_type":"STOPPED_VEHICLE","timestamp":4.0,'
+        '"confidence":0.92,"severity":"MEDIUM","explanation":"Track stopped",'
+        '"camera_name":"Demo source","latitude":0,"longitude":0,'
+        '"evidence_image":"evidence/stop.jpg","status":"PROPOSED",'
+        '"details":{"track_id":7,"vehicle_class":"car",'
+        '"stationary_duration_seconds":1.5,"movement_value":0.0204,'
+        '"movement_unit":"roi_diagonals_per_second",'
+        '"instantaneous_normalized_movement":0.0152,"pixel_speed_debug":15.8,'
+        '"roi_status":"INSIDE"}}]',
+        encoding="utf-8",
+    )
+    with make_client(tmp_path, tmp_path / "output") as client:
+        response = client.get("/api/scenarios/stopped_vehicle/events")
+    assert response.status_code == 200
+    assert response.json()["events"][0]["details"]["track_id"] == 7
+
+
 def test_rejects_annotated_video_symlink_outside_output(tmp_path: Path) -> None:
     output_dir = tmp_path / "output"
     output_dir.mkdir()

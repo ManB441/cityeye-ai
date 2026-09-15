@@ -25,6 +25,18 @@
     "start": [200, 350],
     "end": [200, 150]
   },
+  "blockage_zones": [
+    {
+      "name": "Main Lane",
+      "polygon": [[180, 120], [460, 120], [500, 360], [140, 360]],
+      "direction": {"start": [320, 350], "end": [320, 130]},
+      "min_vehicle_overlap": 0.35,
+      "significant_overlap": 0.60,
+      "upstream_min_vehicles": 2,
+      "upstream_max_speed_px_per_sec": 8.0,
+      "traffic_impact_seconds": 1.0
+    }
+  ],
   "event_thresholds": {
     "wrong_way_min_confidence": 0.6,
     "wrong_way_min_displacement_px": 20.0,
@@ -32,6 +44,7 @@
     "stopped_vehicle_seconds": 8.0,
     "stopped_vehicle_max_speed_px_per_sec": 3.0,
     "stopped_vehicle_min_track_points": 3,
+    "road_blockage_seconds": 8.0,
     "congestion_min_vehicles": 16,
     "congestion_moderate_min_vehicles": 12,
     "congestion_min_density": 0.04,
