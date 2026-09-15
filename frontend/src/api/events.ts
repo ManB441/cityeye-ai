@@ -1,4 +1,5 @@
 import type { EventListResponse, ScenarioId, TrafficEvent } from "../types";
+import { authorizationHeaders } from "./auth";
 
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) throw new Error(`Backend request failed with HTTP ${response.status}`);
@@ -20,9 +21,13 @@ export async function reviewEvent(
   decision: "verify" | "dismiss",
   scenarioId: ScenarioId,
 ): Promise<TrafficEvent> {
+  const headers = authorizationHeaders();
   return parseResponse<TrafficEvent>(await fetch(
     `/api/scenarios/${scenarioId}/events/${encodeURIComponent(eventId)}/${decision}`,
-    { method: "POST" },
+    {
+      method: "POST",
+      ...(headers ? { headers } : {}),
+    },
   ));
 }
 

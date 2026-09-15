@@ -70,6 +70,51 @@ Runtime Python dependencies and base-image digests are pinned so rebuilding the
 same commit does not silently upgrade FastAPI, Ultralytics, PyTorch, Node, or
 Nginx. Test-only dependencies remain in the developer requirements files.
 
+## Authentication and roles
+
+Authentication stays disabled in the demo and development templates so the
+existing local demonstration remains one command. It is mandatory in the
+production template. Before the first production start, create two secret files:
+
+```bash
+mkdir -p secrets
+# Put one strong, unique value in secrets/admin_password.
+# Put a different high-entropy value in secrets/ingest_token.
+chmod 600 secrets/admin_password secrets/ingest_token
+```
+
+`CITYEYE_BOOTSTRAP_ADMIN_USERNAME` and `secrets/admin_password` create the first
+administrator only when the user database is empty. Remove the bootstrap
+password file after the first successful start; existing users remain in the
+persistent SQLite volume. The API fails closed in required-auth mode when no
+user exists or when the AI ingest secret is unavailable.
+
+Roles are intentionally small:
+
+- `OPERATOR` can view the dashboard and events.
+- `REVIEWER` can also verify or dismiss proposed AI events.
+- `ADMIN` can review events, create/list users, and read the audit log.
+
+Sign in through the Dashboard, or call `POST /api/auth/login`. An administrator
+can provision a reviewer with the returned bearer token:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/users \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer REPLACE-WITH-ADMIN-TOKEN' \
+  -d '{"username":"reviewer","password":"REPLACE-WITH-STRONG-PASSWORD","role":"REVIEWER"}'
+```
+
+Browser sessions expire according to `CITYEYE_SESSION_TTL_SECONDS`; only a
+SHA-256 hash of each opaque session token is stored. Passwords are salted and
+hashed with PBKDF2. Event decisions and user creation are recorded with actor,
+old/new values, timestamp, and request ID at `GET /api/audit` (ADMIN only).
+
+The AI worker does not use a human account. In required-auth mode it submits
+events with `X-CityEye-Ingest-Token`, whose value comes from
+`secrets/ingest_token`. Production traffic must use HTTPS so credentials and
+bearer tokens are encrypted in transit.
+
 ## Operations and health checks
 
 The stack distinguishes process liveness from dependency readiness:

@@ -3,6 +3,7 @@ import { evidenceUrl } from "../api/events";
 import { fetchScenarios } from "../api/analysis";
 import { useEvents } from "../hooks/useEvents";
 import { useAnalysis } from "../hooks/useAnalysis";
+import { useAuth } from "../hooks/useAuth";
 import type { AnalysisFrame, ScenarioId, ScenarioInfo, TrafficEvent } from "../types";
 
 const EMPTY_FRAME: AnalysisFrame = {
@@ -12,11 +13,12 @@ const EMPTY_FRAME: AnalysisFrame = {
   bicycles: 0, bicycles_in_road: 0, tracked_bicycles: 0,
 };
 
-function EventCard({ event, reviewing, onDecision, scenarioId }: {
+function EventCard({ event, reviewing, onDecision, scenarioId, canReview }: {
   event: TrafficEvent;
   reviewing: boolean;
   onDecision: (decision: "verify" | "dismiss") => void;
   scenarioId: ScenarioId;
+  canReview: boolean;
 }) {
   const proposed = event.status === "PROPOSED";
   return (
@@ -37,15 +39,17 @@ function EventCard({ event, reviewing, onDecision, scenarioId }: {
       </dl>
       <img className="evidence-image" src={evidenceUrl(event.evidence_image, scenarioId)} alt={`Evidence for ${event.event_type}`} />
       <div className="event-actions">
-        <button type="button" disabled={!proposed || reviewing} onClick={() => onDecision("verify")}>Verify</button>
-        <button type="button" className="secondary" disabled={!proposed || reviewing} onClick={() => onDecision("dismiss")}>Dismiss</button>
+        <button type="button" disabled={!proposed || reviewing || !canReview} onClick={() => onDecision("verify")}>Verify</button>
+        <button type="button" className="secondary" disabled={!proposed || reviewing || !canReview} onClick={() => onDecision("dismiss")}>Dismiss</button>
       </div>
+      {!canReview && proposed && <small>Reviewer or Admin access is required to decide this event.</small>}
       {!proposed && <small>Municipal decision recorded: {event.status}</small>}
     </div>
   );
 }
 
 export function MunicipalDashboard() {
+  const auth = useAuth();
   const [scenarioId, setScenarioId] = useState<ScenarioId>("normal_traffic");
   const [scenarios, setScenarios] = useState<ScenarioInfo[]>([]);
   const { events, loading, error, reviewingEventId, refresh, decide } = useEvents(scenarioId);
@@ -68,6 +72,9 @@ export function MunicipalDashboard() {
   const selectedScenario = scenarios.find((scenario) => scenario.scenario_id === scenarioId);
   const cameraName = events[0]?.camera_name ?? selectedScenario?.title ?? "Loading camera";
   const systemActive = summary?.status === "READY";
+  const canReview = !auth.authRequired || auth.user?.role === "REVIEWER" || auth.user?.role === "ADMIN";
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -93,6 +100,26 @@ export function MunicipalDashboard() {
           <span aria-hidden="true" />
           {systemActive ? "AI System Active" : "Checking AI System"}
         </div>
+      </section>
+
+      <section className="access-panel" aria-label="Municipal access">
+        {auth.authRequired && !auth.user ? (
+          <form onSubmit={(event) => {
+            event.preventDefault();
+            void auth.login(username, password).then(() => setPassword(""));
+          }}>
+            <div><strong>Municipal sign in</strong><span>Required for Verify and Dismiss decisions</span></div>
+            <label>Username<input autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} required /></label>
+            <label>Password<input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
+            <button type="submit" disabled={auth.loading}>Sign in</button>
+          </form>
+        ) : (
+          <div className="access-summary">
+            <span><strong>{auth.user?.username ?? "Checking access"}</strong><small>{auth.user?.role ?? (auth.loading ? "Loading" : "Read only")}</small></span>
+            {auth.authRequired && auth.user && <button type="button" className="secondary" onClick={() => void auth.logout()}>Sign out</button>}
+          </div>
+        )}
+        {auth.error && <span className="access-error" role="alert">{auth.error}</span>}
       </section>
 
       {(error || analysisError) && <div className="error-banner" role="alert"><span>{error ?? analysisError}</span><button type="button" onClick={() => { void refresh(); void refreshAnalysis(); }}>Retry</button></div>}
@@ -135,7 +162,7 @@ export function MunicipalDashboard() {
           {!loading && !analysisStarted && <div className="state-card">Press Play to synchronize real tracking data and events.</div>}
           {!loading && analysisStarted && visibleEvents.length === 0 && <div className="state-card">No AI event has occurred at this video time.</div>}
           <div className="event-list">
-            {visibleEvents.map((event) => <EventCard key={event.event_id} event={event} scenarioId={scenarioId} reviewing={reviewingEventId === event.event_id} onDecision={(decision) => void decide(event.event_id, decision)} />)}
+            {visibleEvents.map((event) => <EventCard key={event.event_id} event={event} scenarioId={scenarioId} canReview={canReview} reviewing={reviewingEventId === event.event_id} onDecision={(decision) => void decide(event.event_id, decision)} />)}
           </div>
         </article>
       </section>

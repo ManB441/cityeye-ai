@@ -2,10 +2,12 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import type { SessionInfo } from "./api/auth";
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  window.sessionStorage.clear();
 });
 
 const proposedEvent = {
@@ -49,9 +51,23 @@ const readyTimeline = {
   message: "Timeline calculated from real YOLO and ByteTrack output.",
 };
 
-function mockBackend(events = [proposedEvent], summary = readySummary) {
+function mockBackend(
+  events = [proposedEvent],
+  summary = readySummary,
+  authSession: SessionInfo = {
+    auth_required: false,
+    user: { user_id: "demo-access", username: "Demo Operator", role: "ADMIN" },
+  },
+) {
   return vi.spyOn(globalThis, "fetch").mockImplementation(async (input, options) => {
     const url = String(input);
+    if (url === "/api/auth/session") return jsonResponse(authSession);
+    if (url === "/api/auth/login" && options?.method === "POST") return jsonResponse({
+      access_token: "test-session-token",
+      token_type: "bearer",
+      expires_at: 9999999999,
+      user: { user_id: "reviewer-1", username: "reviewer", role: "REVIEWER" },
+    });
     if (url === "/api/scenarios") return jsonResponse({ scenarios: [
       { scenario_id: "normal_traffic", title: "Normal Traffic", description: "Free flowing", expected_event: null, source_url: "https://example.com/normal" },
       { scenario_id: "congestion", title: "Heavy Congestion", description: "Dense traffic", expected_event: "CONGESTION", source_url: "https://example.com/congestion" },
@@ -96,6 +112,26 @@ describe("CityEye municipal dashboard", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Verify" }));
     await waitFor(() => expect(screen.getByText("Municipal decision recorded: VERIFIED")).toBeInTheDocument());
     expect(fetchMock).toHaveBeenLastCalledWith("/api/scenarios/normal_traffic/events/event-1/verify", { method: "POST" });
+  });
+
+  it("requires sign-in before municipal decisions and sends the bearer token", async () => {
+    const fetchMock = mockBackend([proposedEvent], readySummary, {
+      auth_required: true,
+      user: null,
+    });
+    render(<MemoryRouter initialEntries={["/dashboard"]}><App /></MemoryRouter>);
+    await screen.findByText(/press play to synchronize/i);
+    playAt(1);
+    expect(await screen.findByRole("button", { name: "Verify" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Username"), { target: { value: "reviewer" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "reviewer-password-123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    await screen.findByText("REVIEWER");
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/scenarios/normal_traffic/events/event-1/verify",
+      { method: "POST", headers: { Authorization: "Bearer test-session-token" } },
+    ));
   });
 
   it("shows an honest empty state", async () => {

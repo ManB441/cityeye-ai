@@ -12,3 +12,13 @@ chmod 600 secrets/rtsp_url
 ```
 
 Do not commit, paste into logs, or place real credentials in an example file.
+
+Production authentication also expects:
+
+- `secrets/admin_password`: initial Admin password (minimum 12 characters).
+- `secrets/ingest_token`: a high-entropy token used only by the AI ingestion service.
+
+After the first Admin is created in the persistent database, remove the
+bootstrap username from the environment and remove `admin_password` from the
+host. Keep `ingest_token` available to the Backend and AI worker through the
+deployment secret manager.
