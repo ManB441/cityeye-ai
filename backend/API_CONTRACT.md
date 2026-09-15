@@ -26,7 +26,7 @@ Every AI event submitted to the Backend contains:
 
 Allowed values:
 
-- `event_type`: `WRONG_WAY`, `STOPPED_VEHICLE`, `CONGESTION`
+- `event_type`: `WRONG_WAY`, `STOPPED_VEHICLE`, `CONGESTION`, `ROAD_BLOCKAGE`
 - `severity`: `LOW`, `MEDIUM`, `HIGH`
 - `status`: `PROPOSED`, `VERIFIED`, `DISMISSED`
 

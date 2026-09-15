@@ -128,3 +128,22 @@ def test_event_list_response_has_polling_wrapper() -> None:
 
     assert response.model_dump(mode="json")["total"] == 1
     assert response.model_dump(mode="json")["events"][0]["event_id"] == "event-123"
+
+
+def test_accepts_structured_road_blockage_event() -> None:
+    payload = valid_event_payload()
+    payload.update({
+        "event_type": "ROAD_BLOCKAGE",
+        "details": {
+            "track_id": 42, "vehicle_class": "car", "zone_name": "Main Lane",
+            "stationary_duration_seconds": 8.4, "vehicle_zone_overlap": 0.72,
+            "normalized_obstruction_ratio": 0.18, "upstream_vehicle_count": 3,
+            "slow_upstream_vehicle_count": 2,
+            "traffic_impact_duration_seconds": 1.0,
+            "confidence_reasoning": "stationary vehicle overlaps active blockage zone; 2 slow upstream vehicles",
+            "evidence_timestamp": 12.5,
+        },
+    })
+    event = TrafficEventIngest.model_validate(payload)
+    assert event.event_type is EventType.ROAD_BLOCKAGE
+    assert event.details.zone_name == "Main Lane"

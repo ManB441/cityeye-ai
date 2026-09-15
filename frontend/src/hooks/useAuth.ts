@@ -2,7 +2,16 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchSession, login as requestLogin, logout as requestLogout } from "../api/auth";
 import type { AuthUser } from "../api/auth";
 
-export function useAuth() {
+export type AuthState = {
+  user: AuthUser | null;
+  authRequired: boolean;
+  loading: boolean;
+  error: string | null;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+};
+
+export function useAuth(): AuthState {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -30,8 +39,10 @@ export function useAuth() {
       setUser(session.user);
       setAuthRequired(session.auth_required);
       setError(null);
+      return true;
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Login failed");
+      return false;
     } finally {
       setLoading(false);
     }

@@ -22,10 +22,10 @@ services:
       CITYEYE_LIVE_OUTPUT_DIR: /ai/live_output
     volumes:
       - cityeye_database:/data
-      - ./secrets:/run/secrets:ro
-      - ./ai/output:/ai/output:ro
-      - ./ai/scenario_outputs:/ai/scenario_outputs:ro
-      - ./ai/live_output:/ai/live_output:ro
+      - ${CITYEYE_SECRETS_DIR:-./secrets}:/run/secrets:ro
+      - ${CITYEYE_AI_OUTPUT_DIR:-./ai/output}:/ai/output:ro
+      - ${CITYEYE_SCENARIO_OUTPUTS_DIR:-./ai/scenario_outputs}:/ai/scenario_outputs:ro
+      - ${CITYEYE_LIVE_OUTPUT_DIR:-./ai/live_output}:/ai/live_output:ro
     ports:
       - "${CITYEYE_BACKEND_PORT:-8000}:8000"
     healthcheck:
@@ -102,7 +102,7 @@ services:
       CITYEYE_RTSP_URL_FILE: /run/secrets/rtsp_url
     volumes:
       - ./ai/live_output:/app/live_output
-      - ./secrets:/run/secrets:ro
+      - ${CITYEYE_SECRETS_DIR:-./secrets}:/run/secrets:ro
       - cityeye_yolo_cache:/tmp/ultralytics
     stop_grace_period: 30s
     logging:

@@ -110,3 +110,23 @@ def test_update_status_rejects_proposed(repository: EventRepository) -> None:
         repository.update_status("event-1", EventStatus.PROPOSED)
 
     assert repository.get("event-1").status is EventStatus.PROPOSED
+
+
+def test_road_blockage_details_survive_review_persistence(repository: EventRepository) -> None:
+    payload = make_event("blockage-1").model_dump(mode="json")
+    payload.update({
+        "event_type": "ROAD_BLOCKAGE",
+        "details": {
+            "track_id": 42, "vehicle_class": "car", "zone_name": "Main Lane",
+            "stationary_duration_seconds": 8.4, "vehicle_zone_overlap": 0.72,
+            "normalized_obstruction_ratio": 0.18, "upstream_vehicle_count": 3,
+            "slow_upstream_vehicle_count": 2, "confidence_reasoning": "measured evidence",
+            "traffic_impact_duration_seconds": 1.0,
+            "evidence_timestamp": 10.0,
+        },
+    })
+    stored = repository.add(TrafficEventIngest.model_validate(payload))
+    updated = repository.update_status(stored.event_id, EventStatus.VERIFIED)
+    assert updated.status is EventStatus.VERIFIED
+    assert updated.details.zone_name == "Main Lane"
+    assert updated.details.slow_upstream_vehicle_count == 2

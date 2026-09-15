@@ -62,6 +62,7 @@ def test_event_types_are_limited_to_fixed_mvp_scope() -> None:
         "WRONG_WAY",
         "STOPPED_VEHICLE",
         "CONGESTION",
+        "ROAD_BLOCKAGE",
     }
 
 

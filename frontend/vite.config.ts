@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
         "/api": backendTarget,
         "/evidence": backendTarget,
         "/media": backendTarget,
+        "/health": backendTarget,
       },
     },
     test: {
