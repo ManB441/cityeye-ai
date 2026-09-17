@@ -11,6 +11,7 @@ services:
       CITYEYE_EVIDENCE_DIR: /ai/output/evidence
       CITYEYE_SCENARIO_OUTPUT_ROOT: /ai/scenario_outputs
       CITYEYE_LIVE_OUTPUT_DIR: /ai/live_output
+      CITYEYE_LIVE_CAMERA_IDS: ${CITYEYE_LIVE_CAMERA_IDS:-camera-3}
     volumes:
       - cityeye_database:/data
       - ./ai/output:/ai/output:ro
@@ -39,6 +40,13 @@ services:
     profiles: ["live"]
     build:
       context: ./ai
+    command:
+      - python
+      - process_video.py
+      - --config
+      - ${CITYEYE_LIVE_CONFIG:-config/live_camera.json.example}
+      - --output-dir
+      - live_output
     restart: unless-stopped
     environment:
       CITYEYE_RTSP_URL: ${CITYEYE_RTSP_URL:-}

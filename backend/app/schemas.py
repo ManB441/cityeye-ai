@@ -2,9 +2,9 @@
 
 from enum import Enum
 from pathlib import PurePosixPath
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_serializer
 
 
 class EventType(str, Enum):
@@ -52,6 +52,15 @@ class TrafficEventBase(BaseModel):
     latitude: float = Field(ge=-90, le=90, allow_inf_nan=False)
     longitude: float = Field(ge=-180, le=180, allow_inf_nan=False)
     evidence_image: str
+    details: dict[str, Any] | None = None
+
+    @model_serializer(mode="wrap")
+    def omit_empty_optional_details(self, serializer):
+        """Keep the legacy wire shape unless structured measurements exist."""
+        payload = serializer(self)
+        if payload.get("details") is None:
+            payload.pop("details", None)
+        return payload
 
     @field_validator("event_id", "explanation", "camera_name")
     @classmethod
@@ -93,6 +102,113 @@ class EventListResponse(BaseModel):
 
     events: list[TrafficEventResponse]
     total: int = Field(ge=0)
+
+
+class CameraHealthResponse(BaseModel):
+    """Sanitized runtime state published by one selected live camera."""
+
+    model_config = ConfigDict(extra="forbid")
+    camera_id: str = Field(min_length=1)
+    source_type: Literal["RTSP"] = "RTSP"
+    state: Literal["ONLINE", "STALE", "OFFLINE", "RECONNECTING"] = "OFFLINE"
+    last_frame_at: float | None = Field(default=None, ge=0)
+    last_connected_at: float | None = Field(default=None, ge=0)
+    last_error: str | None = None
+    processing_fps: float = Field(default=0.0, ge=0)
+    ai_inference_fps: float = Field(default=0.0, ge=0)
+    reconnect_attempts: int = Field(default=0, ge=0)
+    generation: int = Field(default=0, ge=0)
+    dropped_frames: int = Field(default=0, ge=0)
+    heartbeat_at: float | None = Field(default=None, ge=0)
+    last_visual_change_at: float | None = Field(default=None, ge=0)
+    callback_sequence: int = Field(default=0, ge=0)
+    visual_sequence: int = Field(default=0, ge=0)
+    consecutive_similar_frames: int = Field(default=0, ge=0)
+    camera_capture_fps: float = Field(default=0.0, ge=0)
+    preview_publication_fps: float = Field(default=0.0, ge=0)
+    preview_last_frame_at: float | None = Field(default=None, ge=0)
+    buffer_pressure: int = Field(default=0, ge=0)
+
+
+class LiveMetricsResponse(BaseModel):
+    """Latest real measurements for the processed live frame."""
+
+    model_config = ConfigDict(extra="forbid")
+    frame: int = Field(default=0, ge=0)
+    timestamp: float = Field(default=0.0, ge=0)
+    generation: int = Field(default=0, ge=0)
+    current_detection_count: int = Field(default=0, ge=0)
+    active_vehicle_count: int = Field(default=0, ge=0)
+    active_track_count: int = Field(default=0, ge=0)
+    cars: int = Field(default=0, ge=0)
+    buses: int = Field(default=0, ge=0)
+    trucks: int = Field(default=0, ge=0)
+    motorcycles: int = Field(default=0, ge=0)
+    people: int = Field(default=0, ge=0)
+    bicycles: int = Field(default=0, ge=0)
+    traffic_state: str = "UNKNOWN"
+    moving_vehicles: int = Field(default=0, ge=0)
+    stationary_vehicles: int = Field(default=0, ge=0)
+    unknown_movement_vehicles: int = Field(default=0, ge=0)
+
+
+class TrafficObservation(BaseModel):
+    """One deduplicated historical snapshot from a live camera interval."""
+
+    model_config = ConfigDict(extra="forbid")
+    camera_id: str = Field(min_length=1)
+    interval_start: float = Field(ge=0, allow_inf_nan=False)
+    observed_at: float = Field(ge=0, allow_inf_nan=False)
+    generation: int = Field(ge=0)
+    vehicles: int = Field(ge=0)
+    cars: int = Field(ge=0)
+    buses: int = Field(ge=0)
+    trucks: int = Field(ge=0)
+    motorcycles: int = Field(ge=0)
+    bicycles: int = Field(ge=0)
+    people: int = Field(ge=0)
+    moving_vehicles: int = Field(ge=0)
+    stationary_vehicles: int = Field(ge=0)
+    traffic_status: str = Field(min_length=1)
+    capture_fps: float = Field(ge=0, allow_inf_nan=False)
+    ai_fps: float = Field(ge=0, allow_inf_nan=False)
+
+
+class AnalyticsSeriesPoint(BaseModel):
+    timestamp: float = Field(ge=0, allow_inf_nan=False)
+    average_vehicles_observed: float = Field(ge=0, allow_inf_nan=False)
+    peak_vehicles_observed: int = Field(ge=0)
+    samples: int = Field(ge=1)
+    traffic_status: str = Field(min_length=1)
+
+
+class OperationalAnalyticsResponse(BaseModel):
+    """Real historical analytics calculated from stored camera observations."""
+
+    model_config = ConfigDict(extra="forbid")
+    camera_id: str = Field(min_length=1)
+    requested_start: float = Field(ge=0, allow_inf_nan=False)
+    requested_end: float = Field(ge=0, allow_inf_nan=False)
+    data_since: float | None = Field(default=None, ge=0)
+    first_sample_at: float | None = Field(default=None, ge=0)
+    latest_sample_at: float | None = Field(default=None, ge=0)
+    sampling_interval_seconds: int = Field(ge=1)
+    bucket_seconds: int = Field(ge=1)
+    samples: int = Field(ge=0)
+    average_vehicles_observed: float | None = Field(default=None, ge=0)
+    peak_vehicle_count: float | None = Field(default=None, ge=0)
+    peak_period_start: float | None = Field(default=None, ge=0)
+    peak_period_end: float | None = Field(default=None, ge=0)
+    congestion_episodes: int = Field(ge=0)
+    congestion_duration_minutes: float = Field(ge=0)
+    incident_count: int = Field(ge=0)
+    average_capture_fps: float | None = Field(default=None, ge=0)
+    average_ai_fps: float | None = Field(default=None, ge=0)
+    observed_minutes: float = Field(ge=0)
+    vehicle_composition_observations: dict[str, int]
+    incidents_by_type: dict[str, int]
+    incidents_by_status: dict[str, int]
+    traffic_series: list[AnalyticsSeriesPoint]
 
 
 class AnalysisSummary(BaseModel):

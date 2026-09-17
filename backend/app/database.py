@@ -5,6 +5,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from math import asin, cos, radians, sin, sqrt
 from pathlib import Path
+import json
 import sqlite3
 import time
 from typing import Callable, Iterator
@@ -17,11 +18,111 @@ from app.schemas import (
     ReportStatus,
     TrafficEventIngest,
     TrafficEventResponse,
+    TrafficObservation,
 )
 
 
 class DuplicateEventError(ValueError):
     """Raised when an event ID already exists in SQLite."""
+
+
+class TrafficObservationRepository:
+    """Persist sparse live-camera snapshots in the existing CityEye database."""
+
+    def __init__(self, database_path: Path) -> None:
+        self.database_path = Path(database_path)
+
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        connection = sqlite3.connect(self.database_path, timeout=5.0)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA busy_timeout = 5000")
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def initialize(self) -> None:
+        with self._connect() as connection:
+            connection.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS traffic_observations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    camera_id TEXT NOT NULL,
+                    interval_start REAL NOT NULL CHECK (interval_start >= 0),
+                    observed_at REAL NOT NULL CHECK (observed_at >= 0),
+                    generation INTEGER NOT NULL CHECK (generation >= 0),
+                    vehicles INTEGER NOT NULL CHECK (vehicles >= 0),
+                    cars INTEGER NOT NULL CHECK (cars >= 0),
+                    buses INTEGER NOT NULL CHECK (buses >= 0),
+                    trucks INTEGER NOT NULL CHECK (trucks >= 0),
+                    motorcycles INTEGER NOT NULL CHECK (motorcycles >= 0),
+                    bicycles INTEGER NOT NULL CHECK (bicycles >= 0),
+                    people INTEGER NOT NULL CHECK (people >= 0),
+                    moving_vehicles INTEGER NOT NULL CHECK (moving_vehicles >= 0),
+                    stationary_vehicles INTEGER NOT NULL CHECK (stationary_vehicles >= 0),
+                    traffic_status TEXT NOT NULL,
+                    capture_fps REAL NOT NULL CHECK (capture_fps >= 0),
+                    ai_fps REAL NOT NULL CHECK (ai_fps >= 0),
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(camera_id, interval_start)
+                );
+                CREATE INDEX IF NOT EXISTS idx_traffic_observations_camera_time
+                ON traffic_observations(camera_id, observed_at);
+                """
+            )
+
+    def add(self, observation: TrafficObservation) -> bool:
+        payload = observation.model_dump()
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                INSERT OR IGNORE INTO traffic_observations (
+                    camera_id, interval_start, observed_at, generation,
+                    vehicles, cars, buses, trucks, motorcycles, bicycles, people,
+                    moving_vehicles, stationary_vehicles, traffic_status,
+                    capture_fps, ai_fps
+                ) VALUES (
+                    :camera_id, :interval_start, :observed_at, :generation,
+                    :vehicles, :cars, :buses, :trucks, :motorcycles, :bicycles,
+                    :people, :moving_vehicles, :stationary_vehicles,
+                    :traffic_status, :capture_fps, :ai_fps
+                )
+                """,
+                payload,
+            )
+            return cursor.rowcount == 1
+
+    def list_range(
+        self, camera_id: str, start: float, end: float
+    ) -> list[TrafficObservation]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT camera_id, interval_start, observed_at, generation,
+                       vehicles, cars, buses, trucks, motorcycles, bicycles,
+                       people, moving_vehicles, stationary_vehicles,
+                       traffic_status, capture_fps, ai_fps
+                FROM traffic_observations
+                WHERE camera_id = ? AND observed_at BETWEEN ? AND ?
+                ORDER BY observed_at ASC, id ASC
+                """,
+                (camera_id, start, end),
+            ).fetchall()
+        return [TrafficObservation.model_validate(dict(row)) for row in rows]
+
+    def first_timestamp(self, camera_id: str) -> float | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT MIN(observed_at) FROM traffic_observations WHERE camera_id = ?",
+                (camera_id,),
+            ).fetchone()
+        return float(row[0]) if row and row[0] is not None else None
 
 
 class EventRepository:
@@ -63,6 +164,7 @@ class EventRepository:
                     latitude REAL NOT NULL CHECK (latitude BETWEEN -90 AND 90),
                     longitude REAL NOT NULL CHECK (longitude BETWEEN -180 AND 180),
                     evidence_image TEXT NOT NULL,
+                    details TEXT,
                     status TEXT NOT NULL DEFAULT 'PROPOSED' CHECK (
                         status IN ('PROPOSED', 'VERIFIED', 'DISMISSED')
                     ),
@@ -77,10 +179,19 @@ class EventRepository:
                 ON events(status);
                 """
             )
+            columns = {
+                row[1] for row in connection.execute("PRAGMA table_info(events)")
+            }
+            if "details" not in columns:
+                connection.execute("ALTER TABLE events ADD COLUMN details TEXT")
 
     def add(self, event: TrafficEventIngest) -> TrafficEventResponse:
         """Insert one AI-proposed event and reject duplicate IDs."""
         payload = event.model_dump(mode="json")
+        details = payload.get("details")
+        payload["details"] = (
+            json.dumps(details, ensure_ascii=False) if details is not None else None
+        )
         try:
             with self._connect() as connection:
                 connection.execute(
@@ -88,11 +199,11 @@ class EventRepository:
                     INSERT INTO events (
                         event_id, event_type, timestamp, confidence, severity,
                         explanation, camera_name, latitude, longitude,
-                        evidence_image, status
+                        evidence_image, status, details
                     ) VALUES (
                         :event_id, :event_type, :timestamp, :confidence, :severity,
                         :explanation, :camera_name, :latitude, :longitude,
-                        :evidence_image, :status
+                        :evidence_image, :status, :details
                     )
                     """,
                     payload,
@@ -116,7 +227,7 @@ class EventRepository:
                 """
                 SELECT event_id, event_type, timestamp, confidence, severity,
                        explanation, camera_name, latitude, longitude,
-                       evidence_image, status
+                       evidence_image, status, details
                 FROM events
                 WHERE event_id = ?
                 """,
@@ -131,7 +242,7 @@ class EventRepository:
                 """
                 SELECT event_id, event_type, timestamp, confidence, severity,
                        explanation, camera_name, latitude, longitude,
-                       evidence_image, status
+                       evidence_image, status, details
                 FROM events
                 ORDER BY timestamp DESC, event_id ASC
                 """
@@ -162,7 +273,11 @@ class EventRepository:
 
     @staticmethod
     def _to_event(row: sqlite3.Row) -> TrafficEventResponse:
-        return TrafficEventResponse.model_validate(dict(row))
+        payload = dict(row)
+        payload["details"] = (
+            json.loads(payload["details"]) if payload.get("details") else None
+        )
+        return TrafficEventResponse.model_validate(payload)
 
 
 class CitizenReportRepository:

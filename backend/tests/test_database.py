@@ -61,6 +61,51 @@ def test_add_and_get_event(repository: EventRepository) -> None:
     assert repository.get("event-1") == stored
 
 
+def test_structured_event_details_round_trip(repository: EventRepository) -> None:
+    event = make_event().model_copy(update={
+        "details": {
+            "track_id": 12,
+            "movement_value": 0.021,
+            "movement_unit": "roi_diagonals_per_second",
+        }
+    })
+
+    stored = repository.add(event)
+
+    assert stored.details == event.details
+
+
+def test_initialize_migrates_existing_events_table(tmp_path: Path) -> None:
+    database_path = tmp_path / "legacy.db"
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE events (
+                event_id TEXT PRIMARY KEY,
+                event_type TEXT NOT NULL,
+                timestamp REAL NOT NULL,
+                confidence REAL NOT NULL,
+                severity TEXT NOT NULL,
+                explanation TEXT NOT NULL,
+                camera_name TEXT NOT NULL,
+                latitude REAL NOT NULL,
+                longitude REAL NOT NULL,
+                evidence_image TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'PROPOSED',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+    repo = EventRepository(database_path)
+
+    repo.initialize()
+
+    with sqlite3.connect(database_path) as connection:
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(events)")}
+    assert "details" in columns
+
+
 def test_duplicate_event_id_is_rejected(repository: EventRepository) -> None:
     repository.add(make_event())
 
