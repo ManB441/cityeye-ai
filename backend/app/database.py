@@ -177,6 +177,35 @@ class EventRepository:
 
                 CREATE INDEX IF NOT EXISTS idx_events_status
                 ON events(status);
+
+                CREATE TABLE IF NOT EXISTS events_v2 (
+                    event_id TEXT PRIMARY KEY,
+                    event_type TEXT NOT NULL CHECK (
+                        event_type IN ('WRONG_WAY', 'STOPPED_VEHICLE', 'CONGESTION', 'ROAD_BLOCKAGE')
+                    ),
+                    timestamp REAL NOT NULL CHECK (timestamp >= 0),
+                    confidence REAL NOT NULL CHECK (confidence BETWEEN 0 AND 1),
+                    severity TEXT NOT NULL CHECK (severity IN ('LOW', 'MEDIUM', 'HIGH')),
+                    explanation TEXT NOT NULL,
+                    camera_name TEXT NOT NULL,
+                    latitude REAL NOT NULL CHECK (latitude BETWEEN -90 AND 90),
+                    longitude REAL NOT NULL CHECK (longitude BETWEEN -180 AND 180),
+                    evidence_image TEXT NOT NULL,
+                    details_json TEXT,
+                    status TEXT NOT NULL DEFAULT 'PROPOSED' CHECK (
+                        status IN ('PROPOSED', 'VERIFIED', 'DISMISSED')
+                    ),
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX IF NOT EXISTS idx_events_v2_timestamp ON events_v2(timestamp DESC);
+                CREATE INDEX IF NOT EXISTS idx_events_v2_status ON events_v2(status);
+                INSERT OR IGNORE INTO events_v2 (
+                    event_id,event_type,timestamp,confidence,severity,explanation,
+                    camera_name,latitude,longitude,evidence_image,status,created_at,updated_at
+                ) SELECT event_id,event_type,timestamp,confidence,severity,explanation,
+                    camera_name,latitude,longitude,evidence_image,status,created_at,updated_at
+                  FROM events;
                 """
             )
             columns = {
@@ -188,28 +217,24 @@ class EventRepository:
     def add(self, event: TrafficEventIngest) -> TrafficEventResponse:
         """Insert one AI-proposed event and reject duplicate IDs."""
         payload = event.model_dump(mode="json")
-        details = payload.get("details")
-        payload["details"] = (
-            json.dumps(details, ensure_ascii=False) if details is not None else None
-        )
         try:
             with self._connect() as connection:
                 connection.execute(
                     """
-                    INSERT INTO events (
+                    INSERT INTO events_v2 (
                         event_id, event_type, timestamp, confidence, severity,
                         explanation, camera_name, latitude, longitude,
-                        evidence_image, status, details
+                        evidence_image, details_json, status
                     ) VALUES (
                         :event_id, :event_type, :timestamp, :confidence, :severity,
                         :explanation, :camera_name, :latitude, :longitude,
-                        :evidence_image, :status, :details
+                        :evidence_image, :details_json, :status
                     )
                     """,
-                    payload,
+                    {**payload, "details_json": json.dumps(payload.get("details")) if payload.get("details") is not None else None},
                 )
         except sqlite3.IntegrityError as exc:
-            if "UNIQUE constraint failed: events.event_id" in str(exc):
+            if "UNIQUE constraint failed: events_v2.event_id" in str(exc):
                 raise DuplicateEventError(
                     f"Event already exists: {event.event_id}"
                 ) from exc
@@ -227,8 +252,8 @@ class EventRepository:
                 """
                 SELECT event_id, event_type, timestamp, confidence, severity,
                        explanation, camera_name, latitude, longitude,
-                       evidence_image, status, details
-                FROM events
+                       evidence_image, details_json, status
+                FROM events_v2
                 WHERE event_id = ?
                 """,
                 (event_id,),
@@ -242,8 +267,8 @@ class EventRepository:
                 """
                 SELECT event_id, event_type, timestamp, confidence, severity,
                        explanation, camera_name, latitude, longitude,
-                       evidence_image, status, details
-                FROM events
+                       evidence_image, details_json, status
+                FROM events_v2
                 ORDER BY timestamp DESC, event_id ASC
                 """
             ).fetchall()
@@ -261,7 +286,7 @@ class EventRepository:
         with self._connect() as connection:
             cursor = connection.execute(
                 """
-                UPDATE events
+                UPDATE events_v2
                 SET status = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE event_id = ?
                 """,
@@ -274,9 +299,9 @@ class EventRepository:
     @staticmethod
     def _to_event(row: sqlite3.Row) -> TrafficEventResponse:
         payload = dict(row)
-        payload["details"] = (
-            json.loads(payload["details"]) if payload.get("details") else None
-        )
+        details_json = payload.pop("details_json", None)
+        if details_json:
+            payload["details"] = json.loads(details_json)
         return TrafficEventResponse.model_validate(payload)
 
 

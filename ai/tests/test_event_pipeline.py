@@ -11,6 +11,7 @@ AI_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(AI_ROOT))
 
 from event_pipeline import EventPipeline
+from event_rules import VehicleObservation
 from events import EventStatus, EventType
 from trajectory import TrajectoryManager
 
@@ -145,6 +146,33 @@ def test_pipeline_can_generate_stopped_vehicle_event(tmp_path: Path) -> None:
     assert events[0].event_type is EventType.STOPPED_VEHICLE
     assert events[0].details["movement_state"] == "STATIONARY"
     assert events[0].details["was_previously_moving"] is True
+
+
+def test_pipeline_generates_road_blockage_details_and_evidence(tmp_path: Path) -> None:
+    config = make_config(road_blockage_seconds=1.0)
+    config["blockage_zones"] = [{
+        "name": "Main Lane",
+        "polygon": [[0, 0], [20, 0], [20, 20], [0, 20]],
+        "direction": {"start": [10, 20], "end": [10, 0]},
+        "min_vehicle_overlap": 0.3,
+        "significant_overlap": 0.6,
+    }]
+    pipeline = EventPipeline(config, tmp_path)
+    manager = TrajectoryManager(history_size=10)
+    track = update_track(manager, 4, [(10, 10), (10, 10), (10, 10)])
+    detection = VehicleObservation(10, 10, 5, 5, 15, 15, 0.9, 4, 0.0, "car")
+    frame = np.zeros((30, 30, 3), dtype=np.uint8)
+
+    events = pipeline.evaluate_frame(1.0, [track], frame, [detection])
+    blockage = next(event for event in events if event.event_type is EventType.ROAD_BLOCKAGE)
+    saved = json.loads(pipeline.write_events_json().read_text())
+
+    assert blockage.status is EventStatus.PROPOSED
+    assert blockage.details["zone_name"] == "Main Lane"
+    assert next(item for item in saved if item["event_type"] == "ROAD_BLOCKAGE")["details"]["track_id"] == 4
+    evidence = cv2.imread(str(tmp_path / blockage.evidence_image))
+    assert evidence is not None
+    assert np.count_nonzero(evidence) > 0
 
 
 def test_pipeline_can_generate_congestion_event(tmp_path: Path) -> None:

@@ -6,6 +6,15 @@ services:
       context: ./backend
     restart: unless-stopped
     environment:
+      CITYEYE_ENVIRONMENT: ${CITYEYE_ENVIRONMENT:-demo}
+      CITYEYE_LOG_LEVEL: ${CITYEYE_LOG_LEVEL:-info}
+      CITYEYE_CORS_ORIGINS: ${CITYEYE_CORS_ORIGINS:-}
+      CITYEYE_TRUSTED_HOSTS: ${CITYEYE_TRUSTED_HOSTS:-*}
+      CITYEYE_AUTH_REQUIRED: ${CITYEYE_AUTH_REQUIRED:-false}
+      CITYEYE_SESSION_TTL_SECONDS: ${CITYEYE_SESSION_TTL_SECONDS:-28800}
+      CITYEYE_BOOTSTRAP_ADMIN_USERNAME: ${CITYEYE_BOOTSTRAP_ADMIN_USERNAME:-}
+      CITYEYE_BOOTSTRAP_ADMIN_PASSWORD_FILE: /run/secrets/admin_password
+      CITYEYE_INGEST_TOKEN_FILE: /run/secrets/ingest_token
       CITYEYE_DATABASE_PATH: /data/cityeye.db
       CITYEYE_AI_OUTPUT_DIR: /ai/output
       CITYEYE_EVIDENCE_DIR: /ai/output/evidence
@@ -14,17 +23,24 @@ services:
       CITYEYE_LIVE_CAMERA_IDS: ${CITYEYE_LIVE_CAMERA_IDS:-camera-3}
     volumes:
       - cityeye_database:/data
-      - ./ai/output:/ai/output:ro
-      - ./ai/scenario_outputs:/ai/scenario_outputs:ro
-      - ./ai/live_output:/ai/live_output:ro
+      - ${CITYEYE_SECRETS_DIR:-./secrets}:/run/secrets:ro
+      - ${CITYEYE_AI_OUTPUT_DIR:-./ai/output}:/ai/output:ro
+      - ${CITYEYE_SCENARIO_OUTPUTS_DIR:-./ai/scenario_outputs}:/ai/scenario_outputs:ro
+      - ${CITYEYE_LIVE_OUTPUT_DIR:-./ai/live_output}:/ai/live_output:ro
     ports:
       - "${CITYEYE_BACKEND_PORT:-8000}:8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready')"]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 10s
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     build:
@@ -35,6 +51,47 @@ services:
         condition: service_healthy
     ports:
       - "${CITYEYE_FRONTEND_PORT:-5173}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    stop_grace_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  database-backup:
+    build:
+      context: ./backend
+    command: python -m app.backups worker
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      CITYEYE_DATABASE_PATH: /data/cityeye.db
+      CITYEYE_BACKUP_DIR: /backups
+      CITYEYE_BACKUP_INTERVAL_SECONDS: ${CITYEYE_BACKUP_INTERVAL_SECONDS:-86400}
+      CITYEYE_BACKUP_RETENTION_COUNT: ${CITYEYE_BACKUP_RETENTION_COUNT:-14}
+    volumes:
+      - cityeye_database:/data
+      - cityeye_database_backups:/backups
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.backups", "check"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    stop_grace_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   live-ai:
     profiles: ["live"]
@@ -49,11 +106,20 @@ services:
       - live_output
     restart: unless-stopped
     environment:
-      CITYEYE_RTSP_URL: ${CITYEYE_RTSP_URL:-}
+      CITYEYE_ENVIRONMENT: ${CITYEYE_ENVIRONMENT:-demo}
+      CITYEYE_RTSP_URL_FILE: /run/secrets/rtsp_url
     volumes:
       - ./ai/live_output:/app/live_output
+      - ${CITYEYE_SECRETS_DIR:-./secrets}:/run/secrets:ro
       - cityeye_yolo_cache:/tmp/ultralytics
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
 
 volumes:
   cityeye_database:
+  cityeye_database_backups:
   cityeye_yolo_cache:

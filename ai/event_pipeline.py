@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import cv2
 import numpy as np
+from road_blockage import RoadBlockageMatch, RoadBlockageRule, zones_from_config
 
 from event_rules import (
     CongestionRule,
@@ -158,6 +159,24 @@ class EventPipeline:
                 thresholds.get("congestion_release_grace_seconds", 0.75)
             ),
         )
+        blockage_zones = zones_from_config(config.get("blockage_zones", []))
+        self.road_blockage_rule = (
+            None
+            if not blockage_zones
+            else RoadBlockageRule(
+                zones=blockage_zones,
+                min_stationary_seconds=float(
+                    thresholds.get(
+                        "road_blockage_seconds",
+                        thresholds.get("stopped_vehicle_seconds", 8.0),
+                    )
+                ),
+                max_speed_px_per_sec=float(
+                    thresholds.get("stopped_vehicle_max_speed_px_per_sec", 3.0)
+                ),
+                max_observation_gap_sec=observation_gap,
+            )
+        )
         self.output_dir = output_dir
         self.evidence_dir = output_dir / "evidence"
         self.events_path = output_dir / "events.json"
@@ -191,6 +210,14 @@ class EventPipeline:
         )
         if congestion is not None:
             new_matches.append(congestion)
+        if self.road_blockage_rule is not None:
+            new_matches.extend(
+                self.road_blockage_rule.evaluate(
+                    timestamp,
+                    list(unique_tracks.values()),
+                    detections or [],
+                )
+            )
 
         new_events = []
         track_classes = track_classes or {}
@@ -226,7 +253,8 @@ class EventPipeline:
                 evidence_image=evidence_relative_path,
                 details=details,
             )
-            self._save_evidence(annotated_frame, evidence_name)
+            evidence_frame = self._render_blockage_evidence(annotated_frame, match)
+            self._save_evidence(evidence_frame, evidence_name)
             self.events.append(event)
             new_events.append(event)
         return new_events
@@ -238,6 +266,8 @@ class EventPipeline:
         tracks: dict[int, TrackState] | None = None,
     ) -> dict:
         tracks = tracks or {}
+        if isinstance(match, RoadBlockageMatch):
+            return dict(match.details)
         if isinstance(match, StoppedVehicleMatch):
             track = tracks.get(match.track_id)
             return {
@@ -282,6 +312,28 @@ class EventPipeline:
                 "traffic_state": match.traffic_state.value,
             }
         return {}
+
+    def _render_blockage_evidence(
+        self, frame: np.ndarray, match: object
+    ) -> np.ndarray:
+        if not isinstance(match, RoadBlockageMatch):
+            return frame
+        rendered = frame.copy()
+        polygon = np.array(match.zone_polygon, dtype=np.int32)
+        cv2.polylines(rendered, [polygon], True, (0, 165, 255), 2)
+        x1, y1, x2, y2 = match.blocking_box
+        cv2.rectangle(rendered, (x1, y1), (x2, y2), (0, 0, 255), 3)
+        cv2.putText(
+            rendered,
+            f"ROAD BLOCKAGE | TRACK {match.track_id} | {match.timestamp:.1f}s",
+            (10, 90),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.65,
+            (0, 0, 255),
+            2,
+            cv2.LINE_AA,
+        )
+        return rendered
 
     def _save_evidence(self, frame: np.ndarray, filename: str) -> None:
         self.evidence_dir.mkdir(parents=True, exist_ok=True)

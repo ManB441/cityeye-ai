@@ -978,6 +978,7 @@ def process_video(
                             center_x=center_x, center_y=center_y,
                             x1=x1, y1=y1, x2=x2, y2=y2,
                             confidence=conf, track_id=track_id, pixel_speed=pixel_speed,
+                            vehicle_class=class_name,
                         ))
                         vehicle_count += 1
 

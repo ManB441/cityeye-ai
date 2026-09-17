@@ -26,7 +26,7 @@ Every AI event submitted to the Backend contains:
 
 Allowed values:
 
-- `event_type`: `WRONG_WAY`, `STOPPED_VEHICLE`, `CONGESTION`
+- `event_type`: `WRONG_WAY`, `STOPPED_VEHICLE`, `CONGESTION`, `ROAD_BLOCKAGE`
 - `severity`: `LOW`, `MEDIUM`, `HIGH`
 - `status`: `PROPOSED`, `VERIFIED`, `DISMISSED`
 
@@ -61,6 +61,30 @@ Currently implemented:
 - `POST /api/scenarios/{scenario_id}/events/{event_id}/dismiss`
 - `GET /media/scenarios/{scenario_id}/annotated.mp4`
 - `GET /evidence/scenarios/{scenario_id}/{filename}`
+- `POST /api/auth/login`
+- `GET /api/auth/session`
+- `POST /api/auth/logout`
+- `GET /api/users` (ADMIN)
+- `POST /api/users` (ADMIN)
+- `GET /api/audit` (ADMIN)
+
+## Authentication and authorization
+
+Authentication is configurable for local demo compatibility and required in
+the production environment. Protected human endpoints accept
+`Authorization: Bearer <opaque-session-token>`. `REVIEWER` and `ADMIN` may
+verify or dismiss events; only `ADMIN` may provision users or inspect the audit
+log. Read-only traffic, scenario, media, evidence, and citizen-report endpoints
+remain public for the current pilot scope.
+
+When authentication is required, `POST /api/events/ingest` accepts the separate
+`X-CityEye-Ingest-Token` service credential instead of a human session. Invalid
+or missing credentials return `401`; an authenticated user with an insufficient
+role receives `403`. Session tokens expire and are stored in SQLite only as
+SHA-256 hashes. Passwords are salted PBKDF2 hashes and are never returned.
+
+Every verify/dismiss decision and user creation records the authenticated actor,
+target, previous/new value, timestamp, and `X-Request-ID` in the audit log.
 
 Evidence responses accept only a single `.jpg` or `.jpeg` filename inside the
 configured evidence directory. They are returned with `Cache-Control: no-store`

@@ -6,6 +6,10 @@ __pycache__/
 venv/
 .env
 
+# Runtime secrets (keep only instructions in Git)
+secrets/*
+!secrets/README.md
+
 # AI outputs
 ai/output/
 ai/scenario_outputs/

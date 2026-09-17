@@ -14,6 +14,7 @@ class EventType(str, Enum):
     WRONG_WAY = "WRONG_WAY"
     STOPPED_VEHICLE = "STOPPED_VEHICLE"
     CONGESTION = "CONGESTION"
+    ROAD_BLOCKAGE = "ROAD_BLOCKAGE"
 
 
 class EventStatus(str, Enum):

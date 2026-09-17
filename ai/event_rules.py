@@ -30,6 +30,7 @@ class VehicleObservation:
     confidence: float
     track_id: int | None = None
     pixel_speed: float | None = None
+    vehicle_class: str = "vehicle"
 
 
 @dataclass(frozen=True)

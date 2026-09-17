@@ -4,13 +4,14 @@ from enum import Enum
 from pathlib import PurePosixPath
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class EventType(str, Enum):
     WRONG_WAY = "WRONG_WAY"
     STOPPED_VEHICLE = "STOPPED_VEHICLE"
     CONGESTION = "CONGESTION"
+    ROAD_BLOCKAGE = "ROAD_BLOCKAGE"
 
 
 class EventStatus(str, Enum):
@@ -37,6 +38,36 @@ class ReportStatus(str, Enum):
     COMMUNITY_CONFIRMED = "COMMUNITY_CONFIRMED"
 
 
+class TrafficEventDetails(BaseModel):
+    """Optional measured diagnostics emitted by supported event detectors."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    track_id: int = Field(ge=0)
+    vehicle_class: str = Field(min_length=1)
+    stationary_duration_seconds: float = Field(ge=0, allow_inf_nan=False)
+    movement_value: float = Field(ge=0, allow_inf_nan=False)
+    movement_unit: str = Field(min_length=1)
+    instantaneous_normalized_movement: float = Field(ge=0, allow_inf_nan=False)
+    pixel_speed_debug: float = Field(ge=0, allow_inf_nan=False)
+    roi_status: str = Field(min_length=1)
+
+
+class RoadBlockageDetails(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    track_id: int = Field(ge=0)
+    vehicle_class: str = Field(min_length=1)
+    zone_name: str = Field(min_length=1)
+    stationary_duration_seconds: float = Field(ge=0, allow_inf_nan=False)
+    vehicle_zone_overlap: float = Field(ge=0, le=1, allow_inf_nan=False)
+    normalized_obstruction_ratio: float = Field(ge=0, le=1, allow_inf_nan=False)
+    upstream_vehicle_count: int = Field(ge=0)
+    slow_upstream_vehicle_count: int = Field(ge=0)
+    traffic_impact_duration_seconds: float = Field(ge=0, allow_inf_nan=False)
+    confidence_reasoning: str = Field(min_length=1)
+    evidence_timestamp: float = Field(ge=0, allow_inf_nan=False)
+
+
 class TrafficEventBase(BaseModel):
     """Fields produced by AI and returned by the municipal API."""
 
@@ -52,15 +83,9 @@ class TrafficEventBase(BaseModel):
     latitude: float = Field(ge=-90, le=90, allow_inf_nan=False)
     longitude: float = Field(ge=-180, le=180, allow_inf_nan=False)
     evidence_image: str
-    details: dict[str, Any] | None = None
-
-    @model_serializer(mode="wrap")
-    def omit_empty_optional_details(self, serializer):
-        """Keep the legacy wire shape unless structured measurements exist."""
-        payload = serializer(self)
-        if payload.get("details") is None:
-            payload.pop("details", None)
-        return payload
+    details: RoadBlockageDetails | dict[str, Any] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
     @field_validator("event_id", "explanation", "camera_name")
     @classmethod
@@ -81,6 +106,19 @@ class TrafficEventBase(BaseModel):
         ):
             raise ValueError("evidence_image must be a safe relative JPG path")
         return value
+
+    @model_validator(mode="after")
+    def validate_event_details_match_type(self):
+        if self.event_type is EventType.ROAD_BLOCKAGE and not isinstance(
+            self.details, RoadBlockageDetails
+        ):
+            raise ValueError("ROAD_BLOCKAGE requires structured road-blockage details")
+        if (
+            isinstance(self.details, RoadBlockageDetails)
+            and self.event_type is not EventType.ROAD_BLOCKAGE
+        ):
+            raise ValueError("road-blockage details require ROAD_BLOCKAGE event type")
+        return self
 
 
 class TrafficEventIngest(TrafficEventBase):

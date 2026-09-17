@@ -4,17 +4,29 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+import hmac
+import logging
 import os
 from pathlib import Path
 from pathlib import PurePosixPath
 import re
-from typing import AsyncIterator
+from time import perf_counter
+from typing import AsyncIterator, Literal
+from uuid import uuid4
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.analysis import read_analysis_summary, read_analysis_timeline, resolve_annotated_video
+from app.auth import (
+    AuthenticatedUser,
+    AuthRepository,
+    AuthSettings,
+    read_secret_file,
+)
 from app.database import (
     CitizenReportRepository,
     DuplicateEventError,
@@ -27,6 +39,13 @@ from app.operational_analytics import (
     collect_live_observation,
     query_operational_analytics,
 )
+from app.observability import (
+    artifact_health,
+    configure_logging,
+    database_health,
+    safe_request_id,
+)
+from app.security import SECURITY_HEADERS, SecuritySettings
 from app.schemas import (
     AnalysisTimeline,
     AnalysisSummary,
@@ -60,6 +79,58 @@ class HealthResponse(BaseModel):
 
     status: str
     service: str
+
+
+class ReadinessResponse(BaseModel):
+    """Dependency-aware service readiness returned to operators."""
+
+    status: str
+    service: str
+    environment: str
+    components: dict[str, dict[str, str]]
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=80)
+    password: str = Field(min_length=1, max_length=256)
+
+
+class UserResponse(BaseModel):
+    user_id: str
+    username: str
+    role: str
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_at: float
+    user: UserResponse
+
+
+class SessionResponse(BaseModel):
+    auth_required: bool
+    user: UserResponse | None
+
+
+class LogoutResponse(BaseModel):
+    status: str
+
+
+class AuditListResponse(BaseModel):
+    entries: list[dict[str, object]]
+    total: int
+
+
+class UserCreate(BaseModel):
+    username: str = Field(min_length=1, max_length=80)
+    password: str = Field(min_length=12, max_length=256)
+    role: Literal["OPERATOR", "REVIEWER", "ADMIN"]
+
+
+class UserListResponse(BaseModel):
+    users: list[UserResponse]
+    total: int
 
 
 def get_event_repository(request: Request) -> EventRepository:
@@ -147,11 +218,17 @@ def create_app(
     selected_live_output_dir = live_output_dir or Path(
         os.getenv("CITYEYE_LIVE_OUTPUT_DIR", DEFAULT_LIVE_OUTPUT_DIR)
     )
+    security_settings = SecuritySettings.from_environment()
+    environment = security_settings.environment
+    auth_settings = AuthSettings.from_environment(environment)
+    logger = configure_logging()
     repository = EventRepository(selected_database_path)
     citizen_report_repository = CitizenReportRepository(selected_database_path)
+    auth_repository = AuthRepository(selected_database_path)
     traffic_observation_repository = TrafficObservationRepository(
         selected_database_path
     )
+    ingest_token: str | None = None
     observation_interval = int(os.getenv(
         "CITYEYE_ANALYTICS_SAMPLE_INTERVAL_SECONDS",
         str(DEFAULT_SAMPLE_INTERVAL_SECONDS),
@@ -186,9 +263,31 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+        nonlocal ingest_token
         repository.initialize()
         citizen_report_repository.initialize()
         traffic_observation_repository.initialize()
+        auth_repository.initialize()
+        if auth_settings.bootstrap_username and auth_repository.user_count() == 0:
+            password = read_secret_file(
+                auth_settings.bootstrap_password_file,
+                "bootstrap administrator password",
+            )
+            if password is None:
+                raise RuntimeError("Bootstrap username requires a password secret file")
+            auth_repository.create_user(
+                auth_settings.bootstrap_username,
+                password,
+                auth_settings.bootstrap_role,
+            )
+        if auth_settings.required and auth_repository.user_count() == 0:
+            raise RuntimeError(
+                "Authentication is required but no users exist; configure bootstrap admin secrets"
+            )
+        if auth_settings.required:
+            ingest_token = read_secret_file(
+                auth_settings.ingest_token_file, "AI ingest token"
+            )
         application.state.event_repository = repository
         application.state.citizen_report_repository = citizen_report_repository
         application.state.traffic_observation_repository = (
@@ -209,12 +308,226 @@ def create_app(
         description="Local MVP API for reviewed traffic events and citizen reports.",
         version="0.2.0",
         lifespan=lifespan,
+        docs_url="/docs" if security_settings.docs_enabled else None,
+        redoc_url="/redoc" if security_settings.docs_enabled else None,
+        openapi_url="/openapi.json" if security_settings.docs_enabled else None,
     )
+
+    if security_settings.cors_origins:
+        application.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(security_settings.cors_origins),
+            allow_credentials=False,
+            allow_methods=["GET", "POST"],
+            allow_headers=[
+                "Authorization",
+                "Content-Type",
+                "X-CityEye-Ingest-Token",
+                "X-Request-ID",
+            ],
+            expose_headers=["X-Request-ID"],
+        )
+    if security_settings.trusted_hosts != ("*",):
+        application.add_middleware(
+            TrustedHostMiddleware,
+            allowed_hosts=list(security_settings.trusted_hosts),
+        )
+
+    @application.middleware("http")
+    async def request_logging(request: Request, call_next):
+        request_id = safe_request_id(request.headers.get("X-Request-ID")) or str(uuid4())
+        request.state.request_id = request_id
+        started = perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception(
+                "request_failed",
+                extra={
+                    "environment": environment,
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "duration_ms": round((perf_counter() - started) * 1000, 2),
+                },
+            )
+            raise
+        response.headers["X-Request-ID"] = request_id
+        for header, value in SECURITY_HEADERS.items():
+            response.headers[header] = value
+        logger.info(
+            "request_completed",
+            extra={
+                "environment": environment,
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": round((perf_counter() - started) * 1000, 2),
+            },
+        )
+        return response
+
+    def token_from_header(authorization: str | None) -> str | None:
+        if not authorization:
+            return None
+        scheme, separator, token = authorization.partition(" ")
+        if separator and scheme.lower() == "bearer" and token:
+            return token
+        return None
+
+    def optional_user(
+        authorization: str | None = Header(default=None),
+    ) -> AuthenticatedUser | None:
+        token = token_from_header(authorization)
+        return auth_repository.resolve_session(token) if token else None
+
+    def require_user(
+        user: AuthenticatedUser | None = Depends(optional_user),
+    ) -> AuthenticatedUser:
+        if not auth_settings.required:
+            return AuthenticatedUser("demo-access", "Demo Operator", "ADMIN")
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return user
+
+    def require_roles(*roles: str):
+        def dependency(user: AuthenticatedUser = Depends(require_user)) -> AuthenticatedUser:
+            if user.role not in roles:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Insufficient role",
+                )
+            return user
+
+        return dependency
+
+    def require_ingest_token(
+        supplied_token: str | None = Header(default=None, alias="X-CityEye-Ingest-Token"),
+    ) -> None:
+        if not auth_settings.required:
+            return
+        if ingest_token is None or supplied_token is None:
+            raise HTTPException(status_code=401, detail="Valid AI ingest token required")
+        if not hmac.compare_digest(supplied_token, ingest_token):
+            raise HTTPException(status_code=401, detail="Valid AI ingest token required")
+
+    @application.post("/api/auth/login", response_model=LoginResponse, tags=["authentication"])
+    def login(credentials: LoginRequest) -> LoginResponse:
+        if not auth_settings.required:
+            raise HTTPException(status_code=409, detail="Authentication is disabled in this environment")
+        user = auth_repository.authenticate(credentials.username, credentials.password)
+        if user is None:
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+        token, expires_at = auth_repository.create_session(
+            user, auth_settings.session_ttl_seconds
+        )
+        return LoginResponse(
+            access_token=token,
+            expires_at=expires_at,
+            user=UserResponse(**user.__dict__),
+        )
+
+    @application.get("/api/auth/session", response_model=SessionResponse, tags=["authentication"])
+    def auth_session(user: AuthenticatedUser | None = Depends(optional_user)) -> SessionResponse:
+        if not auth_settings.required:
+            demo = AuthenticatedUser("demo-access", "Demo Operator", "ADMIN")
+            return SessionResponse(auth_required=False, user=UserResponse(**demo.__dict__))
+        return SessionResponse(
+            auth_required=True,
+            user=UserResponse(**user.__dict__) if user else None,
+        )
+
+    @application.post(
+        "/api/auth/logout", response_model=LogoutResponse, tags=["authentication"]
+    )
+    def logout(
+        authorization: str | None = Header(default=None),
+        _user: AuthenticatedUser = Depends(require_user),
+    ) -> LogoutResponse:
+        token = token_from_header(authorization)
+        if token:
+            auth_repository.revoke_session(token)
+        return LogoutResponse(status="ok")
+
+    @application.get("/api/audit", response_model=AuditListResponse, tags=["audit"])
+    def audit_log(
+        _user: AuthenticatedUser = Depends(require_roles("ADMIN")),
+    ) -> AuditListResponse:
+        entries = auth_repository.list_audit()
+        return AuditListResponse(entries=entries, total=len(entries))
+
+    @application.get("/api/users", response_model=UserListResponse, tags=["users"])
+    def list_users(
+        _admin: AuthenticatedUser = Depends(require_roles("ADMIN")),
+    ) -> UserListResponse:
+        users = [UserResponse(**user.__dict__) for user in auth_repository.list_users()]
+        return UserListResponse(users=users, total=len(users))
+
+    @application.post(
+        "/api/users",
+        response_model=UserResponse,
+        status_code=status.HTTP_201_CREATED,
+        tags=["users"],
+    )
+    def create_user(
+        payload: UserCreate,
+        request: Request,
+        admin: AuthenticatedUser = Depends(require_roles("ADMIN")),
+    ) -> UserResponse:
+        try:
+            user = auth_repository.create_user(
+                payload.username, payload.password, payload.role
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        auth_repository.record_audit(
+            actor=admin,
+            action="USER_CREATED",
+            target_type="user",
+            target_id=user.user_id,
+            previous_value=None,
+            new_value=user.role,
+            request_id=request.state.request_id,
+        )
+        return UserResponse(**user.__dict__)
 
     @application.get("/health", response_model=HealthResponse, tags=["system"])
     def health() -> HealthResponse:
         """Confirm that the local API process is running."""
         return HealthResponse(status="ok", service="cityeye-ai-backend")
+
+    @application.get("/health/live", response_model=HealthResponse, tags=["system"])
+    def liveness() -> HealthResponse:
+        """Confirm that the API process is alive without checking dependencies."""
+        return HealthResponse(status="ok", service="cityeye-ai-backend")
+
+    @application.get(
+        "/health/ready",
+        response_model=ReadinessResponse,
+        responses={503: {"model": ReadinessResponse}},
+        tags=["system"],
+    )
+    def readiness() -> ReadinessResponse:
+        """Check required dependencies and report optional AI artifact state."""
+        components = {
+            "database": database_health(selected_database_path),
+            "ai_artifacts": artifact_health(selected_ai_output_dir),
+        }
+        ready = components["database"]["status"] == "ok"
+        payload = ReadinessResponse(
+            status="ready" if ready else "not_ready",
+            service="cityeye-ai-backend",
+            environment=environment,
+            components=components,
+        )
+        if not ready:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=payload.model_dump())
+        return payload
 
     @application.get(
         "/api/live-camera/status",
@@ -483,22 +796,61 @@ def create_app(
         merged = [repository.get(event.event_id) or event for event in events]
         return EventListResponse(events=merged, total=len(merged))
 
-    def review_scenario_event(scenario_id: str, event_id: str, decision: EventStatus) -> TrafficEventResponse:
+    def apply_review(
+        event_id: str,
+        decision: EventStatus,
+        actor: AuthenticatedUser,
+        request: Request,
+    ) -> TrafficEventResponse:
+        previous = repository.get(event_id)
+        updated = update_event_status(repository, event_id, decision)
+        auth_repository.record_audit(
+            actor=actor,
+            action="EVENT_REVIEW",
+            target_type="traffic_event",
+            target_id=event_id,
+            previous_value=previous.status.value if previous else None,
+            new_value=updated.status.value,
+            request_id=request.state.request_id,
+        )
+        return updated
+
+    def review_scenario_event(
+        scenario_id: str,
+        event_id: str,
+        decision: EventStatus,
+        actor: AuthenticatedUser,
+        request: Request,
+    ) -> TrafficEventResponse:
         events = read_scenario_events(require_scenario(scenario_id))
         source = next((item for item in events if item.event_id == event_id), None)
         if source is None:
             raise HTTPException(status_code=404, detail=f"Event not found: {event_id}")
         if repository.get(event_id) is None:
             repository.add(TrafficEventIngest.model_validate(source.model_dump()))
-        return update_event_status(repository, event_id, decision)
+        return apply_review(event_id, decision, actor, request)
 
     @application.post("/api/scenarios/{scenario_id}/events/{event_id}/verify", response_model=TrafficEventResponse, tags=["scenarios"])
-    def verify_scenario_event(scenario_id: str, event_id: str) -> TrafficEventResponse:
-        return review_scenario_event(scenario_id, event_id, EventStatus.VERIFIED)
+    def verify_scenario_event(
+        scenario_id: str,
+        event_id: str,
+        request: Request,
+        actor: AuthenticatedUser = Depends(require_roles("REVIEWER", "ADMIN")),
+    ) -> TrafficEventResponse:
+        return review_scenario_event(
+            scenario_id, event_id, EventStatus.VERIFIED, actor, request
+        )
 
     @application.post("/api/scenarios/{scenario_id}/events/{event_id}/dismiss", response_model=TrafficEventResponse, tags=["scenarios"])
-    def dismiss_scenario_event(scenario_id: str, event_id: str) -> TrafficEventResponse:
-        return review_scenario_event(scenario_id, event_id, EventStatus.DISMISSED)
+    def dismiss_scenario_event(
+        scenario_id: str,
+        event_id: str,
+        request: Request,
+        actor: AuthenticatedUser = Depends(require_roles("REVIEWER", "ADMIN")),
+    ) -> TrafficEventResponse:
+        return review_scenario_event(
+            scenario_id, event_id, EventStatus.DISMISSED, actor, request
+        )
 
     @application.get("/media/scenarios/{scenario_id}/annotated.mp4", response_class=FileResponse, tags=["scenarios"])
     def scenario_video(scenario_id: str) -> FileResponse:
@@ -520,6 +872,7 @@ def create_app(
     )
     def ingest_event(
         event: TrafficEventIngest,
+        _authorized: None = Depends(require_ingest_token),
         event_repository: EventRepository = Depends(get_event_repository),
     ) -> TrafficEventResponse:
         """Validate and store one AI-proposed traffic event."""
@@ -568,14 +921,11 @@ def create_app(
     )
     def verify_event(
         event_id: str,
-        event_repository: EventRepository = Depends(get_event_repository),
+        request: Request,
+        actor: AuthenticatedUser = Depends(require_roles("REVIEWER", "ADMIN")),
     ) -> TrafficEventResponse:
         """Apply a municipal human verification decision."""
-        return update_event_status(
-            event_repository,
-            event_id,
-            EventStatus.VERIFIED,
-        )
+        return apply_review(event_id, EventStatus.VERIFIED, actor, request)
 
     @application.post(
         "/api/events/{event_id}/dismiss",
@@ -584,14 +934,11 @@ def create_app(
     )
     def dismiss_event(
         event_id: str,
-        event_repository: EventRepository = Depends(get_event_repository),
+        request: Request,
+        actor: AuthenticatedUser = Depends(require_roles("REVIEWER", "ADMIN")),
     ) -> TrafficEventResponse:
         """Apply a municipal human dismissal decision."""
-        return update_event_status(
-            event_repository,
-            event_id,
-            EventStatus.DISMISSED,
-        )
+        return apply_review(event_id, EventStatus.DISMISSED, actor, request)
 
     @application.post(
         "/api/citizen-reports",
