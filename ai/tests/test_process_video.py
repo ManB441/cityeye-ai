@@ -9,6 +9,8 @@ sys.path.insert(0, str(AI_ROOT))
 import pytest
 
 from process_video import (
+    VehicleClassStabilizer,
+    build_live_metrics_snapshot,
     build_track_row,
     format_detection_label,
     load_config,
@@ -18,6 +20,81 @@ from process_video import (
     validate_video_metadata,
     write_tracks_csv,
 )
+
+
+def live_row(class_name: str, track_id: int | None) -> dict:
+    return {"class_name": class_name, "track_id": track_id}
+
+
+def test_live_metrics_describe_only_the_current_frame() -> None:
+    first = build_live_metrics_snapshot(
+        frame_idx=10, timestamp=1.0, generation=1,
+        frame_rows=[live_row("car", 7), live_row("car", None), live_row("person", 8)],
+        traffic_state="NORMAL", current_track_states={},
+    )
+    second = build_live_metrics_snapshot(
+        frame_idx=11, timestamp=1.1, generation=1,
+        frame_rows=[live_row("truck", None)],
+        traffic_state="NORMAL", current_track_states={},
+    )
+
+    assert first["active_vehicle_count"] == 2
+    assert first["cars"] == 2
+    assert first["active_track_count"] == 2
+    assert second["active_vehicle_count"] == 1
+    assert second["cars"] == 0
+    assert second["trucks"] == 1
+    assert second["active_track_count"] == 0
+
+
+def test_class_history_does_not_increase_current_live_count() -> None:
+    stabilizer = VehicleClassStabilizer(history_size=5)
+    stabilizer.update(4, "car", 0.8)
+    stabilizer.update(4, "truck", 0.2)
+
+    metrics = build_live_metrics_snapshot(
+        frame_idx=12, timestamp=1.2, generation=1, frame_rows=[],
+        traffic_state="NORMAL", current_track_states={},
+    )
+
+    assert metrics["current_detection_count"] == 0
+    assert metrics["active_vehicle_count"] == 0
+    assert metrics["active_track_count"] == 0
+
+
+def test_untracked_detection_is_visible_but_not_an_active_track() -> None:
+    metrics = build_live_metrics_snapshot(
+        frame_idx=13, timestamp=1.3, generation=2,
+        frame_rows=[live_row("car", None)],
+        traffic_state="NORMAL", current_track_states={},
+    )
+
+    assert metrics["cars"] == 1
+    assert metrics["active_vehicle_count"] == 1
+    assert metrics["active_track_count"] == 0
+
+
+def test_vehicle_class_stabilizer_keeps_track_subclass_from_flickering() -> None:
+    stabilizer = VehicleClassStabilizer(history_size=5)
+
+    assert stabilizer.update(7, "car", 0.60) == "car"
+    assert stabilizer.update(7, "truck", 0.25) == "car"
+    assert stabilizer.update(7, "bus", 0.24) == "car"
+    assert stabilizer.update(7, "car", 0.40) == "car"
+
+
+def test_vehicle_class_stabilizer_does_not_merge_two_wheel_classes() -> None:
+    stabilizer = VehicleClassStabilizer()
+
+    assert stabilizer.update(3, "motorcycle", 0.7) == "motorcycle"
+    assert stabilizer.update(3, "bicycle", 0.6) == "bicycle"
+
+
+def test_vehicle_class_stabilizer_expires_track_history() -> None:
+    stabilizer = VehicleClassStabilizer()
+    assert stabilizer.update(9, "truck", 0.8) == "truck"
+    stabilizer.expire([9])
+    assert stabilizer.update(9, "car", 0.3) == "car"
 
 
 def test_format_detection_label_with_track_id() -> None:

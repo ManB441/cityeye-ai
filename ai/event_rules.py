@@ -54,6 +54,12 @@ class WrongWayMatch:
     confidence: float
     severity: Severity
     explanation: str
+    displacement_px: float
+    normalized_displacement: float
+    direction_score: float
+    measured_direction: Point
+    allowed_direction: Point
+    direction_zone: str | None = None
     event_type: EventType = EventType.WRONG_WAY
 
 
@@ -68,6 +74,8 @@ class StoppedVehicleMatch:
     explanation: str
     stationary_duration: float
     pixel_speed: float
+    normalized_speed: float | None = None
+    instantaneous_normalized_speed: float | None = None
     event_type: EventType = EventType.STOPPED_VEHICLE
 
 
@@ -154,6 +162,9 @@ class WrongWayRule:
         min_displacement_px: float = 20.0,
         min_track_points: int = 3,
         max_observation_gap_sec: float = 1.0,
+        min_normalized_displacement: float | None = None,
+        min_opposite_observations: int = 1,
+        zone_name: str | None = None,
     ) -> None:
         if len(monitored_polygon) < 3:
             raise ValueError("monitored_polygon must contain at least 3 points")
@@ -165,6 +176,10 @@ class WrongWayRule:
             raise ValueError("min_track_points must be at least 2")
         if max_observation_gap_sec <= 0:
             raise ValueError("max_observation_gap_sec must be positive")
+        if min_normalized_displacement is not None and min_normalized_displacement <= 0:
+            raise ValueError("min_normalized_displacement must be positive")
+        if min_opposite_observations < 1:
+            raise ValueError("min_opposite_observations must be positive")
 
         allowed_dx = allowed_end[0] - allowed_start[0]
         allowed_dy = allowed_end[1] - allowed_start[1]
@@ -179,7 +194,14 @@ class WrongWayRule:
         self.min_displacement_px = min_displacement_px
         self.min_track_points = min_track_points
         self.max_observation_gap_sec = max_observation_gap_sec
+        self.min_normalized_displacement = min_normalized_displacement
+        self.min_opposite_observations = min_opposite_observations
+        self.zone_name = zone_name
         self.emitted_track_ids: set[int] = set()
+        self.opposite_observation_counts: dict[int, int] = {}
+        xs = [point[0] for point in monitored_polygon]
+        ys = [point[1] for point in monitored_polygon]
+        self.roi_diagonal = hypot(max(xs) - min(xs), max(ys) - min(ys))
 
     def evaluate(self, track: TrackState) -> WrongWayMatch | None:
         """Return one match per track when its reliable movement is opposite."""
@@ -211,7 +233,14 @@ class WrongWayRule:
         movement_dx = latest.center_x - first.center_x
         movement_dy = latest.center_y - first.center_y
         movement_length = hypot(movement_dx, movement_dy)
-        if movement_length < self.min_displacement_px:
+        normalized_displacement = movement_length / self.roi_diagonal
+        displacement_ok = (
+            normalized_displacement >= self.min_normalized_displacement
+            if self.min_normalized_displacement is not None
+            else movement_length >= self.min_displacement_px
+        )
+        if not displacement_ok:
+            self.opposite_observation_counts.pop(track.track_id, None)
             return None
 
         allowed_dx, allowed_dy = self.allowed_vector
@@ -221,6 +250,11 @@ class WrongWayRule:
         cosine = max(-1.0, min(1.0, cosine))
         opposition_confidence = max(0.0, -cosine)
         if opposition_confidence < self.min_confidence:
+            self.opposite_observation_counts.pop(track.track_id, None)
+            return None
+        opposite_count = self.opposite_observation_counts.get(track.track_id, 0) + 1
+        self.opposite_observation_counts[track.track_id] = opposite_count
+        if opposite_count < self.min_opposite_observations:
             return None
 
         confidence = round(opposition_confidence, 4)
@@ -237,6 +271,12 @@ class WrongWayRule:
             confidence=confidence,
             severity=severity,
             explanation=explanation,
+            displacement_px=round(movement_length, 3),
+            normalized_displacement=round(normalized_displacement, 6),
+            direction_score=confidence,
+            measured_direction=(round(movement_dx, 3), round(movement_dy, 3)),
+            allowed_direction=(round(allowed_dx, 3), round(allowed_dy, 3)),
+            direction_zone=self.zone_name,
         )
 
 
@@ -250,6 +290,10 @@ class StoppedVehicleRule:
         max_speed_px_per_sec: float = 3.0,
         min_track_points: int = 3,
         max_observation_gap_sec: float = 1.0,
+        max_normalized_speed_per_sec: float | None = None,
+        release_normalized_speed_per_sec: float | None = None,
+        rearm_moving_seconds: float = 1.0,
+        require_prior_motion: bool = True,
     ) -> None:
         if len(monitored_polygon) < 3:
             raise ValueError("monitored_polygon must contain at least 3 points")
@@ -261,17 +305,32 @@ class StoppedVehicleRule:
             raise ValueError("min_track_points must be at least 2")
         if max_observation_gap_sec <= 0:
             raise ValueError("max_observation_gap_sec must be positive")
+        if max_normalized_speed_per_sec is not None and max_normalized_speed_per_sec <= 0:
+            raise ValueError("max_normalized_speed_per_sec must be positive")
+        if release_normalized_speed_per_sec is not None and release_normalized_speed_per_sec <= 0:
+            raise ValueError("release_normalized_speed_per_sec must be positive")
+        if rearm_moving_seconds <= 0:
+            raise ValueError("rearm_moving_seconds must be positive")
 
         self.monitored_polygon = monitored_polygon
         self.min_stationary_seconds = min_stationary_seconds
         self.max_speed_px_per_sec = max_speed_px_per_sec
         self.min_track_points = min_track_points
         self.max_observation_gap_sec = max_observation_gap_sec
-        self.emitted_track_ids: set[int] = set()
+        self.max_normalized_speed_per_sec = max_normalized_speed_per_sec
+        self.release_normalized_speed_per_sec = (
+            release_normalized_speed_per_sec
+            if release_normalized_speed_per_sec is not None
+            else (max_normalized_speed_per_sec * 1.5 if max_normalized_speed_per_sec else None)
+        )
+        self.rearm_moving_seconds = rearm_moving_seconds
+        self.require_prior_motion = require_prior_motion
+        self.active_track_ids: set[int] = set()
+        self.moving_started_at: dict[int, float] = {}
 
     def evaluate(self, track: TrackState) -> StoppedVehicleMatch | None:
         """Return one match when a reliable track remains stopped long enough."""
-        if track.track_id in self.emitted_track_ids or not track.history:
+        if not track.history:
             return None
         if track.pixel_speed is None:
             return None
@@ -289,15 +348,45 @@ class StoppedVehicleRule:
         )
         if len(recent_observations) < self.min_track_points:
             return None
-        if track.pixel_speed > self.max_speed_px_per_sec:
+        movement_value = track.smoothed_normalized_speed
+        if track.track_id in self.active_track_ids:
+            release_threshold = self.release_normalized_speed_per_sec
+            moving = (
+                movement_value is not None and release_threshold is not None
+                and movement_value > release_threshold
+            ) or (
+                release_threshold is None and track.pixel_speed > self.max_speed_px_per_sec
+            )
+            if moving:
+                started = self.moving_started_at.setdefault(track.track_id, latest.timestamp_sec)
+                if latest.timestamp_sec - started >= self.rearm_moving_seconds:
+                    self.active_track_ids.remove(track.track_id)
+                    self.moving_started_at.pop(track.track_id, None)
+            else:
+                self.moving_started_at.pop(track.track_id, None)
+            return None
+        below_threshold = (
+            movement_value is not None
+            and self.max_normalized_speed_per_sec is not None
+            and movement_value <= self.max_normalized_speed_per_sec
+            and track.normalized_speed is not None
+            and track.normalized_speed <= self.release_normalized_speed_per_sec
+        ) if self.max_normalized_speed_per_sec is not None else (
+            track.pixel_speed <= self.max_speed_px_per_sec
+        )
+        if not below_threshold:
             return None
         if track.stationary_duration < self.min_stationary_seconds:
             return None
+        if self.require_prior_motion and not track.has_moved:
+            return None
 
-        speed_score = max(
-            0.0,
-            1.0 - track.pixel_speed / self.max_speed_px_per_sec,
+        speed_ratio = (
+            movement_value / self.max_normalized_speed_per_sec
+            if self.max_normalized_speed_per_sec is not None and movement_value is not None
+            else track.pixel_speed / self.max_speed_px_per_sec
         )
+        speed_score = max(0.0, 1.0 - speed_ratio)
         duration_score = min(
             1.0,
             track.stationary_duration / self.min_stationary_seconds,
@@ -310,11 +399,17 @@ class StoppedVehicleRule:
         )
         explanation = (
             f"Track {track.track_id} remained nearly stationary for "
-            f"{track.stationary_duration:.1f} seconds at "
-            f"{track.pixel_speed:.1f} pixels/second."
+            f"{track.stationary_duration:.1f} seconds; smoothed normalized movement "
+            f"was {movement_value:.4f} ROI diagonals/second."
+            if movement_value is not None
+            else (
+                f"Track {track.track_id} remained nearly stationary for "
+                f"{track.stationary_duration:.1f} seconds at "
+                f"{track.pixel_speed:.1f} pixels/second."
+            )
         )
 
-        self.emitted_track_ids.add(track.track_id)
+        self.active_track_ids.add(track.track_id)
         return StoppedVehicleMatch(
             track_id=track.track_id,
             timestamp=latest.timestamp_sec,
@@ -323,6 +418,14 @@ class StoppedVehicleRule:
             explanation=explanation,
             stationary_duration=round(track.stationary_duration, 3),
             pixel_speed=round(track.pixel_speed, 3),
+            normalized_speed=(
+                None if movement_value is None else round(movement_value, 6)
+            ),
+            instantaneous_normalized_speed=(
+                None
+                if track.normalized_speed is None
+                else round(track.normalized_speed, 6)
+            ),
         )
 
 

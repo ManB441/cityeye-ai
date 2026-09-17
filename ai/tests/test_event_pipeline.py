@@ -89,6 +89,29 @@ def test_real_rule_match_creates_proposed_event_and_jpg(tmp_path: Path) -> None:
     assert saved[0]["event_type"] == "WRONG_WAY"
     assert saved[0]["status"] == "PROPOSED"
     assert saved[0]["evidence_image"].endswith(".jpg")
+    assert saved[0]["details"]["track_id"] == 7
+    assert saved[0]["details"]["direction_score"] == pytest.approx(1.0)
+
+
+def test_direction_zones_work_without_global_direction(tmp_path: Path) -> None:
+    config = make_config()
+    config.pop("allowed_direction")
+    config["direction_zones"] = [{
+        "name": "northbound_lane",
+        "polygon": [[0, 0], [20, 0], [20, 20], [0, 20]],
+        "allowed_direction": {"start": [10, 20], "end": [10, 0]},
+    }]
+    pipeline = EventPipeline(config, tmp_path)
+    manager = TrajectoryManager(history_size=10)
+    track = update_track(manager, 7, [(10, 2), (10, 5), (10, 9)])
+
+    events = pipeline.evaluate_frame(
+        1.0, [track], np.zeros((20, 20, 3), dtype=np.uint8),
+        track_classes={7: "car"},
+    )
+
+    assert events[0].details["direction_zone"] == "northbound_lane"
+    assert events[0].details["vehicle_class"] == "car"
 
 
 def test_pipeline_suppresses_duplicate_rule_event(tmp_path: Path) -> None:
@@ -104,14 +127,24 @@ def test_pipeline_suppresses_duplicate_rule_event(tmp_path: Path) -> None:
 
 def test_pipeline_can_generate_stopped_vehicle_event(tmp_path: Path) -> None:
     pipeline = EventPipeline(make_config(), tmp_path)
-    manager = TrajectoryManager(history_size=10)
-    track = update_track(manager, 4, [(10, 10), (10, 10), (10, 10)])
+    manager = TrajectoryManager(
+        history_size=10,
+        speed_smoothing_window=1,
+        movement_state_confirmations=1,
+    )
+    track = update_track(
+        manager,
+        4,
+        [(2, 10), (8, 10), (10, 10), (10, 10), (10, 10)],
+    )
     frame = np.zeros((20, 20, 3), dtype=np.uint8)
 
-    events = pipeline.evaluate_frame(1.0, [track], frame)
+    events = pipeline.evaluate_frame(2.0, [track], frame)
 
     assert len(events) == 1
     assert events[0].event_type is EventType.STOPPED_VEHICLE
+    assert events[0].details["movement_state"] == "STATIONARY"
+    assert events[0].details["was_previously_moving"] is True
 
 
 def test_pipeline_can_generate_congestion_event(tmp_path: Path) -> None:

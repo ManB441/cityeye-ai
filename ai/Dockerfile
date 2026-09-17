@@ -5,13 +5,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     YOLO_CONFIG_DIR=/tmp/ultralytics
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
+    && apt-get install -y --no-install-recommends \
+        libgl1 \
+        libglib2.0-0 \
+        libvlc5 \
+        vlc-bin \
+        vlc-plugin-base \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir \
+        --index-url https://download.pytorch.org/whl/cpu \
+        torch torchvision \
+    && pip install --no-cache-dir -r requirements.txt
 
 COPY . ./
 
