@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 import hmac
 import logging
 import os
 from pathlib import Path
 from pathlib import PurePosixPath
+import re
 from time import perf_counter
 from typing import AsyncIterator, Literal
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
@@ -29,6 +31,13 @@ from app.database import (
     CitizenReportRepository,
     DuplicateEventError,
     EventRepository,
+    TrafficObservationRepository,
+)
+from app.live_camera import mjpeg_frames, read_camera_health, read_live_metrics
+from app.operational_analytics import (
+    DEFAULT_SAMPLE_INTERVAL_SECONDS,
+    collect_live_observation,
+    query_operational_analytics,
 )
 from app.observability import (
     artifact_health,
@@ -49,6 +58,9 @@ from app.schemas import (
     TrafficEventResponse,
     ScenarioInfo,
     ScenarioListResponse,
+    CameraHealthResponse,
+    LiveMetricsResponse,
+    OperationalAnalyticsResponse,
 )
 from app.scenarios import SCENARIOS, read_scenario_events, scenario_directory
 
@@ -58,6 +70,8 @@ DEFAULT_DATABASE_PATH = BACKEND_ROOT / "data" / "cityeye.db"
 DEFAULT_EVIDENCE_DIR = BACKEND_ROOT.parent / "ai" / "output" / "evidence"
 DEFAULT_AI_OUTPUT_DIR = BACKEND_ROOT.parent / "ai" / "output"
 DEFAULT_SCENARIO_OUTPUT_ROOT = BACKEND_ROOT.parent / "ai" / "scenario_outputs"
+DEFAULT_LIVE_OUTPUT_DIR = BACKEND_ROOT.parent / "ai" / "live_output"
+LIVE_CAMERA_ID_PATTERN = re.compile(r"[A-Za-z0-9_-]+")
 
 
 class HealthResponse(BaseModel):
@@ -174,11 +188,19 @@ def resolve_evidence_path(evidence_dir: Path, filename: str) -> Path:
     return evidence_path
 
 
+def resolve_live_camera_directory(root: Path, camera_id: str) -> Path:
+    """Resolve one camera output without allowing path traversal."""
+    if not LIVE_CAMERA_ID_PATTERN.fullmatch(camera_id):
+        raise HTTPException(status_code=400, detail="Invalid live camera ID")
+    return root / camera_id
+
+
 def create_app(
     database_path: Path | None = None,
     evidence_dir: Path | None = None,
     ai_output_dir: Path | None = None,
     scenario_output_root: Path | None = None,
+    live_output_dir: Path | None = None,
 ) -> FastAPI:
     """Build an app using the selected SQLite file."""
     selected_database_path = database_path or Path(
@@ -193,6 +215,9 @@ def create_app(
     selected_scenario_root = scenario_output_root or Path(
         os.getenv("CITYEYE_SCENARIO_OUTPUT_ROOT", DEFAULT_SCENARIO_OUTPUT_ROOT)
     )
+    selected_live_output_dir = live_output_dir or Path(
+        os.getenv("CITYEYE_LIVE_OUTPUT_DIR", DEFAULT_LIVE_OUTPUT_DIR)
+    )
     security_settings = SecuritySettings.from_environment()
     environment = security_settings.environment
     auth_settings = AuthSettings.from_environment(environment)
@@ -200,13 +225,48 @@ def create_app(
     repository = EventRepository(selected_database_path)
     citizen_report_repository = CitizenReportRepository(selected_database_path)
     auth_repository = AuthRepository(selected_database_path)
+    traffic_observation_repository = TrafficObservationRepository(
+        selected_database_path
+    )
     ingest_token: str | None = None
+    observation_interval = int(os.getenv(
+        "CITYEYE_ANALYTICS_SAMPLE_INTERVAL_SECONDS",
+        str(DEFAULT_SAMPLE_INTERVAL_SECONDS),
+    ))
+    if observation_interval <= 0:
+        raise ValueError("CITYEYE_ANALYTICS_SAMPLE_INTERVAL_SECONDS must be positive")
+    collector_poll_seconds = float(os.getenv(
+        "CITYEYE_ANALYTICS_COLLECTOR_POLL_SECONDS", "5"
+    ))
+    if collector_poll_seconds <= 0:
+        raise ValueError("CITYEYE_ANALYTICS_COLLECTOR_POLL_SECONDS must be positive")
+    configured_live_camera_ids = tuple(
+        camera_id.strip()
+        for camera_id in os.getenv("CITYEYE_LIVE_CAMERA_IDS", "camera-3").split(",")
+        if camera_id.strip()
+    )
+
+    async def collect_traffic_observations(stop: asyncio.Event) -> None:
+        while not stop.is_set():
+            for camera_id in configured_live_camera_ids:
+                await asyncio.to_thread(
+                    collect_live_observation,
+                    camera_id=camera_id,
+                    directory=selected_live_output_dir / camera_id,
+                    repository=traffic_observation_repository,
+                    interval_seconds=observation_interval,
+                )
+            try:
+                await asyncio.wait_for(stop.wait(), timeout=collector_poll_seconds)
+            except TimeoutError:
+                pass
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         nonlocal ingest_token
         repository.initialize()
         citizen_report_repository.initialize()
+        traffic_observation_repository.initialize()
         auth_repository.initialize()
         if auth_settings.bootstrap_username and auth_repository.user_count() == 0:
             password = read_secret_file(
@@ -230,7 +290,18 @@ def create_app(
             )
         application.state.event_repository = repository
         application.state.citizen_report_repository = citizen_report_repository
-        yield
+        application.state.traffic_observation_repository = (
+            traffic_observation_repository
+        )
+        collector_stop = asyncio.Event()
+        collector_task = asyncio.create_task(
+            collect_traffic_observations(collector_stop)
+        )
+        try:
+            yield
+        finally:
+            collector_stop.set()
+            await collector_task
 
     application = FastAPI(
         title="CityEye AI Backend",
@@ -457,6 +528,209 @@ def create_app(
         if not ready:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=payload.model_dump())
         return payload
+
+    @application.get(
+        "/api/live-camera/status",
+        response_model=CameraHealthResponse,
+        tags=["live camera"],
+    )
+    def live_camera_status() -> CameraHealthResponse:
+        try:
+            return read_camera_health(selected_live_output_dir)
+        except ValueError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @application.get(
+        "/api/live-camera/metrics",
+        response_model=LiveMetricsResponse,
+        tags=["live camera"],
+    )
+    def live_camera_metrics() -> LiveMetricsResponse:
+        try:
+            return read_live_metrics(selected_live_output_dir)
+        except ValueError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @application.get("/api/live-camera/events", response_model=EventListResponse, tags=["live camera"])
+    def live_camera_events() -> EventListResponse:
+        try:
+            events = read_scenario_events(selected_live_output_dir)
+        except ValueError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+        merged = [repository.get(event.event_id) or event for event in events]
+        return EventListResponse(events=merged, total=len(merged))
+
+    def review_live_event(event_id: str, decision: EventStatus) -> TrafficEventResponse:
+        events = read_scenario_events(selected_live_output_dir)
+        source = next((item for item in events if item.event_id == event_id), None)
+        if source is None:
+            raise HTTPException(status_code=404, detail=f"Event not found: {event_id}")
+        if repository.get(event_id) is None:
+            repository.add(TrafficEventIngest.model_validate(source.model_dump()))
+        return update_event_status(repository, event_id, decision)
+
+    @application.post("/api/live-camera/events/{event_id}/verify", response_model=TrafficEventResponse, tags=["live camera"])
+    def verify_live_event(event_id: str) -> TrafficEventResponse:
+        return review_live_event(event_id, EventStatus.VERIFIED)
+
+    @application.post("/api/live-camera/events/{event_id}/dismiss", response_model=TrafficEventResponse, tags=["live camera"])
+    def dismiss_live_event(event_id: str) -> TrafficEventResponse:
+        return review_live_event(event_id, EventStatus.DISMISSED)
+
+    @application.get("/media/live-camera.mjpg", tags=["live camera"])
+    def live_camera_stream() -> StreamingResponse:
+        return StreamingResponse(
+            mjpeg_frames(selected_live_output_dir),
+            media_type="multipart/x-mixed-replace; boundary=frame",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @application.get("/evidence/live/{filename}", response_class=FileResponse, tags=["live camera"])
+    def live_camera_evidence(filename: str) -> FileResponse:
+        path = resolve_evidence_path(selected_live_output_dir / "evidence", filename)
+        return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+
+    @application.get(
+        "/api/live-cameras",
+        response_model=list[CameraHealthResponse],
+        tags=["live camera"],
+    )
+    def live_cameras() -> list[CameraHealthResponse]:
+        configured_ids = {
+            camera_id.strip()
+            for camera_id in os.getenv("CITYEYE_LIVE_CAMERA_IDS", "").split(",")
+            if camera_id.strip()
+        }
+        directories = sorted(
+            path for path in selected_live_output_dir.iterdir()
+            if path.is_dir() and LIVE_CAMERA_ID_PATTERN.fullmatch(path.name)
+            and (not configured_ids or path.name in configured_ids)
+        ) if selected_live_output_dir.is_dir() else []
+        return [read_camera_health(path) for path in directories]
+
+    @application.get(
+        "/api/live-cameras/{camera_id}/status",
+        response_model=CameraHealthResponse,
+        tags=["live camera"],
+    )
+    def selected_live_camera_status(camera_id: str) -> CameraHealthResponse:
+        return read_camera_health(
+            resolve_live_camera_directory(selected_live_output_dir, camera_id)
+        )
+
+    @application.get(
+        "/api/live-cameras/{camera_id}/metrics",
+        response_model=LiveMetricsResponse,
+        tags=["live camera"],
+    )
+    def selected_live_camera_metrics(camera_id: str) -> LiveMetricsResponse:
+        return read_live_metrics(
+            resolve_live_camera_directory(selected_live_output_dir, camera_id)
+        )
+
+    @application.get(
+        "/api/analytics/traffic",
+        response_model=OperationalAnalyticsResponse,
+        tags=["analytics"],
+    )
+    def operational_traffic_analytics(
+        camera_id: str = Query(min_length=1),
+        start: float = Query(ge=0),
+        end: float = Query(ge=0),
+    ) -> OperationalAnalyticsResponse:
+        if not LIVE_CAMERA_ID_PATTERN.fullmatch(camera_id):
+            raise HTTPException(status_code=400, detail="Invalid live camera ID")
+        if end <= start:
+            raise HTTPException(status_code=400, detail="end must be after start")
+        return query_operational_analytics(
+            camera_id=camera_id,
+            start=start,
+            end=end,
+            observations=traffic_observation_repository,
+            events=repository,
+            interval_seconds=observation_interval,
+        )
+
+    @application.get(
+        "/api/live-cameras/{camera_id}/events",
+        response_model=EventListResponse,
+        tags=["live camera"],
+    )
+    def selected_live_camera_events(camera_id: str) -> EventListResponse:
+        directory = resolve_live_camera_directory(selected_live_output_dir, camera_id)
+        events = read_scenario_events(directory)
+        merged = [repository.get(event.event_id) or event for event in events]
+        return EventListResponse(events=merged, total=len(merged))
+
+    def review_selected_live_event(
+        camera_id: str, event_id: str, decision: EventStatus
+    ) -> TrafficEventResponse:
+        directory = resolve_live_camera_directory(selected_live_output_dir, camera_id)
+        events = read_scenario_events(directory)
+        source = next((item for item in events if item.event_id == event_id), None)
+        if source is None:
+            raise HTTPException(status_code=404, detail=f"Event not found: {event_id}")
+        if repository.get(event_id) is None:
+            repository.add(TrafficEventIngest.model_validate(source.model_dump()))
+        return update_event_status(repository, event_id, decision)
+
+    @application.post(
+        "/api/live-cameras/{camera_id}/events/{event_id}/verify",
+        response_model=TrafficEventResponse,
+        tags=["live camera"],
+    )
+    def verify_selected_live_event(camera_id: str, event_id: str) -> TrafficEventResponse:
+        return review_selected_live_event(camera_id, event_id, EventStatus.VERIFIED)
+
+    @application.post(
+        "/api/live-cameras/{camera_id}/events/{event_id}/dismiss",
+        response_model=TrafficEventResponse,
+        tags=["live camera"],
+    )
+    def dismiss_selected_live_event(camera_id: str, event_id: str) -> TrafficEventResponse:
+        return review_selected_live_event(camera_id, event_id, EventStatus.DISMISSED)
+
+    @application.get("/media/live-cameras/{camera_id}.mjpg", tags=["live camera"])
+    def selected_live_camera_stream(camera_id: str) -> StreamingResponse:
+        directory = resolve_live_camera_directory(selected_live_output_dir, camera_id)
+        health = read_camera_health(directory)
+        if health.state != "ONLINE":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Camera {camera_id} is {health.state.lower()}.",
+            )
+        return StreamingResponse(
+            mjpeg_frames(directory),
+            media_type="multipart/x-mixed-replace; boundary=frame",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @application.get(
+        "/media/live-cameras/{camera_id}/preview.mjpg", tags=["live camera"]
+    )
+    def selected_live_camera_preview(camera_id: str) -> StreamingResponse:
+        directory = resolve_live_camera_directory(selected_live_output_dir, camera_id)
+        health = read_camera_health(directory)
+        if health.state != "ONLINE":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Camera {camera_id} is {health.state.lower()}.",
+            )
+        return StreamingResponse(
+            mjpeg_frames(directory, filename="preview.jpg"),
+            media_type="multipart/x-mixed-replace; boundary=frame",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @application.get(
+        "/evidence/live-cameras/{camera_id}/{filename}",
+        response_class=FileResponse,
+        tags=["live camera"],
+    )
+    def selected_live_camera_evidence(camera_id: str, filename: str) -> FileResponse:
+        directory = resolve_live_camera_directory(selected_live_output_dir, camera_id)
+        path = resolve_evidence_path(directory / "evidence", filename)
+        return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
 
     @application.get(
         "/api/analysis/summary",

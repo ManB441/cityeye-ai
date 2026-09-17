@@ -1,0 +1,43 @@
+{
+  "camera_name": "Pilot Camera",
+  "latitude": 31.95,
+  "longitude": 35.91,
+  "video_source": "sample_videos/replace-with-real-wrong-way-clip.mp4",
+  "model": "yolov8n.pt",
+  "tracker": "config/bytetrack_cityeye.yaml",
+  "confidence_threshold": 0.25,
+  "inference_image_size": 960,
+  "vehicle_classes": ["car", "bus", "truck", "motorcycle"],
+  "trajectory_history_size": 45,
+  "trajectory_max_observation_gap_seconds": 1.0,
+  "monitored_road_polygon": [[100, 100], [1180, 100], [1180, 650], [100, 650]],
+  "direction_zones": [
+    {
+      "name": "near_lanes_eastbound",
+      "polygon": [[100, 380], [1180, 380], [1180, 650], [100, 650]],
+      "allowed_direction": {"start": [200, 515], "end": [1080, 515]}
+    },
+    {
+      "name": "far_lanes_westbound",
+      "polygon": [[100, 100], [1180, 100], [1180, 379], [100, 379]],
+      "allowed_direction": {"start": [1080, 240], "end": [200, 240]}
+    }
+  ],
+  "debug_event_analysis": false,
+  "event_thresholds": {
+    "wrong_way_min_confidence": 0.8,
+    "wrong_way_min_displacement_px": 30.0,
+    "wrong_way_min_normalized_displacement": 0.04,
+    "wrong_way_min_track_points": 6,
+    "wrong_way_min_opposite_observations": 4,
+    "stopped_vehicle_seconds": 8.0,
+    "stopped_vehicle_max_speed_px_per_sec": 3.0,
+    "stopped_vehicle_max_normalized_speed_per_sec": 0.01,
+    "stopped_vehicle_release_normalized_speed_per_sec": 0.025,
+    "stopped_vehicle_speed_smoothing_window": 5,
+    "stopped_vehicle_rearm_moving_seconds": 1.0,
+    "stopped_vehicle_min_track_points": 5,
+    "congestion_min_vehicles": 99,
+    "congestion_duration_seconds": 60.0
+  }
+}

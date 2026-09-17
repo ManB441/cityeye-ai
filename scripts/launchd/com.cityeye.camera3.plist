@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.cityeye.camera3</string>
+  <key>ProgramArguments</key><array>
+    <string>/Users/abcd/cityeye-ai/ai/.venv/bin/python</string><string>-u</string>
+    <string>/Users/abcd/cityeye-ai/ai/process_video.py</string>
+    <string>--config</string><string>/Users/abcd/cityeye-ai/ai/config/live_camera.json</string>
+    <string>--camera-id</string><string>camera-3</string>
+    <string>--camera-name</string><string>DVR Camera 3</string>
+    <string>--output-dir</string><string>/Users/abcd/cityeye-ai/ai/live_output/camera-3</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/abcd/cityeye-ai/ai</string>
+  <key>EnvironmentVariables</key><dict>
+    <key>CITYEYE_RTSP_URL</key><string>rtsp://192.168.1.10:554/live_ch02_0</string>
+    <key>PYTHONUNBUFFERED</key><string>1</string>
+    <key>MPLCONFIGDIR</key><string>/private/tmp/cityeye-matplotlib-camera3</string>
+  </dict>
+  <key>RunAtLoad</key><true/><key>KeepAlive</key><true/><key>ThrottleInterval</key><integer>10</integer>
+  <key>StandardOutPath</key><string>/Users/abcd/cityeye-ai/ai/live_output/camera-3/worker.log</string>
+  <key>StandardErrorPath</key><string>/Users/abcd/cityeye-ai/ai/live_output/camera-3/worker.log</string>
+</dict></plist>

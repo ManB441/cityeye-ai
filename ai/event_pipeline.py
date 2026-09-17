@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from uuid import uuid4
 
 import cv2
 import numpy as np
@@ -11,8 +12,11 @@ from road_blockage import RoadBlockageMatch, RoadBlockageRule, zones_from_config
 
 from event_rules import (
     CongestionRule,
+    CongestionMatch,
+    StoppedVehicleMatch,
     StoppedVehicleRule,
     VehicleObservation,
+    WrongWayMatch,
     WrongWayRule,
 )
 from events import TrafficEvent, create_proposed_event
@@ -27,12 +31,12 @@ class EventPipeline:
         allowed_direction = config.get("allowed_direction", {})
         allowed_start = tuple(allowed_direction.get("start", []))
         allowed_end = tuple(allowed_direction.get("end", []))
-        if len(allowed_start) != 2 or len(allowed_end) != 2:
-            raise ValueError("allowed_direction must contain two-point start and end")
 
         self.camera_name = str(config.get("camera_name", "")).strip()
         if not self.camera_name:
             raise ValueError("camera_name must not be empty")
+        self.camera_id = str(config.get("camera_id", self.camera_name)).strip()
+        self.source_type = str(config.get("source_type", "VIDEO_FILE")).upper()
         try:
             self.latitude = float(config["latitude"])
             self.longitude = float(config["longitude"])
@@ -47,19 +51,52 @@ class EventPipeline:
         observation_gap = float(
             config.get("trajectory_max_observation_gap_seconds", 1.0)
         )
-        self.wrong_way_rule = WrongWayRule(
-            monitored_polygon=polygon,
-            allowed_start=allowed_start,
-            allowed_end=allowed_end,
-            min_confidence=float(thresholds.get("wrong_way_min_confidence", 0.6)),
-            min_displacement_px=float(
-                thresholds.get("wrong_way_min_displacement_px", 20.0)
-            ),
-            min_track_points=int(thresholds.get("wrong_way_min_track_points", 3)),
-            max_observation_gap_sec=observation_gap,
-        )
+        direction_zones = config.get("direction_zones")
+        if direction_zones is not None and not isinstance(direction_zones, list):
+            raise ValueError("direction_zones must be a list")
+        if not direction_zones and (len(allowed_start) != 2 or len(allowed_end) != 2):
+            raise ValueError("allowed_direction must contain two-point start and end")
+        zone_configs = direction_zones if direction_zones else [{
+            "name": None,
+            "polygon": polygon,
+            "allowed_direction": {"start": allowed_start, "end": allowed_end},
+        }]
+        self.wrong_way_rules = []
+        for zone in zone_configs:
+            if not isinstance(zone, dict):
+                raise ValueError("each direction zone must be an object")
+            zone_direction = zone.get("allowed_direction", {})
+            zone_start = tuple(zone_direction.get("start", []))
+            zone_end = tuple(zone_direction.get("end", []))
+            zone_polygon = [tuple(point) for point in zone.get("polygon", polygon)]
+            if len(zone_start) != 2 or len(zone_end) != 2:
+                raise ValueError(
+                    "each direction zone must contain a two-point allowed_direction"
+                )
+            self.wrong_way_rules.append(WrongWayRule(
+                monitored_polygon=zone_polygon,
+                allowed_start=zone_start,
+                allowed_end=zone_end,
+                min_confidence=float(thresholds.get("wrong_way_min_confidence", 0.6)),
+                min_displacement_px=float(thresholds.get("wrong_way_min_displacement_px", 20.0)),
+                min_track_points=int(thresholds.get("wrong_way_min_track_points", 3)),
+                max_observation_gap_sec=observation_gap,
+                min_normalized_displacement=(
+                    float(thresholds["wrong_way_min_normalized_displacement"])
+                    if "wrong_way_min_normalized_displacement" in thresholds else None
+                ),
+                min_opposite_observations=int(
+                    thresholds.get("wrong_way_min_opposite_observations", 1)
+                ),
+                zone_name=zone.get("name"),
+            ))
+        self.wrong_way_rule = self.wrong_way_rules[0]
+        stopped_polygon = [
+            tuple(point)
+            for point in config.get("stopped_vehicle_polygon", polygon)
+        ]
         self.stopped_vehicle_rule = StoppedVehicleRule(
-            monitored_polygon=polygon,
+            monitored_polygon=stopped_polygon,
             min_stationary_seconds=float(
                 thresholds.get("stopped_vehicle_seconds", 8.0)
             ),
@@ -70,6 +107,22 @@ class EventPipeline:
                 thresholds.get("stopped_vehicle_min_track_points", 3)
             ),
             max_observation_gap_sec=observation_gap,
+            max_normalized_speed_per_sec=(
+                float(thresholds["stopped_vehicle_max_normalized_speed_per_sec"])
+                if "stopped_vehicle_max_normalized_speed_per_sec" in thresholds
+                else None
+            ),
+            release_normalized_speed_per_sec=(
+                float(thresholds["stopped_vehicle_release_normalized_speed_per_sec"])
+                if "stopped_vehicle_release_normalized_speed_per_sec" in thresholds
+                else None
+            ),
+            rearm_moving_seconds=float(
+                thresholds.get("stopped_vehicle_rearm_moving_seconds", 1.0)
+            ),
+            require_prior_motion=bool(
+                thresholds.get("stopped_vehicle_require_prior_motion", True)
+            ),
         )
         self.congestion_rule = CongestionRule(
             monitored_polygon=polygon,
@@ -107,11 +160,22 @@ class EventPipeline:
             ),
         )
         blockage_zones = zones_from_config(config.get("blockage_zones", []))
-        self.road_blockage_rule = None if not blockage_zones else RoadBlockageRule(
-            zones=blockage_zones,
-            min_stationary_seconds=float(thresholds.get("road_blockage_seconds", thresholds.get("stopped_vehicle_seconds", 8.0))),
-            max_speed_px_per_sec=float(thresholds.get("stopped_vehicle_max_speed_px_per_sec", 3.0)),
-            max_observation_gap_sec=observation_gap,
+        self.road_blockage_rule = (
+            None
+            if not blockage_zones
+            else RoadBlockageRule(
+                zones=blockage_zones,
+                min_stationary_seconds=float(
+                    thresholds.get(
+                        "road_blockage_seconds",
+                        thresholds.get("stopped_vehicle_seconds", 8.0),
+                    )
+                ),
+                max_speed_px_per_sec=float(
+                    thresholds.get("stopped_vehicle_max_speed_px_per_sec", 3.0)
+                ),
+                max_observation_gap_sec=observation_gap,
+            )
         )
         self.output_dir = output_dir
         self.evidence_dir = output_dir / "evidence"
@@ -124,14 +188,17 @@ class EventPipeline:
         tracks: list[TrackState],
         annotated_frame: np.ndarray,
         detections: list[VehicleObservation] | None = None,
+        track_classes: dict[int, str] | None = None,
     ) -> list[TrafficEvent]:
         """Evaluate all rules once and save evidence for new real matches."""
         new_matches = []
         unique_tracks = {track.track_id: track for track in tracks}
         for track in unique_tracks.values():
-            wrong_way = self.wrong_way_rule.evaluate(track)
-            if wrong_way is not None:
-                new_matches.append(wrong_way)
+            for wrong_way_rule in self.wrong_way_rules:
+                wrong_way = wrong_way_rule.evaluate(track)
+                if wrong_way is not None:
+                    new_matches.append(wrong_way)
+                    break
             stopped = self.stopped_vehicle_rule.evaluate(track)
             if stopped is not None:
                 new_matches.append(stopped)
@@ -144,14 +211,36 @@ class EventPipeline:
         if congestion is not None:
             new_matches.append(congestion)
         if self.road_blockage_rule is not None:
-            new_matches.extend(self.road_blockage_rule.evaluate(timestamp, list(unique_tracks.values()), detections or []))
+            new_matches.extend(
+                self.road_blockage_rule.evaluate(
+                    timestamp,
+                    list(unique_tracks.values()),
+                    detections or [],
+                )
+            )
 
         new_events = []
+        track_classes = track_classes or {}
         for match in new_matches:
             evidence_name = (
-                f"event_{len(self.events) + 1:04d}_{match.event_type.value.lower()}.jpg"
+                f"event_{int(match.timestamp * 1000)}_{uuid4().hex[:8]}_"
+                f"{match.event_type.value.lower()}.jpg"
+                if self.source_type == "RTSP"
+                else f"event_{len(self.events) + 1:04d}_{match.event_type.value.lower()}.jpg"
             )
             evidence_relative_path = f"evidence/{evidence_name}"
+            details = self._event_details(
+                match,
+                track_classes,
+                unique_tracks,
+            )
+            details.update({
+                "source_type": self.source_type,
+                "camera_id": self.camera_id,
+                "timestamp_kind": (
+                    "WALL_CLOCK_UNIX" if self.source_type == "RTSP" else "VIDEO_SECONDS"
+                ),
+            })
             event = create_proposed_event(
                 event_type=match.event_type,
                 timestamp=match.timestamp,
@@ -162,7 +251,7 @@ class EventPipeline:
                 latitude=self.latitude,
                 longitude=self.longitude,
                 evidence_image=evidence_relative_path,
-                details=getattr(match, "details", None),
+                details=details,
             )
             evidence_frame = self._render_blockage_evidence(annotated_frame, match)
             self._save_evidence(evidence_frame, evidence_name)
@@ -170,7 +259,63 @@ class EventPipeline:
             new_events.append(event)
         return new_events
 
-    def _render_blockage_evidence(self, frame: np.ndarray, match: object) -> np.ndarray:
+    @staticmethod
+    def _event_details(
+        match: object,
+        track_classes: dict[int, str],
+        tracks: dict[int, TrackState] | None = None,
+    ) -> dict:
+        tracks = tracks or {}
+        if isinstance(match, RoadBlockageMatch):
+            return dict(match.details)
+        if isinstance(match, StoppedVehicleMatch):
+            track = tracks.get(match.track_id)
+            return {
+                "track_id": match.track_id,
+                "vehicle_class": track_classes.get(match.track_id),
+                "stationary_duration_seconds": match.stationary_duration,
+                "movement_value": match.normalized_speed,
+                "movement_unit": "roi_diagonals_per_second",
+                "instantaneous_normalized_movement": (
+                    match.instantaneous_normalized_speed
+                ),
+                "pixel_speed_debug": match.pixel_speed,
+                "roi_status": "INSIDE",
+                "movement_state": (
+                    track.movement_state.value if track is not None else None
+                ),
+                "was_previously_moving": (
+                    track.has_moved if track is not None else None
+                ),
+            }
+        if isinstance(match, WrongWayMatch):
+            track = tracks.get(match.track_id)
+            return {
+                "track_id": match.track_id,
+                "vehicle_class": track_classes.get(match.track_id),
+                "trajectory_displacement_px": match.displacement_px,
+                "normalized_displacement": match.normalized_displacement,
+                "direction_score": match.direction_score,
+                "measured_direction": list(match.measured_direction),
+                "allowed_direction": list(match.allowed_direction),
+                "direction_zone": match.direction_zone,
+                "roi_status": "INSIDE",
+                "movement_state": (
+                    track.movement_state.value if track is not None else None
+                ),
+            }
+        if isinstance(match, CongestionMatch):
+            return {
+                "vehicle_count": match.vehicle_count,
+                "congestion_duration_seconds": match.congestion_duration,
+                "traffic_density": match.traffic_density,
+                "traffic_state": match.traffic_state.value,
+            }
+        return {}
+
+    def _render_blockage_evidence(
+        self, frame: np.ndarray, match: object
+    ) -> np.ndarray:
         if not isinstance(match, RoadBlockageMatch):
             return frame
         rendered = frame.copy()
@@ -178,7 +323,16 @@ class EventPipeline:
         cv2.polylines(rendered, [polygon], True, (0, 165, 255), 2)
         x1, y1, x2, y2 = match.blocking_box
         cv2.rectangle(rendered, (x1, y1), (x2, y2), (0, 0, 255), 3)
-        cv2.putText(rendered, f"ROAD BLOCKAGE | TRACK {match.track_id} | {match.timestamp:.1f}s", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 0, 255), 2, cv2.LINE_AA)
+        cv2.putText(
+            rendered,
+            f"ROAD BLOCKAGE | TRACK {match.track_id} | {match.timestamp:.1f}s",
+            (10, 90),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.65,
+            (0, 0, 255),
+            2,
+            cv2.LINE_AA,
+        )
         return rendered
 
     def _save_evidence(self, frame: np.ndarray, filename: str) -> None:

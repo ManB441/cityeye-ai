@@ -1,18 +1,19 @@
 import { evidenceUrl } from "../api/events";
 import type { RoadBlockageDetails, ScenarioId, StoppedVehicleDetails, TrafficEvent } from "../types";
 
-export function IncidentCard({ event, scenarioId, canReview, reviewing, onView, onDecision }: {
+export function IncidentCard({ event, scenarioId, canReview, reviewing, onView, onDecision, live = false }: {
   event: TrafficEvent;
   scenarioId: ScenarioId;
   canReview: boolean;
   reviewing: boolean;
   onView: () => void;
   onDecision: (decision: "verify" | "dismiss") => void;
+  live?: boolean;
 }) {
   const proposed = event.status === "PROPOSED";
   return (
     <article className={`incident-card severity-border-${event.severity.toLowerCase()}`}>
-      <div className="incident-top"><span className={`severity ${event.severity.toLowerCase()}`}>{event.severity}</span><time>{event.timestamp.toFixed(1)}s</time></div>
+      <div className="incident-top"><span className={`severity ${event.severity.toLowerCase()}`}>{event.severity}</span><time>{live ? new Date(event.timestamp * 1000).toLocaleTimeString() : `${event.timestamp.toFixed(1)}s`}</time></div>
       <strong>{event.event_type.replace(/_/g, " ")}</strong>
       <small>{event.camera_name}</small>
       <p>{event.explanation}</p>
@@ -26,13 +27,15 @@ export function IncidentCard({ event, scenarioId, canReview, reviewing, onView, 
   );
 }
 
-export function IncidentDetail({ event, scenarioId, canReview, reviewing, onClose, onDecision }: {
+export function IncidentDetail({ event, scenarioId, canReview, reviewing, onClose, onDecision, evidenceSrc, live = false }: {
   event: TrafficEvent;
   scenarioId: ScenarioId;
   canReview: boolean;
   reviewing: boolean;
   onClose: () => void;
   onDecision: (decision: "verify" | "dismiss") => void;
+  evidenceSrc?: string;
+  live?: boolean;
 }) {
   const proposed = event.status === "PROPOSED";
   const roadDetails = event.details && "zone_name" in event.details
@@ -45,12 +48,12 @@ export function IncidentDetail({ event, scenarioId, canReview, reviewing, onClos
     <div className="detail-backdrop" role="presentation" onMouseDown={onClose}>
       <aside className="incident-detail" role="dialog" aria-modal="true" aria-label="Incident detail" onMouseDown={(event) => event.stopPropagation()}>
         <div className="detail-header"><span>INCIDENT DETAIL</span><button type="button" className="icon-button" onClick={onClose} aria-label="Close incident detail">×</button></div>
-        <img src={evidenceUrl(event.evidence_image, scenarioId)} alt={`Evidence for ${event.event_type}`} />
+        <img src={evidenceSrc ?? evidenceUrl(event.evidence_image, scenarioId)} alt={`Evidence for ${event.event_type}`} />
         <div className="proposal-label"><i />AI PROPOSED EVENT<small>Requires municipal verification</small></div>
         <div className="detail-title"><div><h2>{event.event_type.replace(/_/g, " ")}</h2><p>{event.explanation}</p></div><span className={`severity ${event.severity.toLowerCase()}`}>{event.severity}</span></div>
         <dl className="detail-grid">
           <div><dt>Source</dt><dd>{event.camera_name}</dd></div>
-          <div><dt>Video timestamp</dt><dd>{event.timestamp.toFixed(1)}s</dd></div>
+          <div><dt>{live ? "Observed at" : "Video timestamp"}</dt><dd>{live ? new Date(event.timestamp * 1000).toLocaleTimeString() : `${event.timestamp.toFixed(1)}s`}</dd></div>
           <div><dt>Confidence</dt><dd>{Math.round(event.confidence * 100)}%</dd></div>
           <div><dt>Review state</dt><dd>{event.status}</dd></div>
         </dl>

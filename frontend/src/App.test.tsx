@@ -52,6 +52,18 @@ const readyTimeline = {
   message: "Timeline calculated from real YOLO and ByteTrack output.",
 };
 
+const operationalAnalytics = {
+  camera_id: "camera-3", requested_start: 1_700_000_000, requested_end: 1_700_003_600,
+  data_since: 1_700_000_010, first_sample_at: 1_700_000_010, latest_sample_at: 1_700_000_130,
+  sampling_interval_seconds: 60, bucket_seconds: 300, samples: 3,
+  average_vehicles_observed: 4, peak_vehicle_count: 4, peak_period_start: 1_699_999_800,
+  peak_period_end: 1_700_000_100, congestion_episodes: 1, congestion_duration_minutes: 2,
+  incident_count: 1, average_capture_fps: 11.4, average_ai_fps: 3.8, observed_minutes: 3,
+  vehicle_composition_observations: { cars: 10, buses: 1, trucks: 1, motorcycles: 0, bicycles: 0 },
+  incidents_by_type: { WRONG_WAY: 1 }, incidents_by_status: { PROPOSED: 1 },
+  traffic_series: [{ timestamp: 1_699_999_800, average_vehicles_observed: 4, peak_vehicles_observed: 6, samples: 3, traffic_status: "NORMAL" }],
+};
+
 function mockBackend(
   events = [proposedEvent],
   summary = readySummary,
@@ -66,6 +78,8 @@ function mockBackend(
     if (url === "/health/ready") return jsonResponse({ status: "ready", service: "cityeye-ai-backend", components: {} });
     if (url === "/api/citizen-reports") return jsonResponse({ reports: [], total: 0 });
     if (url === "/api/auth/session") return jsonResponse(authSession);
+    if (url === "/api/live-cameras") return jsonResponse([]);
+    if (url.startsWith("/api/analytics/traffic?")) return jsonResponse(operationalAnalytics);
     if (url === "/api/auth/login" && options?.method === "POST" && !loginSucceeds) return jsonResponse({ detail: "Invalid username or password" }, 401);
     if (url === "/api/auth/login" && options?.method === "POST") return jsonResponse({
       access_token: "test-session-token",
@@ -225,7 +239,7 @@ describe("CityEye municipal dashboard", () => {
     expect(await screen.findByRole("heading", { name: "Cameras & Video Sources" })).toBeInTheDocument();
     expect(await screen.findByText("DEMO-04")).toBeInTheDocument();
     expect(screen.queryByText("CAM-04")).not.toBeInTheDocument();
-    expect(screen.getByText(/no live rtsp camera is configured/i)).toBeInTheDocument();
+    expect(screen.getByText(/no live cameras available/i)).toBeInTheDocument();
   });
 
   it("reports legacy API health as readiness unknown instead of unavailable", async () => {
@@ -242,13 +256,61 @@ describe("CityEye municipal dashboard", () => {
     expect(await screen.findByText("API ONLINE · READINESS UNKNOWN")).toBeInTheDocument();
   });
 
-  it("marks unsupported analytics as future instead of showing fake metrics", async () => {
+  it("renders populated operational analytics from the real API", async () => {
     mockBackend();
     render(<MemoryRouter initialEntries={["/analytics"]}><App /></MemoryRouter>);
-    expect(await screen.findByText("DATA COLLECTION REQUIRED")).toBeInTheDocument();
-    expect(screen.getByText("CALIBRATION REQUIRED")).toBeInTheDocument();
-    expect(screen.getByText("FUTURE / DATA COLLECTION")).toBeInTheDocument();
+    expect(await screen.findByText("Traffic Activity Over Time")).toBeInTheDocument();
+    expect(screen.getByText("Average Vehicles Observed").parentElement).toHaveTextContent("4.0");
+    expect(screen.getByText("Observed detection share")).toBeInTheDocument();
+    expect(screen.getByText("Counts are sampled observations, not unique vehicles passed.")).toBeInTheDocument();
+    expect(screen.getByText("Review status")).toBeInTheDocument();
+    expect(screen.getByText("PROPOSED")).toBeInTheDocument();
+    expect(screen.getByText("Prediction unavailable")).toBeInTheDocument();
     expect(screen.queryByText("18,462")).not.toBeInTheDocument();
+  });
+
+  it("shows the analytics loading state while the real API is pending", () => {
+    const fetchMock = mockBackend();
+    fetchMock.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.startsWith("/api/analytics/traffic?")) return await new Promise<Response>(() => undefined);
+      if (url === "/health/ready") return jsonResponse({ status: "ready", service: "cityeye-ai-backend", components: {} });
+      if (url === "/api/auth/session") return jsonResponse({ auth_required: false, user: { user_id: "demo", username: "Demo", role: "ADMIN" } });
+      if (url === "/api/citizen-reports") return jsonResponse({ reports: [], total: 0 });
+      if (url === "/api/live-cameras") return jsonResponse([]);
+      return jsonResponse({ detail: "Not found" }, 404);
+    });
+    render(<MemoryRouter initialEntries={["/analytics"]}><App /></MemoryRouter>);
+    expect(screen.getByText("Loading real traffic history…")).toBeInTheDocument();
+  });
+
+  it("shows an honest analytics empty state", async () => {
+    const fetchMock = mockBackend();
+    fetchMock.mockImplementation(async (input, options) => {
+      const url = String(input);
+      if (url.startsWith("/api/analytics/traffic?")) return jsonResponse({ ...operationalAnalytics, samples: 0, average_vehicles_observed: null, peak_vehicle_count: null, peak_period_start: null, peak_period_end: null, first_sample_at: null, latest_sample_at: null, observed_minutes: 0, traffic_series: [], vehicle_composition_observations: {}, incidents_by_type: {}, incidents_by_status: {}, incident_count: 0, congestion_episodes: 0, congestion_duration_minutes: 0 });
+      if (url === "/health/ready") return jsonResponse({ status: "ready", service: "cityeye-ai-backend", components: {} });
+      if (url === "/api/auth/session") return jsonResponse({ auth_required: false, user: { user_id: "demo", username: "Demo", role: "ADMIN" } });
+      if (url === "/api/citizen-reports") return jsonResponse({ reports: [], total: 0 });
+      if (url === "/api/live-cameras") return jsonResponse([]);
+      return jsonResponse({ detail: "Not found" }, 404);
+    });
+    render(<MemoryRouter initialEntries={["/analytics"]}><App /></MemoryRouter>);
+    expect(await screen.findByText("Traffic history is being collected.")).toBeInTheDocument();
+  });
+
+  it("shows analytics API failures without placeholder values", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === "/health/ready") return jsonResponse({ status: "ready", service: "cityeye-ai-backend", components: {} });
+      if (url === "/api/auth/session") return jsonResponse({ auth_required: false, user: { user_id: "demo", username: "Demo", role: "ADMIN" } });
+      if (url === "/api/citizen-reports") return jsonResponse({ reports: [], total: 0 });
+      if (url === "/api/live-cameras") return jsonResponse([]);
+      if (url.startsWith("/api/analytics/traffic?")) return jsonResponse({ detail: "failed" }, 500);
+      return jsonResponse({ detail: "Not found" }, 404);
+    });
+    render(<MemoryRouter initialEntries={["/analytics"]}><App /></MemoryRouter>);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Analytics request failed with HTTP 500");
   });
 
   it("renders measured road blockage evidence in the existing incident workflow", async () => {

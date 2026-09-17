@@ -7,6 +7,7 @@ from enum import Enum
 from math import isfinite
 from pathlib import PurePosixPath
 from uuid import uuid4
+from typing import Any
 
 
 class EventType(str, Enum):
@@ -43,7 +44,7 @@ class TrafficEvent:
     longitude: float
     evidence_image: str
     status: EventStatus = EventStatus.PROPOSED
-    details: dict[str, object] | None = None
+    details: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if not self.event_id.strip():
@@ -106,7 +107,7 @@ def create_proposed_event(
     latitude: float,
     longitude: float,
     evidence_image: str,
-    details: dict[str, object] | None = None,
+    details: dict[str, Any] | None = None,
 ) -> TrafficEvent:
     """Create an AI proposal with a unique ID and mandatory human-review status."""
     return TrafficEvent(
@@ -120,6 +121,6 @@ def create_proposed_event(
         latitude=latitude,
         longitude=longitude,
         evidence_image=evidence_image,
-        details=details,
         status=EventStatus.PROPOSED,
+        details=details,
     )

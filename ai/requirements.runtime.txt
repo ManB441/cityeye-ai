@@ -2,3 +2,4 @@ ultralytics==8.4.121
 opencv-python==5.0.0.93
 numpy==2.4.6
 lap==0.5.13
+python-vlc==3.0.21203

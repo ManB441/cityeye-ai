@@ -142,6 +142,35 @@ def test_emits_only_once_for_same_track() -> None:
     assert second is None
 
 
+def test_normalized_displacement_is_resolution_independent() -> None:
+    low = WrongWayRule(
+        ROAD_POLYGON, (5, 10), (5, 0),
+        min_normalized_displacement=0.25, min_track_points=3,
+    )
+    high_polygon = [(x * 2, y * 2) for x, y in ROAD_POLYGON]
+    high = WrongWayRule(
+        high_polygon, (10, 20), (10, 0),
+        min_normalized_displacement=0.25, min_track_points=3,
+    )
+
+    low_match = low.evaluate(make_track(1, [(5, 2), (5, 4), (5, 7)]))
+    high_match = high.evaluate(make_track(2, [(10, 4), (10, 8), (10, 14)]))
+
+    assert low_match is not None and high_match is not None
+    assert low_match.normalized_displacement == pytest.approx(
+        high_match.normalized_displacement
+    )
+
+
+def test_requires_repeated_opposite_observations() -> None:
+    rule = make_rule(min_opposite_observations=3)
+    track = make_track(9, [(5, 2), (5, 4), (5, 7)])
+
+    assert rule.evaluate(track) is None
+    assert rule.evaluate(track) is None
+    assert rule.evaluate(track) is not None
+
+
 @pytest.mark.parametrize(
     "overrides",
     [
@@ -151,6 +180,8 @@ def test_emits_only_once_for_same_track() -> None:
         {"min_displacement_px": 0},
         {"min_track_points": 1},
         {"max_observation_gap_sec": 0},
+        {"min_normalized_displacement": 0},
+        {"min_opposite_observations": 0},
     ],
 )
 def test_rejects_invalid_wrong_way_configuration(overrides: dict) -> None:

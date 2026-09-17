@@ -65,6 +65,35 @@ python process_video.py
 python process_video.py --video /path/to/your/traffic.mp4
 ```
 
+### Optional pilot RTSP camera
+
+The default `VIDEO_FILE` workflow above is unchanged. To run one selected live
+camera, copy the example locally and provide the RTSP URL through an environment
+variable so credentials never enter Git, API responses, or the browser:
+
+```bash
+cd cityeye-ai/ai
+cp config/live_camera.json.example config/live_camera.json
+export CITYEYE_RTSP_URL='rtsp://username:password@camera-host:554/stream'
+source .venv/bin/activate
+python process_video.py --config config/live_camera.json --output-dir live_output
+```
+
+The worker uses a latest-frame buffer, limits inference to `inference_fps`, and
+reconnects with bounded exponential backoff. A reconnect creates a new stream
+generation and resets ByteTrack plus temporal event state, preventing IDs,
+motion history, and stopped/wrong-way timers from crossing a camera outage.
+Live timestamps are Unix wall-clock seconds; video-file timestamps remain
+relative seconds from the start of the file.
+
+Live worker outputs are `ai/live_output/latest.jpg`, `camera_status.json`,
+`live_metrics.json`, `events.json`, and `evidence/`. The Backend converts the
+latest processed JPEG into an MJPEG response at `/media/live-camera.mjpg` and
+exposes sanitized status, metrics, and events under `/api/live-camera/*`.
+Only the server opens RTSP; the frontend never receives the camera URL or
+credentials. Use a read-only camera account and isolate pilot cameras on the
+municipal network or VPN.
+
 ### Outputs
 
 | File | Description |
@@ -151,6 +180,24 @@ python -m app.demo_data reset
 Both commands accept `--database /path/to/demo.db`. Running `seed` again is
 safe and does not duplicate its five demo users. The reset command does not
 delete real AI events or Citizen Reports submitted with other demo user IDs.
+
+### Operational analytics semantics
+
+The Backend stores one real live-camera observation per configured interval
+(60 seconds by default) in the existing SQLite database. Query the history with
+`GET /api/analytics/traffic?camera_id=camera-3&start=<unix>&end=<unix>`.
+
+- **Average vehicles observed** is the mean active-vehicle count across stored
+  samples. It is not a count of unique vehicles that passed the camera.
+- **Vehicle composition** sums class observations across those sparse samples.
+  A vehicle visible in more than one sample can therefore appear more than once.
+- **Congestion duration** approximates duration from consecutive samples whose
+  real CityEye traffic state is congested; adjacent samples form one episode.
+- **Incidents** are filtered from existing persisted events for the selected
+  camera and period. No missing history is backfilled or fabricated.
+
+Set `CITYEYE_ANALYTICS_SAMPLE_INTERVAL_SECONDS` to change the interval. Analytics
+collection runs in the Backend, outside the live capture and AI frame hot path.
 
 ## Frontend (placeholder)
 

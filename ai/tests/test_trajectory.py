@@ -7,7 +7,12 @@ import pytest
 AI_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(AI_ROOT))
 
-from trajectory import TrackObservation, TrackState, TrajectoryManager
+from trajectory import (
+    TrackObservation,
+    TrackState,
+    TrajectoryManager,
+    VehicleMovementState,
+)
 
 
 def test_first_observation_has_no_speed() -> None:
@@ -95,6 +100,35 @@ def test_long_detection_gap_resets_unreliable_metrics() -> None:
 
     assert state.pixel_speed is None
     assert state.stationary_duration == 0.0
+
+
+def test_vehicle_state_requires_confirmed_motion_or_stationary_evidence() -> None:
+    manager = TrajectoryManager(
+        stationary_speed_threshold=3.0,
+        speed_smoothing_window=1,
+        movement_state_confirmations=2,
+    )
+    manager.update(1, 0, 0.0, 0, 0)
+    state = manager.update(1, 1, 0.5, 10, 0)
+    assert state.movement_state is VehicleMovementState.UNKNOWN
+
+    state = manager.update(1, 2, 1.0, 20, 0)
+    assert state.movement_state is VehicleMovementState.MOVING
+    assert state.has_moved
+
+    state = manager.update(1, 3, 1.5, 20, 0)
+    assert state.movement_state is VehicleMovementState.MOVING
+    state = manager.update(1, 4, 2.0, 20, 0)
+    assert state.movement_state is VehicleMovementState.STATIONARY
+
+
+def test_track_expiration_removes_only_stale_tracks() -> None:
+    manager = TrajectoryManager()
+    manager.update(1, 0, 0.0, 0, 0)
+    manager.update(2, 0, 1.5, 0, 0)
+
+    assert manager.expire_stale(2.1, 1.0) == [1]
+    assert set(manager.tracks) == {2}
 
 
 def test_rejects_non_increasing_timestamps() -> None:

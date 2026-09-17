@@ -1,0 +1,195 @@
+{
+  "version": 1,
+  "frames": [
+    {
+      "scenario": "congestion",
+      "source_video": "congestion.mp4",
+      "source_video_path": "ai/sample_videos/congestion.mp4",
+      "frame_index": 60,
+      "timestamp_sec": 2.0,
+      "width": 3840,
+      "height": 2160,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/congestion/congestion__congestion__frame_000060.png"
+    },
+    {
+      "scenario": "congestion",
+      "source_video": "congestion.mp4",
+      "source_video_path": "ai/sample_videos/congestion.mp4",
+      "frame_index": 180,
+      "timestamp_sec": 6.0,
+      "width": 3840,
+      "height": 2160,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/congestion/congestion__congestion__frame_000180.png"
+    },
+    {
+      "scenario": "congestion",
+      "source_video": "congestion.mp4",
+      "source_video_path": "ai/sample_videos/congestion.mp4",
+      "frame_index": 300,
+      "timestamp_sec": 10.0,
+      "width": 3840,
+      "height": 2160,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/congestion/congestion__congestion__frame_000300.png"
+    },
+    {
+      "scenario": "normal",
+      "source_video": "normal_traffic.mp4",
+      "source_video_path": "ai/sample_videos/normal_traffic.mp4",
+      "frame_index": 50,
+      "timestamp_sec": 2.0,
+      "width": 3840,
+      "height": 2160,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/normal/normal__normal_traffic__frame_000050.png"
+    },
+    {
+      "scenario": "normal",
+      "source_video": "normal_traffic.mp4",
+      "source_video_path": "ai/sample_videos/normal_traffic.mp4",
+      "frame_index": 175,
+      "timestamp_sec": 7.0,
+      "width": 3840,
+      "height": 2160,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/normal/normal__normal_traffic__frame_000175.png"
+    },
+    {
+      "scenario": "normal",
+      "source_video": "normal_traffic.mp4",
+      "source_video_path": "ai/sample_videos/normal_traffic.mp4",
+      "frame_index": 300,
+      "timestamp_sec": 12.0,
+      "width": 3840,
+      "height": 2160,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/normal/normal__normal_traffic__frame_000300.png"
+    },
+    {
+      "scenario": "rain",
+      "source_video": "raining.mp4",
+      "source_video_path": "ai/sample_videos/raining.mp4",
+      "frame_index": 120,
+      "timestamp_sec": 2.002,
+      "width": 1080,
+      "height": 1920,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/rain/rain__raining__frame_000120.png"
+    },
+    {
+      "scenario": "rain",
+      "source_video": "raining.mp4",
+      "source_video_path": "ai/sample_videos/raining.mp4",
+      "frame_index": 360,
+      "timestamp_sec": 6.006,
+      "width": 1080,
+      "height": 1920,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/rain/rain__raining__frame_000360.png"
+    },
+    {
+      "scenario": "rain",
+      "source_video": "raining.mp4",
+      "source_video_path": "ai/sample_videos/raining.mp4",
+      "frame_index": 599,
+      "timestamp_sec": 9.993317,
+      "width": 1080,
+      "height": 1920,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/rain/rain__raining__frame_000599.png"
+    },
+    {
+      "scenario": "stopped",
+      "source_video": "stopped_vehicle.mp4",
+      "source_video_path": "ai/sample_videos/stopped_vehicle.mp4",
+      "frame_index": 60,
+      "timestamp_sec": 2.0,
+      "width": 1280,
+      "height": 720,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/stopped/stopped__stopped_vehicle__frame_000060.png"
+    },
+    {
+      "scenario": "stopped",
+      "source_video": "stopped_vehicle.mp4",
+      "source_video_path": "ai/sample_videos/stopped_vehicle.mp4",
+      "frame_index": 150,
+      "timestamp_sec": 5.0,
+      "width": 1280,
+      "height": 720,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/stopped/stopped__stopped_vehicle__frame_000150.png"
+    },
+    {
+      "scenario": "stopped",
+      "source_video": "stopped_vehicle.mp4",
+      "source_video_path": "ai/sample_videos/stopped_vehicle.mp4",
+      "frame_index": 240,
+      "timestamp_sec": 8.0,
+      "width": 1280,
+      "height": 720,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/stopped/stopped__stopped_vehicle__frame_000240.png"
+    },
+    {
+      "scenario": "stopped",
+      "source_video": "stopped_vehicle.mp4",
+      "source_video_path": "ai/sample_videos/stopped_vehicle.mp4",
+      "frame_index": 302,
+      "timestamp_sec": 10.066667,
+      "width": 1280,
+      "height": 720,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/stopped/stopped__stopped_vehicle__frame_000302.png"
+    },
+    {
+      "scenario": "stopped",
+      "source_video": "stopped_vehicle.mp4",
+      "source_video_path": "ai/sample_videos/stopped_vehicle.mp4",
+      "frame_index": 303,
+      "timestamp_sec": 10.1,
+      "width": 1280,
+      "height": 720,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/stopped/stopped__stopped_vehicle__frame_000303.png"
+    },
+    {
+      "scenario": "stopped",
+      "source_video": "stopped_vehicle.mp4",
+      "source_video_path": "ai/sample_videos/stopped_vehicle.mp4",
+      "frame_index": 304,
+      "timestamp_sec": 10.133333,
+      "width": 1280,
+      "height": 720,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/stopped/stopped__stopped_vehicle__frame_000304.png"
+    },
+    {
+      "scenario": "stopped",
+      "source_video": "stopped_vehicle.mp4",
+      "source_video_path": "ai/sample_videos/stopped_vehicle.mp4",
+      "frame_index": 305,
+      "timestamp_sec": 10.166667,
+      "width": 1280,
+      "height": 720,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/stopped/stopped__stopped_vehicle__frame_000305.png"
+    },
+    {
+      "scenario": "stopped",
+      "source_video": "stopped_vehicle.mp4",
+      "source_video_path": "ai/sample_videos/stopped_vehicle.mp4",
+      "frame_index": 306,
+      "timestamp_sec": 10.2,
+      "width": 1280,
+      "height": 720,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/stopped/stopped__stopped_vehicle__frame_000306.png"
+    },
+    {
+      "scenario": "stopped",
+      "source_video": "stopped_vehicle.mp4",
+      "source_video_path": "ai/sample_videos/stopped_vehicle.mp4",
+      "frame_index": 307,
+      "timestamp_sec": 10.233333,
+      "width": 1280,
+      "height": 720,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/stopped/stopped__stopped_vehicle__frame_000307.png"
+    },
+    {
+      "scenario": "stopped",
+      "source_video": "stopped_vehicle.mp4",
+      "source_video_path": "ai/sample_videos/stopped_vehicle.mp4",
+      "frame_index": 308,
+      "timestamp_sec": 10.266667,
+      "width": 1280,
+      "height": 720,
+      "image": "ai/evaluation_dataset/frozen_p0_v1/frames/stopped/stopped__stopped_vehicle__frame_000308.png"
+    }
+  ]
+}
