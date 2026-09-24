@@ -71,7 +71,7 @@ Scope: preserve ADMIN full access; EMPLOYEE operational access without account a
 Acceptance: direct protected API requests are rejected for unauthorized roles, not merely hidden in the UI; spoofing repeated client identities cannot manufacture confirmation; existing login/session behavior remains intact.
 Tests: isolated role matrix, forged requests, duplicate reports, expired session and logout. Existing citizen map is a placeholder; implementing a new map is outside this stabilization cycle.
 
-## T09 — Operational analytics correctness (P1)
+## T09 — Operational analytics correctness (P1, implemented; not deployed)
 
 Scope: source identity, sample-based counts, real timestamps and congestion labels.
 Acceptance: sampled detections are not labeled unique throughput; missing minutes remain gaps; cameras cannot merge through a shared display name; moderate and heavy conditions are distinguished; empty/stale/error states are explicit.
@@ -204,3 +204,12 @@ An additive nullable `authenticated_user_id` column distinguishes trusted new re
 Role permissions remain unchanged: ADMIN administers accounts; EMPLOYEE can use operational/review APIs but cannot administer accounts; CITIZEN is confined to citizen/map APIs. Regression checks cover direct API access, expired sessions, logout/token revocation, repeated reports, distinct-account confirmation, and legacy schema migration/repeated startup. Existing review permission checks cover all live/recorded source routes. No new citizen map or registration features were added.
 
 Validation: `backend/.venv/bin/python -m pytest backend/tests -q` passed all 258 backend tests; `cd frontend && npm test -- --cache=false` passed all 80 frontend tests; `git diff --check` passed. All tests use isolated databases; no running service was deployed or production database modified. Historical confirmed reports retain their previous status, which is not proof of authenticated consensus. This change prevents client identity spoofing, not misuse of multiple legitimately provisioned accounts.
+
+
+## T09 validation record — 2026-09-24
+
+Reproduced three backend failures: name-based incident attribution mixed other/recorded/legacy sources and missed a renamed camera; MODERATE counted as heavy congestion; adjacent heavy samples survived a generation change as one episode. Incidents now require exact LIVE_CAMERA/source_id metadata, moderate and unknown sample counts are separate, and reconnect generations break sampled episodes. Legacy events without source identity are excluded from camera-specific totals without modifying them.
+
+Three frontend regressions reproduced compressed time gaps/connected history, UNKNOWN classification displayed as no congestion, and absent per-state counts. Chart dots now use real bucket timestamps across the requested axis with no interpolation. Zero observations remain zero; unobserved buckets remain absent. UI labels the existing minutes fields as sample-equivalent estimates, uses the configured sample interval, and flags no recent observation near the requested end (over two sampling intervals). This is not a camera-health assertion. Loading, empty, failed source switch and retry behavior are covered; counts remain sampled detections, never unique throughput.
+
+Validation: all 262 backend tests and 84 frontend tests passed, including four new backend and four new frontend regressions. App/node TypeScript checks and Vite production build passed (output `/tmp/cityeye-t09-build`); `git diff --check` passed. No model, tracker, camera geometry, thresholds, capture/event rules, production DB, or running services were modified. These are isolated multi-source fixtures and frontend integration checks, not a new live-camera observation or deployment. Long-range event-query scaling remains T11; no speeds or forecasts were invented.

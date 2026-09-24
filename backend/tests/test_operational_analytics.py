@@ -166,7 +166,7 @@ def test_bucketing_peak_congestion_and_composition_are_real() -> None:
     assert len(result.traffic_series) == 2
     assert result.peak_vehicle_count == 4.0
     assert result.congestion_episodes == 1
-    assert result.congestion_duration_minutes == 2.0
+    assert result.congestion_duration_minutes == 1.0
     assert result.vehicle_composition_observations["cars"] == 11
     assert result.average_vehicles_observed == 3.25
 
@@ -176,6 +176,7 @@ def test_incident_counts_use_persisted_matching_camera_events(tmp_path: Path) ->
     observations.add(observation(1_700_000_010))
     events.add(TrafficEventIngest(
         event_id="real-live-event", event_type="WRONG_WAY",
+        source_type="LIVE_CAMERA", source_id="camera-3",
         timestamp=1_700_000_020, confidence=0.9, severity="HIGH",
         explanation="Real tracked movement", camera_name="DVR Camera 3",
         latitude=31.9, longitude=35.2, evidence_image="real.jpg",
@@ -216,3 +217,53 @@ def test_analytics_api_returns_valid_real_schema(tmp_path: Path, monkeypatch) ->
     assert payload["camera_id"] == "camera-3"
     assert payload["samples"] == 0
     assert payload["traffic_series"] == []
+
+
+def test_incident_identity_does_not_merge_display_names(tmp_path):
+    observations, events = repositories(tmp_path)
+    base = dict(event_type="WRONG_WAY", timestamp=100, confidence=.9,
+                severity="HIGH", explanation="Observed motion", camera_name="DVR Camera 3",
+                latitude=0, longitude=0, evidence_image="evidence.jpg")
+    for event_id, source_type, source_id, name in [
+        ("correct", "LIVE_CAMERA", "camera-3", "Renamed camera"),
+        ("other-camera", "LIVE_CAMERA", "camera-5", "DVR Camera 3"),
+        ("recorded", "RECORDED_SCENARIO", "demo", "DVR Camera 3"),
+        ("legacy", None, None, "DVR Camera 3"),
+    ]:
+        events.add(TrafficEventIngest(**{**base, "event_id": event_id,
+                   "source_type": source_type, "source_id": source_id, "camera_name": name}))
+    result = query_operational_analytics(camera_id="camera-3", start=0, end=200,
+                                        observations=observations, events=events)
+    assert result.incident_count == 1
+    assert result.incidents_by_type == {"WRONG_WAY": 1}
+
+
+def test_moderate_and_unknown_are_not_heavy_congestion():
+    rows = [observation(10, traffic_status="MODERATE"),
+            observation(70, traffic_status="UNKNOWN")]
+    result = build_operational_analytics(camera_id="camera-3", start=0, end=200,
+                                        observations=rows, data_since=10, events=[])
+    assert result.congestion_episodes == 0
+    assert result.congestion_duration_minutes == 0
+    assert result.traffic_status_samples == {"MODERATE": 1, "UNKNOWN": 1}
+
+
+def test_congestion_episode_breaks_on_generation_and_missing_samples():
+    rows = [observation(10, traffic_status="HEAVY_CONGESTION"),
+            observation(70, traffic_status="HEAVY_CONGESTION").model_copy(update={"generation": 2}),
+            observation(250, traffic_status="HEAVY_CONGESTION").model_copy(update={"generation": 2})]
+    result = build_operational_analytics(camera_id="camera-3", start=0, end=300,
+                                        observations=rows, data_since=10, events=[])
+    assert result.congestion_episodes == 3
+    assert result.congestion_duration_minutes == 3
+
+
+def test_irregular_observations_keep_real_times_and_zero_without_filling_gaps():
+    rows = [observation(10, vehicles=0, cars=0), observation(910, vehicles=8, cars=8)]
+    result = build_operational_analytics(camera_id="camera-3", start=0, end=1200,
+                                        observations=rows, data_since=10, events=[])
+    assert [p.timestamp for p in result.traffic_series] == [0, 900]
+    assert [p.average_vehicles_observed for p in result.traffic_series] == [0, 8]
+    assert result.samples == 2
+    assert result.first_sample_at == 10
+    assert result.latest_sample_at == 910

@@ -204,10 +204,22 @@ The Backend stores one real live-camera observation per configured interval
   samples. It is not a count of unique vehicles that passed the camera.
 - **Vehicle composition** sums class observations across those sparse samples.
   A vehicle visible in more than one sample can therefore appear more than once.
-- **Congestion duration** approximates duration from consecutive samples whose
-  real CityEye traffic state is congested; adjacent samples form one episode.
-- **Incidents** are filtered from existing persisted events for the selected
-  camera and period. No missing history is backfilled or fabricated.
+- **Heavy congestion estimate** is the number of HEAVY_CONGESTION samples
+  (including legacy CONGESTED) multiplied by the sampling interval. MODERATE
+  is separate. This is sample-equivalent time, not measured continuous duration.
+  Missing intervals, non-heavy states, and generation changes break episodes.
+- **Traffic classification** includes per-state sample counts. UNKNOWN does not
+  establish normal traffic. The UI reports unavailable classification if none
+  of the samples has a recognized classification.
+- **Chart** positions bucket averages on the actual requested time axis without
+  connecting points across missing observations. No gaps are filled with zero.
+- **Incidents** require source_type LIVE_CAMERA and the exact source_id in the
+  selected period. Display names are never identifiers; legacy events lacking
+  source metadata are excluded rather than guessed. Their stored data is unchanged.
+- **Coverage** is sparse: observed_minutes is a compatibility field representing
+  samples × sampling interval / 60, not a continuous uptime measurement. The UI
+  flags missing recent samples when the latest observation is more than two
+  sampling intervals before the requested end. It does not assert camera health.
 
 Set `CITYEYE_ANALYTICS_SAMPLE_INTERVAL_SECONDS` to change the interval. Analytics
 collection runs in the Backend, outside the live capture and AI frame hot path.
