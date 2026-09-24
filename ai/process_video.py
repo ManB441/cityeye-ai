@@ -994,7 +994,7 @@ def process_video(
                             ((x1 + x2) / 2, y2),
                             event_pipeline.congestion_rule.monitored_polygon,
                         ) if event_pipeline.congestion_rule is not None else None
-                        bicycles_in_roi += int(bicycle_in_road)
+                        bicycles_in_roi += int(bool(bicycle_in_road))
                     else:
                         vehicle_observations.append(VehicleObservation(
                             center_x=center_x, center_y=center_y,
