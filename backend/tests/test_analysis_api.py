@@ -82,17 +82,40 @@ def test_timeline_returns_real_per_frame_class_counts(tmp_path: Path) -> None:
     assert response.json() == {
         "status": "READY",
         "frames": [
-            {"frame": 10, "timestamp_sec": 1.0, "active_vehicle_count": 2,
+            {"frame": 10, "timestamp_sec": 1.0, "traffic_state": "UNKNOWN", "active_vehicle_count": 2,
                  "cars": 1, "buses": 0, "trucks": 1, "motorcycles": 0,
                  "people": 0, "people_in_road": 0, "tracked_people": 0,
                  "bicycles": 0, "bicycles_in_road": 0, "tracked_bicycles": 0},
-            {"frame": 11, "timestamp_sec": 1.1, "active_vehicle_count": 3,
+            {"frame": 11, "timestamp_sec": 1.1, "traffic_state": "UNKNOWN", "active_vehicle_count": 3,
                  "cars": 1, "buses": 1, "trucks": 0, "motorcycles": 1,
                  "people": 0, "people_in_road": 0, "tracked_people": 0,
                  "bicycles": 0, "bicycles_in_road": 0, "tracked_bicycles": 0},
         ],
         "message": "Timeline calculated from real YOLO and ByteTrack output.",
     }
+
+
+def test_timeline_attaches_ai_traffic_state_by_frame(tmp_path: Path) -> None:
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    (output_dir / "tracks.csv").write_text(
+        "frame,timestamp_sec,track_id,class_name\n"
+        "0,0.0,1,car\n1,0.05,1,car\n",
+        encoding="utf-8",
+    )
+    (output_dir / "traffic_timeline.json").write_text(
+        '{"frames":[{"frame":0,"timestamp_sec":0.0,"traffic_state":"NORMAL"},'
+        '{"frame":1,"timestamp_sec":0.05,"traffic_state":"HEAVY_CONGESTION"}]}',
+        encoding="utf-8",
+    )
+
+    with make_client(tmp_path, output_dir) as client:
+        frames = client.get("/api/analysis/timeline").json()["frames"]
+
+    assert [frame["traffic_state"] for frame in frames] == [
+        "NORMAL",
+        "HEAVY_CONGESTION",
+    ]
 
 
 def test_people_are_reported_without_increasing_vehicle_count(tmp_path: Path) -> None:

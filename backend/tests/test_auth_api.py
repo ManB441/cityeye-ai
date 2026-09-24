@@ -49,7 +49,10 @@ def login(client: TestClient, username: str, password: str) -> str:
         "/api/auth/login", json={"username": username, "password": password}
     )
     assert response.status_code == 200
-    return response.json()["access_token"]
+    assert "access_token" not in response.json()
+    token = client.cookies.get("cityeye_session")
+    assert token
+    return token
 
 
 def test_login_session_logout_and_hashed_token(monkeypatch, tmp_path: Path) -> None:
@@ -95,7 +98,7 @@ def test_reviewer_can_decide_and_audit_records_actor(monkeypatch, tmp_path: Path
 
     with TestClient(application) as client:
         repository = AuthRepository(database)
-        repository.create_user("reviewer", "reviewer-password-123", "REVIEWER")
+        repository.create_user("reviewer", "reviewer-password-123", "EMPLOYEE")
         reviewer_token = login(client, "reviewer", "reviewer-password-123")
         admin_token = login(client, "admin", ADMIN_PASSWORD)
         assert client.post(
@@ -131,7 +134,7 @@ def test_operator_cannot_review_or_read_audit(monkeypatch, tmp_path: Path) -> No
 
     with TestClient(application) as client:
         repository = AuthRepository(database)
-        repository.create_user("operator", "operator-password-123", "OPERATOR")
+        repository.create_user("operator", "operator-password-123", "CITIZEN")
         token = login(client, "operator", "operator-password-123")
         headers = {"Authorization": f"Bearer {token}"}
         assert client.post("/api/events/missing/verify", headers=headers).status_code == 403
@@ -153,7 +156,7 @@ def test_admin_can_create_and_list_users(monkeypatch, tmp_path: Path) -> None:
             json={
                 "username": "municipal-reviewer",
                 "password": "reviewer-password-123",
-                "role": "REVIEWER",
+                "role": "EMPLOYEE",
             },
             headers=headers,
         )
@@ -163,14 +166,14 @@ def test_admin_can_create_and_list_users(monkeypatch, tmp_path: Path) -> None:
             json={
                 "username": "municipal-reviewer",
                 "password": "another-password-123",
-                "role": "OPERATOR",
+                "role": "CITIZEN",
             },
             headers=headers,
         )
         audit = client.get("/api/audit", headers=headers)
 
     assert created.status_code == 201
-    assert created.json()["role"] == "REVIEWER"
+    assert created.json()["role"] == "EMPLOYEE"
     assert users.status_code == 200
     assert {user["username"] for user in users.json()["users"]} == {
         "admin",
@@ -189,7 +192,7 @@ def test_non_admin_cannot_manage_users(monkeypatch, tmp_path: Path) -> None:
 
     with TestClient(application) as client:
         repository = AuthRepository(database)
-        repository.create_user("reviewer", "reviewer-password-123", "REVIEWER")
+        repository.create_user("reviewer", "reviewer-password-123", "EMPLOYEE")
         token = login(client, "reviewer", "reviewer-password-123")
         headers = {"Authorization": f"Bearer {token}"}
         assert client.get("/api/users", headers=headers).status_code == 403
@@ -198,7 +201,7 @@ def test_non_admin_cannot_manage_users(monkeypatch, tmp_path: Path) -> None:
             json={
                 "username": "operator",
                 "password": "operator-password-123",
-                "role": "OPERATOR",
+                "role": "CITIZEN",
             },
             headers=headers,
         ).status_code == 403
@@ -211,7 +214,7 @@ def test_sensitive_endpoints_require_credentials(monkeypatch, tmp_path: Path) ->
     with TestClient(application) as client:
         assert client.post("/api/events/missing/verify").status_code == 401
         assert client.post("/api/events/ingest", json=event_payload()).status_code == 401
-        assert client.get("/api/events").status_code == 200
+        assert client.get("/api/events").status_code == 401
 
 
 def test_auth_required_fails_closed_without_users(monkeypatch, tmp_path: Path) -> None:
@@ -224,3 +227,92 @@ def test_auth_required_fails_closed_without_users(monkeypatch, tmp_path: Path) -
     with pytest.raises(RuntimeError, match="no users exist"):
         with TestClient(application):
             pass
+
+
+@pytest.mark.parametrize("path", [
+    "/api/events", "/api/users", "/api/audit", "/api/live-cameras",
+    "/api/live-cameras/camera-3/metrics", "/api/analytics/traffic",
+    "/api/scenarios", "/media/annotated.mp4", "/media/live-cameras/camera-3.mjpg",
+    "/evidence/example.jpg",
+])
+def test_all_product_surfaces_are_private(monkeypatch, tmp_path, path):
+    configure_required_auth(monkeypatch, tmp_path)
+    with TestClient(create_app(database_path=tmp_path / "cityeye.db")) as client:
+        response = client.get(path)
+        assert response.status_code == 401
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        assert response.headers["X-Request-ID"]
+
+
+def test_cookie_security_expiry_and_revocation(monkeypatch, tmp_path):
+    configure_required_auth(monkeypatch, tmp_path)
+    monkeypatch.setenv("CITYEYE_ENVIRONMENT", "production")
+    monkeypatch.setenv("CITYEYE_TRUSTED_HOSTS", "cityeye.example.gov")
+    monkeypatch.setenv("CITYEYE_CORS_ORIGINS", "https://cityeye.example.gov")
+    database = tmp_path / "cityeye.db"
+    with TestClient(create_app(database_path=database), base_url="https://cityeye.example.gov") as client:
+        response = client.post("/api/auth/login", json={"username": "admin", "password": ADMIN_PASSWORD})
+        cookie = response.headers["set-cookie"]
+        assert all(value in cookie for value in ("HttpOnly", "Secure", "SameSite=strict", "Max-Age=28800"))
+        assert response.headers["Cache-Control"] == "no-store"
+        token = client.cookies.get("cityeye_session")
+        assert client.get("/api/events").status_code == 200
+        with sqlite3.connect(database) as connection:
+            stored = connection.execute("SELECT token_hash FROM auth_sessions").fetchone()[0]
+            assert stored != token and len(stored) == 64
+            connection.execute("UPDATE auth_sessions SET expires_at = 0")
+        assert client.get("/api/events").status_code == 401
+        assert client.get("/api/auth/session").json()["user"] is None
+        fresh = login(client, "admin", ADMIN_PASSWORD)
+        assert fresh != token
+        assert client.post("/api/auth/logout").status_code == 200
+        assert not client.cookies.get("cityeye_session")
+        assert client.get("/api/events", headers={"Authorization": f"Bearer {fresh}"}).status_code == 401
+
+
+@pytest.mark.parametrize("role", ["ADMIN", "EMPLOYEE", "CITIZEN"])
+@pytest.mark.parametrize("prefix", ["/api/events", "/api/live-camera/events", "/api/live-cameras/camera-3/events", "/api/scenarios/normal_traffic/events"])
+@pytest.mark.parametrize("decision", ["verify", "dismiss"])
+def test_review_permissions_on_every_source(monkeypatch, tmp_path, role, prefix, decision):
+    configure_required_auth(monkeypatch, tmp_path)
+    database = tmp_path / "cityeye.db"
+    with TestClient(create_app(database_path=database)) as client:
+        AuthRepository(database).create_user("role-test", "test-password-long", role)
+        login(client, "role-test", "test-password-long")
+        response = client.post(f"{prefix}/not-an-event/{decision}")
+        assert response.status_code == (403 if role == "CITIZEN" else 404)
+
+
+def test_access_updates_revoke_sessions_and_protect_last_admin(monkeypatch, tmp_path):
+    configure_required_auth(monkeypatch, tmp_path)
+    database = tmp_path / "cityeye.db"
+    with TestClient(create_app(database_path=database)) as client:
+        admin_token = login(client, "admin", ADMIN_PASSWORD)
+        admin = client.get("/api/auth/session").json()["user"]
+        assert client.patch(f'/api/users/{admin["user_id"]}', json={"active": False}).status_code == 409
+        assert client.patch(f'/api/users/{admin["user_id"]}', json={"role": "CITIZEN"}).status_code == 409
+        created = client.post("/api/users", json={"username": "reviewer", "password": "long-password-test", "role": "EMPLOYEE"}).json()
+        reviewer_token = login(client, "reviewer", "long-password-test")
+        assert client.patch(f'/api/users/{created["user_id"]}', json={"role": "ADMIN"}).status_code == 403
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        assert client.patch(f'/api/users/{created["user_id"]}', headers=headers, json={"active": False}).status_code == 200
+        assert client.get("/api/events", headers={"Authorization": f"Bearer {reviewer_token}"}).status_code == 401
+        assert client.post("/api/auth/login", json={"username": "reviewer", "password": "long-password-test"}).status_code == 401
+
+
+def test_cross_origin_writes_rejected_and_preflight_supported(monkeypatch, tmp_path):
+    configure_required_auth(monkeypatch, tmp_path)
+    with TestClient(create_app(database_path=tmp_path / "cityeye.db")) as client:
+        credentials = {"username": "admin", "password": ADMIN_PASSWORD}
+        assert client.post("/api/auth/login", json=credentials, headers={"Origin": "https://other.example"}).status_code == 403
+        assert client.post("/api/auth/login", json=credentials, headers={"Origin": "http://testserver"}).status_code == 200
+        assert client.post("/api/auth/logout", headers={"Origin": "https://other.example"}).status_code == 403
+        response = client.options("/api/users", headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "PATCH"})
+        assert response.status_code == 200
+
+
+def test_production_cannot_disable_auth(monkeypatch):
+    from app.auth import AuthSettings
+    monkeypatch.setenv("CITYEYE_AUTH_REQUIRED", "false")
+    with pytest.raises(ValueError, match="Production requires"):
+        AuthSettings.from_environment("production")

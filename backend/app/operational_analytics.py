@@ -8,7 +8,7 @@ import math
 from pathlib import Path
 
 from app.database import EventRepository, TrafficObservationRepository
-from app.live_camera import read_camera_health, read_live_metrics
+from app.live_camera import read_live_snapshot
 from app.schemas import (
     AnalyticsSeriesPoint,
     OperationalAnalyticsResponse,
@@ -37,13 +37,9 @@ def collect_live_observation(
     try:
         if interval_seconds <= 0:
             raise ValueError("interval_seconds must be positive")
-        health = read_camera_health(directory)
-        metrics = read_live_metrics(directory)
-        if (
-            health.state != "ONLINE"
-            or metrics.timestamp <= 0
-            or health.generation != metrics.generation
-        ):
+        snapshot = read_live_snapshot(directory, camera_id)
+        health, metrics = snapshot.health, snapshot.metrics
+        if metrics is None:
             return False
         interval_start = math.floor(metrics.timestamp / interval_seconds) * interval_seconds
         observation = TrafficObservation(

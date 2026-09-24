@@ -5,8 +5,6 @@ import type { SystemReadiness } from "../types";
 export function AppHeader({ auth, readiness }: { auth: AuthState; readiness: SystemReadiness }) {
   const [now, setNow] = useState(new Date());
   const [showLogin, setShowLogin] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1_000);
@@ -24,36 +22,21 @@ export function AppHeader({ auth, readiness }: { auth: AuthState; readiness: Sys
     <header className="command-header">
       <div className="command-brand">
         <span className="command-logo" aria-hidden="true">CE</span>
-        <span><strong>CITYEYE AI</strong><small>Traffic Intelligence Command Center</small></span>
+        <span><strong>CITYEYE AI</strong><small>{auth.user?.role === "CITIZEN" ? "Citizen Map" : "Traffic Intelligence Command Center"}</small></span>
       </div>
       <div className="header-operations">
-        <span className={`operational-state ${operational ? "online" : readiness.status === "degraded" ? "degraded" : "offline"}`}>
+        {auth.user?.role !== "CITIZEN" && <span className={`operational-state ${operational ? "online" : readiness.status === "degraded" ? "degraded" : "offline"}`}>
           <i />{healthLabel}
-        </span>
+        </span>}
         <time dateTime={now.toISOString()}>{now.toLocaleDateString()} · {now.toLocaleTimeString()}</time>
-        <button className="identity-button" type="button" onClick={() => setShowLogin((value) => !value)}>
+        <button className="identity-button" type="button" aria-expanded={showLogin} aria-controls="account-menu" onClick={() => setShowLogin((value) => !value)}>
           <span>{auth.user?.username?.slice(0, 2).toUpperCase() ?? "--"}</span>
           <span><strong>{identityName}</strong><small>{auth.user?.role ?? "READ ONLY"}</small></span>
         </button>
       </div>
       {showLogin && (
-        <div className="identity-popover">
-          {auth.authRequired && !auth.user ? (
-            <form onSubmit={(event) => {
-              event.preventDefault();
-              void auth.login(username, password).then((success) => {
-                setPassword("");
-                if (success) setShowLogin(false);
-              });
-            }}>
-              <strong>Municipal sign in</strong>
-              <label>Username<input value={username} autoComplete="username" onChange={(event) => setUsername(event.target.value)} required /></label>
-              <label>Password<input value={password} type="password" autoComplete="current-password" onChange={(event) => setPassword(event.target.value)} required /></label>
-              <button type="submit" disabled={auth.loading}>Sign in</button>
-            </form>
-          ) : (
-            <div><strong>{identityName}</strong><small>{auth.user?.role ?? "READ ONLY"}</small>{auth.authRequired && auth.user && <button type="button" onClick={() => void auth.logout()}>Sign out</button>}</div>
-          )}
+        <div className="identity-popover" id="account-menu" onKeyDown={(event) => { if (event.key === "Escape") setShowLogin(false); }}>
+          <div><strong>{identityName}</strong><small>{auth.user?.role ?? "READ ONLY"}</small>{auth.authRequired && auth.user && <button type="button" disabled={auth.loading} onClick={() => void auth.logout()}>{auth.loading ? "Signing out…" : "Sign out securely"}</button>}</div>
           {auth.error && <p role="alert">{auth.error}</p>}
         </div>
       )}

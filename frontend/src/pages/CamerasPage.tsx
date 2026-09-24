@@ -4,7 +4,8 @@ import { fetchScenarioSnapshots } from "../api/analysis";
 import { evidenceUrl } from "../api/events";
 import { fetchLiveCameras, fetchLiveEvents, fetchLiveMetrics } from "../api/live";
 import { LiveMjpegImage } from "../components/LiveMjpegImage";
-import type { CameraHealth, LiveMetrics, ScenarioSnapshot } from "../types";
+import { cameraIsOnline, cameraStateLabel, currentLiveMetrics, trafficCondition, useFreshnessClock } from "../lib/liveTruth";
+import type { CameraHealth, LiveMetricsSnapshot, ScenarioSnapshot } from "../types";
 
 const LIVE_CAMERA_NAMES: Record<string, string> = {
   "camera-3": "DVR Camera 3",
@@ -14,8 +15,8 @@ const LIVE_CAMERA_NAMES: Record<string, string> = {
 
 type LiveCameraSnapshot = {
   health: CameraHealth;
-  metrics: LiveMetrics | null;
-  incidentCount: number;
+  metrics: LiveMetricsSnapshot | null;
+  incidentCount: number | null;
 };
 
 export function PageTitle({
@@ -38,6 +39,7 @@ export function PageTitle({
   );
 }
 export function CamerasPage() {
+  const now = useFreshnessClock();
   const [sources, setSources] = useState<ScenarioSnapshot[]>([]);
   const [liveSources, setLiveSources] = useState<LiveCameraSnapshot[]>([]);
   const [query, setQuery] = useState("");
@@ -57,28 +59,38 @@ export function CamerasPage() {
   }, []);
   useEffect(() => {
     let cancelled = false;
+    let inFlight = false;
+    let controller: AbortController | null = null;
     async function refreshLiveSources() {
+      if (inFlight) return;
+      inFlight = true;
+      controller = new AbortController();
+      const signal = controller.signal;
+      const timeout = window.setTimeout(() => controller?.abort(), 4_000);
       try {
-        const cameras = await fetchLiveCameras();
+        const cameras = await fetchLiveCameras(signal);
         const snapshots = await Promise.all(cameras.map(async (health) => {
-          const [metrics, events] = await Promise.all([
-            fetchLiveMetrics(health.camera_id),
-            fetchLiveEvents(health.camera_id),
+          const [metrics, events] = await Promise.allSettled([
+            fetchLiveMetrics(health.camera_id, signal),
+            fetchLiveEvents(health.camera_id, signal),
           ]);
           return {
-            health,
-            metrics,
-            incidentCount: events.events.filter((event) => event.status === "PROPOSED").length,
+            health: metrics.status === "fulfilled" && metrics.value.health.camera_id === health.camera_id && metrics.value.health.checked_at >= health.checked_at ? metrics.value.health : health,
+            metrics: metrics.status === "fulfilled" ? metrics.value : null,
+            incidentCount: events.status === "fulfilled" ? events.value.events.filter((event) => event.status === "PROPOSED").length : null,
           };
         }));
         if (!cancelled) setLiveSources(snapshots);
       } catch {
         if (!cancelled) setLiveSources([]);
+      } finally {
+        window.clearTimeout(timeout);
+        inFlight = false;
       }
     }
     void refreshLiveSources();
     const timer = window.setInterval(() => void refreshLiveSources(), 2_000);
-    return () => { cancelled = true; window.clearInterval(timer); };
+    return () => { cancelled = true; controller?.abort(); window.clearInterval(timer); };
   }, []);
   const filtered = useMemo(
     () =>
@@ -96,11 +108,11 @@ export function CamerasPage() {
   const filteredLive = useMemo(() => liveSources.filter(({ health, incidentCount }) => {
     const name = LIVE_CAMERA_NAMES[health.camera_id] ?? health.camera_id;
     if (!name.toLowerCase().includes(query.toLowerCase())) return false;
-    if (filter === "ONLINE") return health.state === "ONLINE";
-    if (filter === "OFFLINE") return health.state !== "ONLINE";
-    if (filter === "INCIDENTS") return incidentCount > 0;
+    if (filter === "ONLINE") return cameraIsOnline(health, now);
+    if (filter === "OFFLINE") return !cameraIsOnline(health, now);
+    if (filter === "INCIDENTS") return (incidentCount ?? 0) > 0;
     return true;
-  }), [filter, liveSources, query]);
+  }), [filter, liveSources, query, now]);
   return (
     <main className="operations-page">
       <PageTitle
@@ -150,34 +162,38 @@ export function CamerasPage() {
       </div>
       {filteredLive.length ? (
         <section className={`camera-collection ${view}`}>
-          {filteredLive.map(({ health, metrics, incidentCount }) => (
+          {filteredLive.map(({ health, metrics: snapshot, incidentCount }) => {
+            const metrics = currentLiveMetrics(snapshot, health, health.camera_id, now);
+            const online = cameraIsOnline(health, now);
+            const state = cameraStateLabel(health, now);
+            return (
             <article className="camera-card" key={health.camera_id}>
               <div className="camera-preview">
-                {health.state === "ONLINE" ? <LiveMjpegImage
+                {online ? <LiveMjpegImage
                   cameraId={health.camera_id}
                   alt={`Raw live preview for ${LIVE_CAMERA_NAMES[health.camera_id] ?? health.camera_id}`}
-                /> : <div className="camera-preview-unavailable">Camera {health.state.toLowerCase()}</div>}
-                <span>{health.state}</span>
-                <em>Preview {health.preview_publication_fps.toFixed(1)} FPS</em>
+                /> : <div className="camera-preview-unavailable">Camera {state.toLowerCase()}</div>}
+                <span>{state}</span>
+                <em>Preview {online ? health.preview_publication_fps.toFixed(1) : "—"} FPS</em>
               </div>
               <div className="camera-body">
                 <div>
                   <h2>{LIVE_CAMERA_NAMES[health.camera_id] ?? health.camera_id}</h2>
                   <span>Local DVR · YOLO + ByteTrack</span>
                 </div>
-                <span className={`camera-status ${health.state === "ONLINE" ? "online" : "offline"}`}>
-                  <i />{health.state}
+                <span className={`camera-status ${online ? "online" : "offline"}`}>
+                  <i />{state}
                 </span>
                 <dl>
-                  <div><dt>Traffic state</dt><dd>{metrics?.traffic_state ?? "Unknown"}</dd></div>
+                  <div><dt>Traffic state</dt><dd>{trafficCondition(metrics?.traffic_state)}</dd></div>
                   <div><dt>Current vehicles</dt><dd>{metrics?.active_vehicle_count ?? "—"}</dd></div>
-                  <div><dt>Open incidents</dt><dd>{incidentCount}</dd></div>
+                  <div><dt>Open incidents</dt><dd>{incidentCount ?? "—"}</dd></div>
                   <div><dt>Last frame</dt><dd>{metrics?.frame ?? "—"}</dd></div>
-                  <div><dt>AI analysis</dt><dd>{(health.ai_inference_fps || health.processing_fps).toFixed(1)} FPS</dd></div>
+                  <div><dt>AI analysis</dt><dd>{metrics ? snapshot!.health.ai_inference_fps.toFixed(1) : "—"} FPS</dd></div>
                 </dl>
               </div>
             </article>
-          ))}
+          ); })}
         </section>
       ) : (
         <section className="honest-banner">

@@ -328,6 +328,9 @@ class StoppedVehicleRule:
         self.require_prior_motion = require_prior_motion
         self.active_track_ids: set[int] = set()
         self.moving_started_at: dict[int, float] = {}
+        self.prior_motion_started_at: dict[int, float] = {}
+        self.prior_motion_last_at: dict[int, float] = {}
+        self.motion_qualified_track_ids: set[int] = set()
 
     def evaluate(self, track: TrackState) -> StoppedVehicleMatch | None:
         """Return one match when a reliable track remains stopped long enough."""
@@ -337,6 +340,31 @@ class StoppedVehicleRule:
             return None
 
         latest = track.history[-1]
+        movement_value = track.smoothed_normalized_speed
+        release_threshold = self.release_normalized_speed_per_sec
+        moving = (
+            movement_value is not None and release_threshold is not None
+            and movement_value > release_threshold
+        ) or (
+            release_threshold is None and track.pixel_speed > self.max_speed_px_per_sec
+        )
+        # A brief bounding-box jump can set TrackState.has_moved forever.
+        # Require the same sustained movement used to rearm a stopped episode
+        # before accepting the first episode, including motion outside the ROI.
+        if self.require_prior_motion:
+            for track_id, last_seen in list(self.prior_motion_last_at.items()):
+                if latest.timestamp_sec - last_seen > self.max_observation_gap_sec:
+                    self.prior_motion_last_at.pop(track_id, None)
+                    self.prior_motion_started_at.pop(track_id, None)
+                    self.motion_qualified_track_ids.discard(track_id)
+            self.prior_motion_last_at[track.track_id] = latest.timestamp_sec
+            if track.track_id not in self.motion_qualified_track_ids:
+                if moving:
+                    started = self.prior_motion_started_at.setdefault(track.track_id, latest.timestamp_sec)
+                    if latest.timestamp_sec - started >= self.rearm_moving_seconds:
+                        self.motion_qualified_track_ids.add(track.track_id)
+                else:
+                    self.prior_motion_started_at.pop(track.track_id, None)
         if not point_in_polygon(
             (latest.center_x, latest.center_y),
             self.monitored_polygon,
@@ -349,15 +377,7 @@ class StoppedVehicleRule:
         )
         if len(recent_observations) < self.min_track_points:
             return None
-        movement_value = track.smoothed_normalized_speed
         if track.track_id in self.active_track_ids:
-            release_threshold = self.release_normalized_speed_per_sec
-            moving = (
-                movement_value is not None and release_threshold is not None
-                and movement_value > release_threshold
-            ) or (
-                release_threshold is None and track.pixel_speed > self.max_speed_px_per_sec
-            )
             if moving:
                 started = self.moving_started_at.setdefault(track.track_id, latest.timestamp_sec)
                 if latest.timestamp_sec - started >= self.rearm_moving_seconds:
@@ -379,7 +399,9 @@ class StoppedVehicleRule:
             return None
         if track.stationary_duration < self.min_stationary_seconds:
             return None
-        if self.require_prior_motion and not track.has_moved:
+        if self.require_prior_motion and (
+            not track.has_moved or track.track_id not in self.motion_qualified_track_ids
+        ):
             return None
 
         speed_ratio = (

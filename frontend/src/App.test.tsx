@@ -82,16 +82,15 @@ function mockBackend(
     if (url.startsWith("/api/analytics/traffic?")) return jsonResponse(operationalAnalytics);
     if (url === "/api/auth/login" && options?.method === "POST" && !loginSucceeds) return jsonResponse({ detail: "Invalid username or password" }, 401);
     if (url === "/api/auth/login" && options?.method === "POST") return jsonResponse({
-      access_token: "test-session-token",
-      token_type: "bearer",
       expires_at: 9999999999,
-      user: { user_id: "reviewer-1", username: "reviewer", role: "REVIEWER" },
+      user: { user_id: "reviewer-1", username: "reviewer", role: "EMPLOYEE" },
     });
     if (url === "/api/scenarios") return jsonResponse({ scenarios: [
       { scenario_id: "normal_traffic", title: "Normal Traffic", description: "Free flowing", expected_event: null, source_url: "https://example.com/normal" },
       { scenario_id: "congestion", title: "Heavy Congestion", description: "Dense traffic", expected_event: "CONGESTION", source_url: "https://example.com/congestion" },
       { scenario_id: "stopped_vehicle", title: "Stopped Vehicle", description: "Disabled car", expected_event: "STOPPED_VEHICLE", source_url: "https://example.com/stopped" },
       { scenario_id: "rainy_traffic", title: "Rainy Traffic", description: "Wet-road traffic", expected_event: null, source_url: "https://example.com/rainy" },
+      { scenario_id: "maydan_palestine", title: "Palestine Square", description: "Municipal square traffic", expected_event: null, source_url: "https://example.com/maydan" },
     ] });
     if (url.endsWith("/analysis/summary")) return jsonResponse(summary);
     if (url.endsWith("/analysis/timeline")) return jsonResponse(readyTimeline);
@@ -115,7 +114,7 @@ describe("CityEye municipal dashboard", () => {
   it("displays real Backend events without fixture claims", async () => {
     mockBackend();
     render(<MemoryRouter initialEntries={["/dashboard"]}><App /></MemoryRouter>);
-    expect(screen.getByRole("link", { name: /command center/i })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /command center/i })).toBeInTheDocument();
     await screen.findByText(/start recorded footage/i);
     playAt(1);
     expect(await screen.findByText("WRONG WAY")).toBeInTheDocument();
@@ -134,49 +133,48 @@ describe("CityEye municipal dashboard", () => {
     expect(fetchMock).toHaveBeenLastCalledWith("/api/scenarios/normal_traffic/events/event-1/verify", { method: "POST" });
   });
 
-  it("requires sign-in before municipal decisions and sends the bearer token", async () => {
+  it("requires sign-in before the protected application and uses the secure session", async () => {
     const fetchMock = mockBackend([proposedEvent], readySummary, {
       auth_required: true,
       user: null,
     });
     render(<MemoryRouter initialEntries={["/dashboard"]}><App /></MemoryRouter>);
+    await screen.findByRole("heading", { name: "Enter the command center." });
+    fireEvent.change(screen.getByLabelText("Username or email"), { target: { value: "reviewer" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "reviewer-password-123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Enter command center" }));
+    await screen.findByRole("button", { name: /reviewer employee/i });
     await screen.findByText(/start recorded footage/i);
     playAt(1);
-    expect(await screen.findByRole("button", { name: "Verify" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: /sign in required/i }));
-    fireEvent.change(screen.getByLabelText("Username"), { target: { value: "reviewer" } });
-    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "reviewer-password-123" } });
-    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
-    await screen.findByRole("button", { name: /reviewer reviewer/i });
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       "/api/scenarios/normal_traffic/events/event-1/verify",
-      { method: "POST", headers: { Authorization: "Bearer test-session-token" } },
+      { method: "POST" },
     ));
   });
 
-  it("keeps Operator accounts read-only for municipal decisions", async () => {
-    mockBackend([proposedEvent], readySummary, {
+  it.each(["/dashboard", "/command-center", "/cameras", "/incidents", "/analytics", "/users"])("restricts citizens visiting %s to the map without operational requests", async (path) => {
+    const request = mockBackend([proposedEvent], readySummary, {
       auth_required: true,
-      user: { user_id: "operator-1", username: "operator", role: "OPERATOR" },
+      user: { user_id: "citizen-1", username: "citizen", role: "CITIZEN" },
     });
-    render(<MemoryRouter initialEntries={["/dashboard"]}><App /></MemoryRouter>);
-    await screen.findByText(/start recorded footage/i);
-    playAt(1);
-    expect(await screen.findByRole("button", { name: "Verify" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Dismiss" })).toBeDisabled();
+    render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Citizen Map" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link").map(link => link.getAttribute("href"))).toEqual(["/citizen-map"]);
+    const urls = request.mock.calls.map(([url]) => String(url));
+    expect(urls.every(url => ["/api/auth/session", "/api/citizen-reports"].includes(url))).toBe(true);
+    expect(screen.queryByRole("button", { name: "Verify" })).not.toBeInTheDocument();
   });
 
   it("keeps the sign-in form open after invalid credentials", async () => {
     mockBackend([proposedEvent], readySummary, { auth_required: true, user: null }, false);
     render(<MemoryRouter initialEntries={["/dashboard"]}><App /></MemoryRouter>);
-    const accessButton = await screen.findByRole("button", { name: /sign in required/i });
-    fireEvent.click(accessButton);
-    fireEvent.change(screen.getByLabelText("Username"), { target: { value: "reviewer" } });
+    await screen.findByRole("heading", { name: "Enter the command center." });
+    fireEvent.change(screen.getByLabelText("Username or email"), { target: { value: "reviewer" } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "wrong" } });
-    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    fireEvent.click(screen.getByRole("button", { name: "Enter command center" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Invalid username or password");
-    expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enter command center" })).toBeInTheDocument();
   });
 
   it("does not expose raw authentication API errors", async () => {
@@ -196,7 +194,7 @@ describe("CityEye municipal dashboard", () => {
     mockBackend();
     render(<MemoryRouter initialEntries={["/dashboard"]}><App /></MemoryRouter>);
     const metrics = await screen.findByRole("region", { name: "Current traffic summary" });
-    expect(within(metrics).getByText("Vehicles").parentElement).toHaveTextContent("2");
+    await waitFor(() => expect(within(metrics).getByText("Vehicles").parentElement).toHaveTextContent("2"));
     playAt(1);
     expect(within(metrics).getByText("Vehicles").parentElement).toHaveTextContent("3");
     expect(within(metrics).getByText("Trucks").parentElement).toHaveTextContent("1");
@@ -224,12 +222,13 @@ describe("CityEye municipal dashboard", () => {
     const rainyVideo = screen.getByText(/browser does not support mp4/i).closest("video");
     expect(rainyVideo).toHaveAttribute("src", "/media/scenarios/rainy_traffic/annotated.mp4");
     const metrics = screen.getByRole("region", { name: "Current traffic summary" });
-    expect(within(metrics).getByText("Vehicles").parentElement).toHaveTextContent("2");
+    await waitFor(() => expect(within(metrics).getByText("Vehicles").parentElement).toHaveTextContent("2"));
   });
 
-  it("shows a truthful Citizen Map placeholder", () => {
+  it("shows a truthful Citizen Map placeholder", async () => {
+    mockBackend();
     render(<MemoryRouter initialEntries={["/map"]}><App /></MemoryRouter>);
-    expect(screen.getByRole("heading", { name: "Citizen Map" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Citizen Map" })).toBeInTheDocument();
     expect(screen.getAllByText("NOT YET AVAILABLE").length).toBeGreaterThan(0);
   });
 
@@ -237,7 +236,7 @@ describe("CityEye municipal dashboard", () => {
     mockBackend();
     render(<MemoryRouter initialEntries={["/cameras"]}><App /></MemoryRouter>);
     expect(await screen.findByRole("heading", { name: "Cameras & Video Sources" })).toBeInTheDocument();
-    expect(await screen.findByText("DEMO-04")).toBeInTheDocument();
+    expect(await screen.findByText("DEMO-05")).toBeInTheDocument();
     expect(screen.queryByText("CAM-04")).not.toBeInTheDocument();
     expect(screen.getByText(/no live cameras available/i)).toBeInTheDocument();
   });
@@ -269,7 +268,7 @@ describe("CityEye municipal dashboard", () => {
     expect(screen.queryByText("18,462")).not.toBeInTheDocument();
   });
 
-  it("shows the analytics loading state while the real API is pending", () => {
+  it("shows the analytics loading state while the real API is pending", async () => {
     const fetchMock = mockBackend();
     fetchMock.mockImplementation(async (input) => {
       const url = String(input);
@@ -281,7 +280,7 @@ describe("CityEye municipal dashboard", () => {
       return jsonResponse({ detail: "Not found" }, 404);
     });
     render(<MemoryRouter initialEntries={["/analytics"]}><App /></MemoryRouter>);
-    expect(screen.getByText("Loading real traffic history…")).toBeInTheDocument();
+    expect(await screen.findByText("Loading real traffic history…")).toBeInTheDocument();
   });
 
   it("shows an honest analytics empty state", async () => {
@@ -334,5 +333,73 @@ describe("CityEye municipal dashboard", () => {
     expect(await screen.findByText("Main Lane")).toBeInTheDocument();
     expect(screen.getByText("72%")).toBeInTheDocument();
     expect(screen.getByText("2", { selector: "dd" })).toBeInTheDocument();
+  });
+});
+
+// Secure access regressions: content must never mount before access is resolved.
+describe("Secure access", () => {
+  it.each(["/analytics", "/incidents", "/command-center", "/users"])("redirects anonymous direct access to %s", async (path) => {
+    const requests = mockBackend([], readySummary, { auth_required: true, user: null });
+    render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Enter the command center." })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    expect(requests.mock.calls.some(([url]) => String(url).startsWith("/api/scenarios"))).toBe(false);
+  });
+
+  it("fails closed when session restoration is unavailable", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Network failure"));
+    render(<MemoryRouter initialEntries={["/analytics"]}><App /></MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Enter the command center." })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Access service is unavailable");
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+  });
+
+  it("keeps the form mounted and prevents duplicate submissions", async () => {
+    const request = mockBackend([], readySummary, { auth_required: true, user: null });
+    const base = request.getMockImplementation()!;
+    let finish: (response: Response) => void = () => {};
+    request.mockImplementation((input, init) => String(input) === "/api/auth/login"
+      ? new Promise<Response>((resolve) => { finish = resolve; }) : base(input, init));
+    render(<MemoryRouter initialEntries={["/login"]}><App /></MemoryRouter>);
+    const username = await screen.findByLabelText("Username or email");
+    fireEvent.change(username, { target: { value: "operator" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "incorrect-password" } });
+    const form = username.closest("form")!;
+    fireEvent.submit(form); fireEvent.submit(form);
+    expect(screen.getByRole("button", { name: "Verifying access…" })).toBeDisabled();
+    expect(request.mock.calls.filter(([url]) => url === "/api/auth/login")).toHaveLength(1);
+    finish(jsonResponse({ detail: "Invalid username or password" }, 401));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid username or password");
+    expect(screen.getByLabelText("Username or email")).toHaveValue("operator");
+  });
+
+  it.each(["EMPLOYEE"] as const)("blocks %s from rendering administration", async (role) => {
+    const request = mockBackend([], readySummary, { auth_required: true, user: { user_id: "role-user", username: "staff", role } });
+    render(<MemoryRouter initialEntries={["/users"]}><App /></MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Access restricted" })).toBeInTheDocument();
+    expect(screen.queryByText("Create an account")).not.toBeInTheDocument();
+    expect(request.mock.calls.some(([url]) => url === "/api/users")).toBe(false);
+  });
+
+  it("retains identity and reports failed logout", async () => {
+    const request = mockBackend([], readySummary, { auth_required: true, user: { user_id: "1", username: "staff", role: "CITIZEN" } });
+    const base = request.getMockImplementation()!;
+    request.mockImplementation((input, init) => input === "/api/auth/logout" ? Promise.resolve(jsonResponse({}, 503)) : base(input, init));
+    render(<MemoryRouter initialEntries={["/analytics"]}><App /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("button", { name: /staff citizen/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign out securely" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Sign out could not be completed");
+    expect(screen.getByRole("button", { name: /staff citizen/i })).toBeInTheDocument();
+  });
+
+  it("returns to login after successful logout", async () => {
+    const request = mockBackend([], readySummary, { auth_required: true, user: { user_id: "1", username: "staff", role: "CITIZEN" } });
+    const base = request.getMockImplementation()!;
+    request.mockImplementation((input, init) => input === "/api/auth/logout" ? Promise.resolve(jsonResponse({ status: "ok" })) : base(input, init));
+    render(<MemoryRouter initialEntries={["/analytics"]}><App /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("button", { name: /staff citizen/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign out securely" }));
+    expect(await screen.findByRole("heading", { name: "Enter the command center." })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   });
 });

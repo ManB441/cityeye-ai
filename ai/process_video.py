@@ -31,6 +31,7 @@ import numpy as np
 from ultralytics import YOLO
 
 from event_pipeline import EventPipeline
+from calibration import has_camera_calibration, resolve_camera_calibration
 from event_rules import VehicleObservation, point_in_polygon
 from frame_source import (
     CameraHealth,
@@ -579,6 +580,7 @@ def build_live_metrics_snapshot(
     frame_rows: list[dict],
     traffic_state: str,
     current_track_states: dict,
+    movement_calibrated: bool = True,
 ) -> dict:
     """Describe only objects emitted for the current AI frame.
 
@@ -612,15 +614,15 @@ def build_live_metrics_snapshot(
         "bicycles": sum(row["class_name"] == "bicycle" for row in frame_rows),
         "traffic_state": traffic_state,
         "moving_vehicles": sum(
-            state.movement_state.value == "MOVING"
+            movement_calibrated and state.movement_state.value == "MOVING"
             for state in current_track_states.values()
         ),
         "stationary_vehicles": sum(
-            state.movement_state.value == "STATIONARY"
+            movement_calibrated and state.movement_state.value == "STATIONARY"
             for state in current_track_states.values()
         ),
         "unknown_movement_vehicles": sum(
-            state.movement_state.value == "UNKNOWN"
+            not movement_calibrated or state.movement_state.value == "UNKNOWN"
             for state in current_track_states.values()
         ),
     }
@@ -663,12 +665,18 @@ def process_video(
         Path(__file__).resolve().parent,
     )
     event_thresholds = config.get("event_thresholds", {})
-    road_polygon = config.get("monitored_road_polygon", [])
-    roi_width = max(point[0] for point in road_polygon) - min(point[0] for point in road_polygon)
-    roi_height = max(point[1] for point in road_polygon) - min(point[1] for point in road_polygon)
-    roi_diagonal = hypot(roi_width, roi_height)
-    if roi_diagonal <= 0:
-        raise ValueError("monitored_road_polygon must have a positive bounding diagonal")
+    calibration = resolve_camera_calibration(config)
+    if calibration is None:
+        road_polygon = config.get("monitored_road_polygon", [])
+        roi_width = max(point[0] for point in road_polygon) - min(point[0] for point in road_polygon)
+        roi_height = max(point[1] for point in road_polygon) - min(point[1] for point in road_polygon)
+        roi_diagonal = hypot(roi_width, roi_height)
+        if roi_diagonal <= 0:
+            raise ValueError("monitored_road_polygon must have a positive bounding diagonal")
+    else:
+        # Track IDs/positions can continue before calibration; no road-normalized
+        # movement or spatial event is published until the actual ROI is valid.
+        roi_diagonal = None
     stationary_speed_threshold = float(
         event_thresholds.get(
             "stopped_vehicle_max_speed_px_per_sec",
@@ -682,10 +690,10 @@ def process_video(
             max_observation_gap_sec=float(
                 config.get("trajectory_max_observation_gap_seconds", 1.0)
             ),
-            movement_scale=roi_diagonal,
+            movement_scale=roi_diagonal or 1.0,
             stationary_normalized_speed_threshold=(
                 float(event_thresholds["stopped_vehicle_max_normalized_speed_per_sec"])
-                if "stopped_vehicle_max_normalized_speed_per_sec" in event_thresholds
+                if roi_diagonal is not None and "stopped_vehicle_max_normalized_speed_per_sec" in event_thresholds
                 else None
             ),
             speed_smoothing_window=int(
@@ -796,10 +804,12 @@ def process_video(
         source_label = video_path.name
 
     track_rows: list[dict] = []
+    traffic_timeline: list[dict] = []
     frame_idx = 0
     processed_frames = 0
     last_inference_at: float | None = None
     current_generation: int | None = None
+    calibration_frame_size: tuple[int, int] | None = None
     recent_processing_rate = RollingRate(
         float(config.get("processing_fps_window_seconds", 5.0))
     )
@@ -838,28 +848,40 @@ def process_video(
                 and packet.timestamp - last_inference_at < 1.0 / fps
             ):
                 continue
-            if source_generation_changed(current_generation, packet.generation):
+            frame_size = (packet.frame.shape[1], packet.frame.shape[0])
+            geometry_changed = has_camera_calibration(config) and frame_size != calibration_frame_size
+            generation_changed = source_generation_changed(current_generation, packet.generation)
+            if generation_changed or geometry_changed:
                 retained_events = event_pipeline.events
+                event_pipeline = EventPipeline(config=config, output_dir=output_dir, frame_size=frame_size)
+                event_pipeline.events = retained_events
+                calibration = event_pipeline.calibration
+                if calibration is not None:
+                    roi_diagonal = calibration.movement_scale
+                    calibration_frame_size = frame_size
+                    write_json_atomic(output_dir / "calibration_status.json", {
+                        **calibration.report, "checked_at": packet.timestamp, "generation": packet.generation,
+                    })
+                    print("Camera calibration: " + json.dumps(calibration.report, ensure_ascii=True))
                 trajectory_manager = new_trajectory_manager()
                 class_stabilizer = VehicleClassStabilizer(
                     int(config.get("vehicle_class_history_size", 7))
                 )
-                event_pipeline = EventPipeline(config=config, output_dir=output_dir)
-                event_pipeline.events = retained_events
-                model = YOLO(model_path)
+                if current_generation is not None:
+                    model = YOLO(model_path)
                 recent_processing_rate.clear()
                 write_json_atomic(
                     output_dir / "live_metrics.json",
                     build_live_metrics_snapshot(
                         frame_idx=packet.frame_index,
-                        timestamp=packet.timestamp,
+                        timestamp=0.0 if geometry_changed else packet.timestamp,
                         generation=packet.generation,
                         frame_rows=[],
                         traffic_state="UNKNOWN",
                         current_track_states={},
                     ),
                 )
-                print("RTSP reconnected; tracker and temporal event state reset safely.")
+                print("RTSP generation/geometry changed; tracker and temporal event state reset safely.")
             current_generation = packet.generation
             last_inference_at = packet.timestamp
             raw_ai_frame = packet.frame.copy()
@@ -965,13 +987,13 @@ def process_video(
                         person_in_road = point_in_polygon(
                             ((x1 + x2) / 2, y2),
                             event_pipeline.congestion_rule.monitored_polygon,
-                        )
+                        ) if event_pipeline.congestion_rule is not None else None
                         people_in_roi += int(bool(person_in_road))
                     elif class_name == "bicycle":
                         bicycle_in_road = point_in_polygon(
                             ((x1 + x2) / 2, y2),
                             event_pipeline.congestion_rule.monitored_polygon,
-                        )
+                        ) if event_pipeline.congestion_rule is not None else None
                         bicycles_in_roi += int(bicycle_in_road)
                     else:
                         vehicle_observations.append(VehicleObservation(
@@ -1035,11 +1057,31 @@ def process_video(
                 detections=vehicle_observations,
                 track_classes=current_track_classes,
             )
-            metrics = event_pipeline.congestion_rule.last_metrics
-            traffic_status = (
-                f"Traffic: {metrics.state.value} | ROI: {metrics.vehicles_in_roi} "
-                f"| Density: {metrics.traffic_density:.3f}"
+            metrics = (
+                event_pipeline.congestion_rule.last_metrics
+                if event_pipeline.congestion_rule is not None
+                else None
             )
+
+            traffic_state = (
+                metrics.state.value
+                if metrics is not None
+                else "UNKNOWN"
+            )
+
+            if source_type is SourceType.VIDEO_FILE:
+                traffic_timeline.append(
+                    {
+                        "frame": frame_idx,
+                        "timestamp_sec": round(timestamp_sec, 3),
+                        "traffic_state": traffic_state,
+                    }
+                )
+
+            traffic_status = (
+                f"Traffic: {traffic_state} | ROI: {metrics.vehicles_in_roi} "
+                f"| Density: {metrics.traffic_density:.3f}"
+            ) if metrics is not None else "Traffic: UNKNOWN | CALIBRATION REQUIRED"
             cv2.putText(
                 frame,
                 traffic_status,
@@ -1058,8 +1100,9 @@ def process_video(
                     timestamp=timestamp_sec,
                     generation=packet.generation,
                     frame_rows=frame_rows,
-                    traffic_state=metrics.state.value,
+                    traffic_state=metrics.state.value if metrics is not None else "UNKNOWN",
                     current_track_states=current_track_states,
+                    movement_calibrated=calibration is None or calibration.enabled("road"),
                 )
                 if diagnostic_recorder is not None and diagnostic_recorder.active:
                     diagnostic_recorder.record(
@@ -1093,7 +1136,7 @@ def process_video(
             if frame_idx % 30 == 0:
                 pct = (frame_idx / total_frames * 100) if total_frames > 0 else 0
                 print(f"  {frame_idx}/{total_frames} frames ({pct:.0f}%)")
-                if debug_traffic:
+                if debug_traffic and metrics is not None:
                     print(
                         "  traffic "
                         f"detections={metrics.detections} "
@@ -1132,12 +1175,20 @@ def process_video(
             writer.release()
 
     write_tracks_csv(tracks_path, track_rows)
+
+    traffic_timeline_path = output_dir / "traffic_timeline.json"
+    write_json_atomic(
+        traffic_timeline_path,
+        {"frames": traffic_timeline},
+    )
+
     events_path = event_pipeline.write_events_json()
 
     print(f"Done. {processed_frames} frames, {len(track_rows)} track records.")
     print(f"  Annotated video: {annotated_path}")
-    print(f"  Tracks CSV:      {tracks_path}")
-    print(f"  Events JSON:     {events_path} ({len(event_pipeline.events)} events)")
+    print(f"  Tracks CSV:       {tracks_path}")
+    print(f"  Traffic timeline: {traffic_timeline_path}")
+    print(f"  Events JSON:      {events_path} ({len(event_pipeline.events)} events)")
     return annotated_path, tracks_path, events_path
 
 

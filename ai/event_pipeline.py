@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from pathlib import Path
 from uuid import uuid4
 
@@ -19,14 +21,19 @@ from event_rules import (
     WrongWayMatch,
     WrongWayRule,
 )
-from events import TrafficEvent, create_proposed_event
+from calibration import resolve_camera_calibration
+from events import EventStatus, EventType, Severity, TrafficEvent, create_proposed_event
 from trajectory import TrackState
 
 
 class EventPipeline:
     """Evaluate configured rules and persist event-ready demo artifacts."""
 
-    def __init__(self, config: dict, output_dir: Path) -> None:
+    def __init__(self, config: dict, output_dir: Path, frame_size: tuple[int, int] | None = None) -> None:
+        self.calibration = resolve_camera_calibration(config, frame_size)
+        if self.calibration is not None:
+            config = self.calibration.config
+        enabled = lambda rule: self.calibration is None or self.calibration.enabled(rule)
         polygon = [tuple(point) for point in config.get("monitored_road_polygon", [])]
         allowed_direction = config.get("allowed_direction", {})
         allowed_start = tuple(allowed_direction.get("start", []))
@@ -54,13 +61,15 @@ class EventPipeline:
         direction_zones = config.get("direction_zones")
         if direction_zones is not None and not isinstance(direction_zones, list):
             raise ValueError("direction_zones must be a list")
-        if not direction_zones and (len(allowed_start) != 2 or len(allowed_end) != 2):
+        if enabled("wrong_way") and not direction_zones and (len(allowed_start) != 2 or len(allowed_end) != 2):
             raise ValueError("allowed_direction must contain two-point start and end")
         zone_configs = direction_zones if direction_zones else [{
             "name": None,
             "polygon": polygon,
             "allowed_direction": {"start": allowed_start, "end": allowed_end},
         }]
+        if not enabled("wrong_way"):
+            zone_configs = []
         self.wrong_way_rules = []
         for zone in zone_configs:
             if not isinstance(zone, dict):
@@ -90,12 +99,12 @@ class EventPipeline:
                 ),
                 zone_name=zone.get("name"),
             ))
-        self.wrong_way_rule = self.wrong_way_rules[0]
+        self.wrong_way_rule = self.wrong_way_rules[0] if self.wrong_way_rules else None
         stopped_polygon = [
             tuple(point)
             for point in config.get("stopped_vehicle_polygon", polygon)
         ]
-        self.stopped_vehicle_rule = StoppedVehicleRule(
+        self.stopped_vehicle_rule = None if not enabled("stopped_vehicle") else StoppedVehicleRule(
             monitored_polygon=stopped_polygon,
             min_stationary_seconds=float(
                 thresholds.get("stopped_vehicle_seconds", 8.0)
@@ -124,7 +133,7 @@ class EventPipeline:
                 thresholds.get("stopped_vehicle_require_prior_motion", True)
             ),
         )
-        self.congestion_rule = CongestionRule(
+        self.congestion_rule = None if not enabled("congestion") else CongestionRule(
             monitored_polygon=polygon,
             min_vehicles=int(thresholds.get("congestion_min_vehicles", 16)),
             moderate_min_vehicles=int(
@@ -181,6 +190,23 @@ class EventPipeline:
         self.evidence_dir = output_dir / "evidence"
         self.events_path = output_dir / "events.json"
         self.events: list[TrafficEvent] = []
+        if self.source_type == "RTSP" and self.events_path.exists():
+            # Replay outstanding proposals across producer restarts. Never silently
+            # replace an unreadable delivery file with an empty history.
+            payloads = json.loads(self.events_path.read_text(encoding="utf-8"))
+            if not isinstance(payloads, list):
+                raise ValueError("Live event delivery file must contain a list")
+            seen: set[str] = set()
+            for payload in payloads:
+                event = TrafficEvent(**{
+                    **payload,
+                    "event_type": EventType(payload["event_type"]),
+                    "status": EventStatus(payload.get("status", "PROPOSED")),
+                    "severity": Severity(payload["severity"]),
+                })
+                if event.event_id not in seen:
+                    self.events.append(event)
+                    seen.add(event.event_id)
 
     def evaluate_frame(
         self,
@@ -199,11 +225,11 @@ class EventPipeline:
                 if wrong_way is not None:
                     new_matches.append(wrong_way)
                     break
-            stopped = self.stopped_vehicle_rule.evaluate(track)
+            stopped = self.stopped_vehicle_rule.evaluate(track) if self.stopped_vehicle_rule is not None else None
             if stopped is not None:
                 new_matches.append(stopped)
 
-        congestion = self.congestion_rule.evaluate(
+        congestion = None if self.congestion_rule is None else self.congestion_rule.evaluate(
             timestamp,
             list(unique_tracks.values()),
             observations=detections,
@@ -344,12 +370,18 @@ class EventPipeline:
     def write_events_json(self) -> Path:
         """Write a valid list even when no event thresholds were met."""
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        with self.events_path.open("w", encoding="utf-8") as events_file:
-            json.dump(
-                [event.to_dict() for event in self.events],
-                events_file,
-                indent=2,
-                ensure_ascii=False,
-            )
-            events_file.write("\n")
+        temporary: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=self.output_dir,
+                                             prefix=".events-", suffix=".tmp", delete=False) as events_file:
+                temporary = Path(events_file.name)
+                json.dump([event.to_dict() for event in self.events], events_file,
+                          indent=2, ensure_ascii=False)
+                events_file.write("\n")
+                events_file.flush()
+                os.fsync(events_file.fileno())
+            os.replace(temporary, self.events_path)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
         return self.events_path

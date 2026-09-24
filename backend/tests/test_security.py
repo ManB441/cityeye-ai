@@ -59,10 +59,11 @@ def test_invalid_external_request_id_is_replaced(tmp_path: Path) -> None:
 
 
 def test_production_disables_api_docs(monkeypatch, tmp_path: Path) -> None:
+    from test_auth_api import configure_required_auth
+    configure_required_auth(monkeypatch, tmp_path)
     monkeypatch.setenv("CITYEYE_ENVIRONMENT", "production")
     monkeypatch.setenv("CITYEYE_TRUSTED_HOSTS", "cityeye.example.gov")
     monkeypatch.setenv("CITYEYE_CORS_ORIGINS", "https://cityeye.example.gov")
-    monkeypatch.setenv("CITYEYE_AUTH_REQUIRED", "false")
     application = create_app(database_path=tmp_path / "cityeye.db")
 
     with TestClient(application, base_url="https://cityeye.example.gov") as client:

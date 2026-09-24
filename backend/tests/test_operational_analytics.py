@@ -68,7 +68,7 @@ def test_live_collection_persists_once_per_interval(tmp_path: Path) -> None:
         "generation": 4, "camera_capture_fps": 11.8, "ai_inference_fps": 3.9,
     }))
     (directory / "live_metrics.json").write_text(json.dumps({
-        "frame": 50, "timestamp": now, "generation": 4,
+        "frame": 50, "timestamp": now, "generation": 4, "current_detection_count": 4,
         "active_vehicle_count": 3, "active_track_count": 2,
         "cars": 2, "buses": 0, "trucks": 1, "motorcycles": 0,
         "bicycles": 0, "people": 1, "moving_vehicles": 2,

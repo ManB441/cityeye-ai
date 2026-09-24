@@ -1,5 +1,9 @@
 # CityEye AI — Competition MVP
 
+For the current login, role permissions, secure runtime setup and validation
+results, see [Secure access](SECURE_ACCESS.md). Some original milestone descriptions
+below predate the current implementation.
+
 Two-week MVP for a team of three developers. Proves CityEye AI can analyze real traffic video, detect and track vehicles, generate traffic events, and display results on a municipal dashboard and citizen map.
 
 **This repository is intentionally simple** — no microservices, Redis, PostGIS, Docker, advanced auth, or custom model training.

@@ -35,7 +35,9 @@ export type TrafficEvent = {
   longitude: number;
   evidence_image: string;
   status: "PROPOSED" | "VERIFIED" | "DISMISSED";
-  details?: StoppedVehicleDetails | RoadBlockageDetails | null;
+  source_type?: "LIVE_CAMERA" | "RECORDED_SCENARIO";
+  source_id?: string;
+  details?: StoppedVehicleDetails | RoadBlockageDetails | Record<string, unknown> | null;
 };
 
 export type EventListResponse = {
@@ -57,6 +59,7 @@ export type AnalysisSummary = {
 export type AnalysisFrame = {
   frame: number;
   timestamp_sec: number;
+  traffic_state: string;
   active_vehicle_count: number;
   cars: number;
   buses: number;
@@ -76,7 +79,12 @@ export type AnalysisTimeline = {
   message: string;
 };
 
-export type ScenarioId = "normal_traffic" | "congestion" | "stopped_vehicle" | "rainy_traffic";
+export type ScenarioId =
+  | "normal_traffic"
+  | "congestion"
+  | "stopped_vehicle"
+  | "rainy_traffic"
+  | "maydan_palestine";
 
 export type ScenarioInfo = {
   scenario_id: ScenarioId;
@@ -107,6 +115,9 @@ export type CameraHealth = {
   preview_publication_fps: number;
   preview_last_frame_at: number | null;
   buffer_pressure: number;
+  checked_at: number;
+  valid_for_seconds: number;
+  expires_at?: number;
 };
 
 export type LiveMetrics = {
@@ -126,6 +137,24 @@ export type LiveMetrics = {
   moving_vehicles: number;
   stationary_vehicles: number;
   unknown_movement_vehicles: number;
+};
+
+export type LiveMetricsSnapshot = {
+  camera_id: string;
+  checked_at: number;
+  max_age_seconds: number;
+  valid_for_seconds: number;
+  reason:
+    | "FRESH"
+    | "MISSING"
+    | "INVALID"
+    | "STALE"
+    | "OFFLINE"
+    | "SOURCE_MISMATCH"
+    | "GENERATION_MISMATCH";
+  health: CameraHealth;
+  metrics: LiveMetrics | null;
+  expires_at: number;
 };
 
 export type AnalyticsSeriesPoint = {

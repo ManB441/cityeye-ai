@@ -74,5 +74,90 @@
     "congestion_max_normalized_spacing": 0.12,
     "congestion_max_normalized_movement": 0.12,
     "congestion_duration_seconds": 5.0
+  },
+  "camera_calibrations": {
+    "camera-3": {
+      "camera_id": "camera-3",
+      "coordinate_space": "absolute_pixels",
+      "frame_size": [
+        944,
+        1080
+      ],
+      "road_confirmed": true,
+      "stopped_confirmed": true,
+      "direction_confirmed": false,
+      "monitored_road_polygon": [
+        [
+          515,
+          105
+        ],
+        [
+          610,
+          110
+        ],
+        [
+          638,
+          205
+        ],
+        [
+          595,
+          320
+        ],
+        [
+          525,
+          450
+        ],
+        [
+          390,
+          700
+        ],
+        [
+          95,
+          700
+        ],
+        [
+          80,
+          570
+        ],
+        [
+          180,
+          400
+        ],
+        [
+          355,
+          225
+        ]
+      ],
+      "stopped_vehicle_polygon": [
+        [
+          385,
+          260
+        ],
+        [
+          570,
+          255
+        ],
+        [
+          520,
+          400
+        ],
+        [
+          380,
+          610
+        ],
+        [
+          170,
+          610
+        ],
+        [
+          235,
+          440
+        ]
+      ],
+      "direction_zones": [],
+      "source_condition": "DAYLIGHT_ONLY",
+      "reference_frame": "diagnostics/camera3-calibration-day/calibration-frame.jpg",
+      "note": "Daylight-only conservative interior roadway calibration from the current 944x1080 Camera 3 reference. Excludes the left frontage/parked edge, upper parking forecourt and right steps/building. Wrong Way remains disabled: road shape alone does not establish a unique permitted direction. No event threshold changed; no real stopped/congestion event validation implied. Operator requested keeping the calibration enabled after daytime validation. No automatic day/night detection exists; disable road_confirmed and stopped_confirmed manually and restart Camera 3 before night operation."
+    }
   }
 }
