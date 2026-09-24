@@ -116,3 +116,30 @@ describe("Incident review persistence", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
+
+
+describe("Recorded observation boundaries", () => {
+  it("shows zero for an observed empty frame, unknown for a gap, and correct counts after seeking", async () => {
+    backend();
+    const original = vi.mocked(fetch).getMockImplementation()!;
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url === "/api/live-cameras") return new Response("[]");
+      if (url.endsWith("/timeline")) return new Response(JSON.stringify({ status: "READY", frames:
+        [[0, 2], [1, 0], [3, 1]].map(([frame, count]) => ({
+          frame, timestamp_sec: frame / 10, duration_sec: .1, traffic_state: "NORMAL",
+          active_vehicle_count: count, cars: count, buses: 0, trucks: 0, motorcycles: 0, people: 0, bicycles: 0,
+        })), message: "Analyzed frames" }));
+      return original(input, init);
+    });
+    render(<MunicipalDashboard auth={auth} />);
+    await waitFor(() => expect(value("Vehicles")).toBe("2"));
+    const video = document.querySelector("video")!;
+    const seek = (time: number) => { video.currentTime = time; fireEvent.timeUpdate(video); };
+    seek(.15); expect(value("Vehicles")).toBe("0");
+    seek(.25); expect(value("Vehicles")).toBe("—");
+    seek(.35); expect(value("Vehicles")).toBe("1");
+    seek(.05); expect(value("Vehicles")).toBe("2");
+    seek(.5); expect(value("Vehicles")).toBe("—");
+  });
+});

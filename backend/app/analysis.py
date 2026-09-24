@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import csv
 import json
+import math
+from statistics import median
 
 from pathlib import Path
 
@@ -60,19 +62,21 @@ def read_analysis_summary(output_dir: Path) -> AnalysisSummary:
             message=f"Unable to read tracks.csv: {exc}",
         )
 
+    observed = read_observed_frames(output_dir)
+
     if not records:
         return AnalysisSummary(
             status="READY",
             current_vehicle_count=0,
             current_people_count=0,
             current_bicycle_count=0,
-            last_frame=None,
+            last_frame=max(observed) if observed else None,
             total_track_records=0,
             annotated_video_available=video_available,
             message="The AI pipeline completed with no tracked vehicles.",
         )
 
-    last_frame = max(parsed_frames)
+    last_frame = max([*parsed_frames, *observed])
 
     vehicle_rows = [
         row
@@ -202,6 +206,37 @@ def read_traffic_timeline(output_dir: Path) -> dict[int, str]:
         return {}
 
 
+def read_observed_frames(output_dir: Path) -> dict[int, float]:
+    """Only the processed-frame manifest establishes an observation with no rows.
+
+    Never fill arbitrary CSV gaps: those may be unprocessed frames.
+    """
+    path = output_dir / "traffic_timeline.json"
+    if not _is_safe_file(output_dir, path):
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        items = payload["frames"]
+        if not isinstance(items, list):
+            return {}
+        observed: dict[int, float] = {}
+        for item in items:
+            number = item["frame"]
+            timestamp = item["timestamp_sec"]
+            if (type(number) is not int or number < 0
+                    or type(timestamp) not in (int, float)
+                    or not math.isfinite(timestamp) or timestamp < 0
+                    or number in observed):
+                return {}
+            observed[number] = float(timestamp)
+        ordered = sorted(observed)
+        if any(observed[b] <= observed[a] for a, b in zip(ordered, ordered[1:])):
+            return {}
+        return observed
+    except (OSError, UnicodeError, ValueError, KeyError, TypeError):
+        return {}
+
+
 def read_analysis_timeline(output_dir: Path) -> AnalysisTimeline:
     """
     Return real per-frame class counts from tracks.csv.
@@ -242,10 +277,18 @@ def read_analysis_timeline(output_dir: Path) -> AnalysisTimeline:
                     [],
                 ).append(row)
 
+        observed = read_observed_frames(output_dir)
+        timestamps = {number: float(rows[0]["timestamp_sec"]) for number, rows in grouped.items()}
+        timestamps.update(observed)
+        ordered = sorted(timestamps)
+        intervals = [(timestamps[b] - timestamps[a]) / (b - a)
+                     for a, b in zip(ordered, ordered[1:])
+                     if timestamps[b] > timestamps[a]]
+        duration = round(median(intervals), 6) if intervals else None
         frames: list[AnalysisFrame] = []
 
-        for frame_number in sorted(grouped):
-            rows = grouped[frame_number]
+        for frame_number in ordered:
+            rows = grouped.get(frame_number, [])
 
             unique_tracks: dict[str, str] = {}
 
@@ -309,9 +352,8 @@ def read_analysis_timeline(output_dir: Path) -> AnalysisTimeline:
             frames.append(
                 AnalysisFrame(
                     frame=frame_number,
-                    timestamp_sec=float(
-                        rows[0]["timestamp_sec"]
-                    ),
+                    timestamp_sec=timestamps[frame_number],
+                    duration_sec=duration,
                     traffic_state=traffic_state,
                     active_vehicle_count=sum(
                         counts.values()

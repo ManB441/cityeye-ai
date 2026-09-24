@@ -57,6 +57,7 @@ export type AnalysisSummary = {
 };
 
 export type AnalysisFrame = {
+  duration_sec?: number | null;
   frame: number;
   timestamp_sec: number;
   traffic_state: string;

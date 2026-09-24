@@ -320,6 +320,8 @@ class AnalysisFrame(BaseModel):
     frame: int = Field(ge=0)
     timestamp_sec: float = Field(ge=0, allow_inf_nan=False)
 
+    duration_sec: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+
     # AI-computed traffic condition for this exact recorded frame.
     traffic_state: str = "UNKNOWN"
 

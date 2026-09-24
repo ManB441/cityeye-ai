@@ -82,16 +82,16 @@ def test_timeline_returns_real_per_frame_class_counts(tmp_path: Path) -> None:
     assert response.json() == {
         "status": "READY",
         "frames": [
-            {"frame": 10, "timestamp_sec": 1.0, "traffic_state": "UNKNOWN", "active_vehicle_count": 2,
+            {"frame": 10, "timestamp_sec": 1.0, "duration_sec": 0.1, "traffic_state": "UNKNOWN", "active_vehicle_count": 2,
                  "cars": 1, "buses": 0, "trucks": 1, "motorcycles": 0,
                  "people": 0, "people_in_road": 0, "tracked_people": 0,
                  "bicycles": 0, "bicycles_in_road": 0, "tracked_bicycles": 0},
-            {"frame": 11, "timestamp_sec": 1.1, "traffic_state": "UNKNOWN", "active_vehicle_count": 3,
+            {"frame": 11, "timestamp_sec": 1.1, "duration_sec": 0.1, "traffic_state": "UNKNOWN", "active_vehicle_count": 3,
                  "cars": 1, "buses": 1, "trucks": 0, "motorcycles": 1,
                  "people": 0, "people_in_road": 0, "tracked_people": 0,
                  "bicycles": 0, "bicycles_in_road": 0, "tracked_bicycles": 0},
         ],
-        "message": "Timeline calculated from real YOLO and ByteTrack output.",
+        "message": "Timeline calculated from real YOLO and ByteTrack output with AI traffic state.",
     }
 
 
@@ -229,3 +229,47 @@ def test_rejects_annotated_video_symlink_outside_output(tmp_path: Path) -> None:
     with make_client(tmp_path, output_dir) as client:
         response = client.get("/media/annotated.mp4")
     assert response.status_code == 404
+
+
+def test_timeline_includes_observed_empty_frames_but_not_missing_frames(tmp_path: Path) -> None:
+    import json
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    (output_dir / "tracks.csv").write_text(
+        "frame,timestamp_sec,track_id,class_name\n0,0,1,car\n3,0.3,2,bus\n"
+    )
+    (output_dir / "traffic_timeline.json").write_text(json.dumps({"frames": [
+        {"frame": n, "timestamp_sec": n / 10, "traffic_state": "NORMAL"}
+        for n in [0, 1, 3, 4]
+    ]}))
+    with make_client(tmp_path, output_dir) as client:
+        frames = client.get("/api/analysis/timeline").json()["frames"]
+    assert [f["frame"] for f in frames] == [0, 1, 3, 4]
+    assert [f["active_vehicle_count"] for f in frames] == [1, 0, 1, 0]
+    assert frames[1]["people"] == frames[1]["bicycles"] == 0
+
+
+def test_summary_uses_last_observed_empty_frame(tmp_path: Path) -> None:
+    import json
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    (output_dir / "tracks.csv").write_text("frame,timestamp_sec,track_id,class_name\n0,0,1,car\n")
+    (output_dir / "traffic_timeline.json").write_text(json.dumps({"frames": [
+        {"frame": 0, "timestamp_sec": 0}, {"frame": 1, "timestamp_sec": .1}
+    ]}))
+    with make_client(tmp_path, output_dir) as client:
+        summary = client.get("/api/analysis/summary").json()
+    assert summary["last_frame"] == 1
+    assert summary["current_vehicle_count"] == 0
+    assert summary["total_track_records"] == 1
+
+
+def test_invalid_manifest_does_not_fabricate_empty_observations(tmp_path: Path) -> None:
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    (output_dir / "tracks.csv").write_text("frame,timestamp_sec,track_id,class_name\n0,0,1,car\n")
+    (output_dir / "traffic_timeline.json").write_text('{"frames":[{"frame":1,"timestamp_sec":-1}]}')
+    with make_client(tmp_path, output_dir) as client:
+        frames = client.get("/api/analysis/timeline").json()["frames"]
+    assert [f["frame"] for f in frames] == [0]
+    assert frames[0]["active_vehicle_count"] == 1
