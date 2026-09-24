@@ -1,6 +1,9 @@
 """Opt-in, camera-bound spatial validation. Never rescale an unverified scene."""
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 from copy import deepcopy
 from dataclasses import dataclass
 from math import hypot, isfinite
@@ -95,27 +98,53 @@ class Calibration:
         return hypot(max(p[0] for p in points)-min(p[0] for p in points), max(p[1] for p in points)-min(p[1] for p in points))
 
 
+def validate_recorded_source(config, video_path: Path | None):
+    """Explicit recorded geometry is bound to the exact inspected source bytes."""
+    if str(config.get("source_type", "VIDEO_FILE")).upper() != "VIDEO_FILE" or "recorded_calibration" not in config:
+        return
+    profile = config["recorded_calibration"]
+    expected = profile.get("source_sha256") if isinstance(profile, dict) else None
+    if not isinstance(expected, str) or len(expected) != 64 or any(c not in "0123456789abcdef" for c in expected):
+        raise ValueError("Recorded calibration requires a valid source_sha256")
+    if video_path is None:
+        raise ValueError("Recorded calibration requires its inspected source video")
+    digest = hashlib.sha256()
+    with video_path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    if digest.hexdigest() != expected:
+        raise ValueError("Recorded source changed; explicit recalibration required")
+
+
 def has_camera_calibration(config):
+    if str(config.get("source_type", "VIDEO_FILE")).upper() == "VIDEO_FILE":
+        return "recorded_calibration" in config
     if str(config.get("source_type", "VIDEO_FILE")).upper() != "RTSP" or "camera_calibrations" not in config: return False
     # A registry opts in every live camera: an absent profile must fail closed.
     return True
 
 
 def resolve_camera_calibration(config, frame_size=None):
-    """Return None for legacy/recorded configs; opt-in failures disable only affected rules."""
+    """Legacy configurations stay unchanged; explicit profiles fail closed."""
     if not has_camera_calibration(config): return None
-    profiles=config["camera_calibrations"]
-    profile=profiles.get(config["camera_id"]) if isinstance(profiles,dict) else None
+    camera_id = config.get("camera_id")
+    identity_valid = isinstance(camera_id, str) and bool(camera_id.strip())
+    if str(config.get("source_type", "VIDEO_FILE")).upper() == "VIDEO_FILE":
+        profiles = {camera_id: config["recorded_calibration"]} if identity_valid else {}
+    else:
+        profiles = config["camera_calibrations"]
+    profile=profiles.get(camera_id) if isinstance(profiles,dict) and identity_valid else None
     effective=deepcopy(config)
     effective.update(monitored_road_polygon=[], stopped_vehicle_polygon=[], direction_zones=[], allowed_direction={}, blockage_zones=[])
     rules={}
-    report={"camera_id":config["camera_id"], "frame_size":list(frame_size) if frame_size else None, "coordinate_space":"absolute_pixels", "rules":rules, "active_geometry":{}}
+    report={"camera_id":camera_id, "frame_size":list(frame_size) if frame_size else None, "coordinate_space":"absolute_pixels", "rules":rules, "active_geometry":{}}
     def set_rule(name, error):
         rules[name]={"status":"CALIBRATION_REQUIRED" if error else "READY", "diagnostic":error}
     common=None
-    if isinstance(profiles, dict) and config["camera_id"] not in profiles: common="camera-specific calibration profile is missing"
+    if not identity_valid: common="camera identity is required"
+    elif isinstance(profiles, dict) and camera_id not in profiles: common="camera-specific calibration profile is missing"
     elif not isinstance(profile,dict): common="invalid calibration profile"
-    elif profile.get("camera_id") != config["camera_id"]: common="calibration belongs to a different camera"
+    elif profile.get("camera_id") != camera_id: common="calibration belongs to a different camera"
     elif profile.get("coordinate_space") != "absolute_pixels": common="unsupported coordinate space"
     elif frame_size is None: common="waiting for actual frame dimensions"
     elif list(frame_size) != profile.get("frame_size"): common="frame resolution mismatch; explicit recalibration required"
@@ -127,6 +156,8 @@ def resolve_camera_calibration(config, frame_size=None):
         road_error=polygon_error(road,width,height)
         if not road_error and profile.get("road_confirmed") is not True: road_error="road surface not visually confirmed"
         set_rule("road",road_error);set_rule("congestion",road_error);set_rule("person_in_road",road_error)
+        if profile.get("congestion_confirmed") is False:
+            set_rule("congestion", "Traffic region has no confirmed congestion calibration")
         if not road_error:
             effective["monitored_road_polygon"]=deepcopy(road)
             report["active_geometry"]["road_and_congestion"]=deepcopy(road)
