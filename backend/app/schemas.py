@@ -372,7 +372,7 @@ class ScenarioListResponse(BaseModel):
 
 
 class CitizenReportCreate(BaseModel):
-    """Citizen-submitted fields accepted without user authentication."""
+    """Citizen report fields; authenticated API ignores the legacy demo identity."""
 
     model_config = ConfigDict(extra="forbid")
 
