@@ -65,7 +65,7 @@ Acceptance: playback and analysis refer to the same source/time; bounding boxes 
 Tests: frame/coordinate checks, representative overlays and pipeline regression. Natural event absence is reported honestly. Video stays local.
 Depends on T02 and T03.
 
-## T08 — Role access and citizen report integrity (P1)
+## T08 — Role access and citizen report integrity (P1, implemented; not deployed)
 
 Scope: preserve ADMIN full access; EMPLOYEE operational access without account administration; CITIZEN limited to permitted citizen/map functions. Eliminate trust in client-supplied voter identities for report consensus.
 Acceptance: direct protected API requests are rejected for unauthorized roles, not merely hidden in the UI; spoofing repeated client identities cannot manufacture confirmation; existing login/session behavior remains intact.
@@ -193,3 +193,14 @@ Full actual rerun: 6,243 frames / 312.15 seconds at 20 FPS, 52,689 detection/tra
 Validation: 231 AI tests passed. Native source/annotated/H.264 frame counts, FPS, resolution and timeline timestamps match; seven same-frame comparisons passed. Isolated API returned timeline/summary/events HTTP 200 and correct MP4 byte-range HTTP 206. Browser-compatible H.264 output was staged separately. No running backend/frontend deployment, replacement of served artifacts or production DB writes occurred.
 
 Local report: `diagnostics/maydan-palestine/validation-report.md` and JSON. Reference/overlay/detection images and `annotated-browser.mp4` are local only. Reproduction and publication limits are documented in `docs/MAYDAN_PALESTINE.md`.
+
+
+## T08 validation record — 2026-09-24
+
+Reproduced two failures before the fix: an unauthenticated citizen-report POST returned 201, and an authenticated caller's forged `demo_user_id` was stored as the consensus identity. Submission now requires the existing session dependency and binds the report identity to the authenticated account. Six forged identities from one account remain PENDING; five actual distinct accounts confirm the compatible cluster.
+
+An additive nullable `authenticated_user_id` column distinguishes trusted new reports from historical/demo submissions. Startup preserves old rows and their statuses; they cannot contribute to authenticated consensus. Demo-mode fixtures continue to work separately. No retroactive certification or production data rewrite was performed. The legacy request field remains required for compatibility but is ignored for authenticated identity.
+
+Role permissions remain unchanged: ADMIN administers accounts; EMPLOYEE can use operational/review APIs but cannot administer accounts; CITIZEN is confined to citizen/map APIs. Regression checks cover direct API access, expired sessions, logout/token revocation, repeated reports, distinct-account confirmation, and legacy schema migration/repeated startup. Existing review permission checks cover all live/recorded source routes. No new citizen map or registration features were added.
+
+Validation: `backend/.venv/bin/python -m pytest backend/tests -q` passed all 258 backend tests; `cd frontend && npm test -- --cache=false` passed all 80 frontend tests; `git diff --check` passed. All tests use isolated databases; no running service was deployed or production database modified. Historical confirmed reports retain their previous status, which is not proof of authenticated consensus. This change prevents client identity spoofing, not misuse of multiple legitimately provisioned accounts.

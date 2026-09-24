@@ -454,7 +454,6 @@ def create_app(
             or path.startswith("/docs")
             or path == "/openapi.json"
             or (path == "/api/events/ingest" and request.method == "POST")
-            or (path == "/api/citizen-reports" and request.method == "POST")
         )
         protected = path.startswith(("/api/", "/media/", "/evidence/"))
         if auth_settings.required and request.method not in {"GET", "HEAD", "OPTIONS"}:
@@ -1076,12 +1075,15 @@ def create_app(
     )
     def create_citizen_report(
         report: CitizenReportCreate,
+        actor: AuthenticatedUser = Depends(require_user),
         report_repository: CitizenReportRepository = Depends(
             get_citizen_report_repository
         ),
     ) -> CitizenReportResponse:
         """Store one citizen report with Backend-generated metadata."""
-        return report_repository.add(report)
+        return report_repository.add(
+            report, authenticated_user_id=actor.user_id if auth_settings.required else None
+        )
 
     @application.get(
         "/api/citizen-reports",

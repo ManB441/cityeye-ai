@@ -164,8 +164,17 @@ video playback position.
 
 Citizen reports can be created and polled through `/api/citizen-reports`.
 The Backend generates report IDs, timestamps, and the initial `PENDING` status.
-Five distinct demo users reporting the same category within 100 meters and 15
-minutes change the compatible cluster to `COMMUNITY_CONFIRMED`.
+When authentication is required, submission requires a valid session. Five distinct
+signed-in accounts reporting the same category within 100 meters and 15 minutes
+change the compatible cluster to `COMMUNITY_CONFIRMED`. The legacy `demo_user_id`
+request field remains required for API compatibility but is overwritten with the
+session account ID; changing it cannot create additional votes.
+
+Existing reports receive a nullable internal `authenticated_user_id` column on
+startup. Historical and demo reports are excluded from authenticated consensus;
+their existing statuses are preserved, not retroactively certified. Local
+no-auth demo mode still supports fixture identities and keeps its consensus
+separate from authenticated reports. Production cannot disable authentication.
 
 Create a repeatable five-report community cluster for the local competition
 demo (these are clearly labeled fixtures, not AI events):

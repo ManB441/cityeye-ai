@@ -316,3 +316,89 @@ def test_production_cannot_disable_auth(monkeypatch):
     monkeypatch.setenv("CITYEYE_AUTH_REQUIRED", "false")
     with pytest.raises(ValueError, match="Production requires"):
         AuthSettings.from_environment("production")
+
+
+def citizen_payload(identity="forged"):
+    return {"category": "CONGESTION", "description": "Traffic is slow",
+            "latitude": 31.95, "longitude": 35.91, "demo_user_id": identity}
+
+
+def test_reports_require_live_session(monkeypatch, tmp_path):
+    configure_required_auth(monkeypatch, tmp_path)
+    database = tmp_path / "cityeye.db"
+    with TestClient(create_app(database_path=database)) as client:
+        assert client.post("/api/citizen-reports", json=citizen_payload()).status_code == 401
+        login(client, "admin", ADMIN_PASSWORD)
+        with sqlite3.connect(database) as connection:
+            connection.execute("UPDATE auth_sessions SET expires_at = 0")
+        assert client.post("/api/citizen-reports", json=citizen_payload()).status_code == 401
+        token = login(client, "admin", ADMIN_PASSWORD)
+        client.post("/api/auth/logout")
+        assert client.post("/api/citizen-reports", json=citizen_payload(),
+                           headers={"Authorization": f"Bearer {token}"}).status_code == 401
+        with sqlite3.connect(database) as connection:
+            assert connection.execute("SELECT COUNT(*) FROM citizen_reports").fetchone()[0] == 0
+
+
+def test_report_consensus_uses_distinct_authenticated_accounts(monkeypatch, tmp_path):
+    configure_required_auth(monkeypatch, tmp_path)
+    database = tmp_path / "cityeye.db"
+    with TestClient(create_app(database_path=database)) as client:
+        repository = AuthRepository(database)
+        users = [repository.create_user(f"citizen-{i}", "citizen-password-test", "CITIZEN") for i in range(5)]
+        login(client, users[0].username, "citizen-password-test")
+        for i in range(6):
+            result = client.post("/api/citizen-reports", json=citizen_payload(f"forged-{i}"))
+            assert result.status_code == 201
+            assert result.json()["demo_user_id"] == users[0].user_id
+            assert result.json()["status"] == "PENDING"
+        for i, user in enumerate(users[1:], 1):
+            login(client, user.username, "citizen-password-test")
+            result = client.post("/api/citizen-reports", json=citizen_payload())
+            assert result.status_code == 201
+            assert result.json()["demo_user_id"] == user.user_id
+            assert result.json()["status"] == ("COMMUNITY_CONFIRMED" if i == 4 else "PENDING")
+        assert {r["status"] for r in client.get("/api/citizen-reports").json()["reports"]} == {"COMMUNITY_CONFIRMED"}
+
+
+@pytest.mark.parametrize("role", ["ADMIN", "EMPLOYEE", "CITIZEN"])
+def test_role_access_matrix(monkeypatch, tmp_path, role):
+    configure_required_auth(monkeypatch, tmp_path)
+    database = tmp_path / "cityeye.db"
+    with TestClient(create_app(database_path=database)) as client:
+        user = AuthRepository(database).create_user("matrix", "matrix-password-test", role)
+        login(client, "matrix", "matrix-password-test")
+        assert client.get("/api/citizen-reports").status_code == 200
+        assert client.post("/api/citizen-reports", json=citizen_payload()).status_code == 201
+        for path in ["/api/events", "/api/scenarios", "/api/live-cameras", "/api/audit"]:
+            assert client.get(path).status_code == (403 if role == "CITIZEN" else 200)
+        assert client.get("/api/users").status_code == (200 if role == "ADMIN" else 403)
+        assert client.patch(f"/api/users/{user.user_id}", json={"active": False}).status_code == (200 if role == "ADMIN" else 403)
+
+
+def test_legacy_reports_do_not_vote_in_authenticated_consensus(monkeypatch, tmp_path):
+    from app.database import CitizenReportRepository
+    from app.schemas import CitizenReportCreate
+
+    configure_required_auth(monkeypatch, tmp_path)
+    database = tmp_path / "cityeye.db"
+    repository = CitizenReportRepository(database)
+    repository.initialize()
+    for i in range(4):
+        repository.add(CitizenReportCreate(**citizen_payload(f"legacy-{i}")))
+    # Recreate the pre-upgrade schema to exercise the additive migration.
+    with sqlite3.connect(database) as connection:
+        connection.execute("ALTER TABLE citizen_reports DROP COLUMN authenticated_user_id")
+    with TestClient(create_app(database_path=database)) as client:
+        login(client, "admin", ADMIN_PASSWORD)
+        response = client.post("/api/citizen-reports", json=citizen_payload())
+        assert response.status_code == 201
+        assert response.json()["status"] == "PENDING"
+        assert client.get("/api/citizen-reports").json()["total"] == 5
+        # Demo fixtures added after authentication must not count real users either.
+        added = repository.add(CitizenReportCreate(**citizen_payload("legacy-4")))
+        assert added.status == "COMMUNITY_CONFIRMED"
+        assert client.get(f'/api/citizen-reports/{response.json()["report_id"]}').json()["status"] == "PENDING"
+    repository.initialize()  # Migration remains safe on subsequent startup.
+    with sqlite3.connect(database) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM citizen_reports WHERE authenticated_user_id IS NOT NULL").fetchone()[0] == 1

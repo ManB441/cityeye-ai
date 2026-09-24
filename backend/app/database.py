@@ -431,9 +431,19 @@ class CitizenReportRepository:
                 """
             )
 
-    def add(self, report: CitizenReportCreate) -> CitizenReportResponse:
+            # Existing reports have untrusted client identities. Never count them
+            # toward consensus from authenticated accounts after upgrading.
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(citizen_reports)")}
+            if "authenticated_user_id" not in columns:
+                connection.execute("ALTER TABLE citizen_reports ADD COLUMN authenticated_user_id TEXT")
+
+    def add(
+        self, report: CitizenReportCreate, *, authenticated_user_id: str | None = None
+    ) -> CitizenReportResponse:
         """Store one report and confirm a compatible five-user cluster."""
         payload = report.model_dump(mode="json")
+        if authenticated_user_id is not None:
+            payload["demo_user_id"] = authenticated_user_id
         payload.update(
             {
                 "report_id": str(self.id_factory()),
@@ -447,17 +457,18 @@ class CitizenReportRepository:
                 """
                 INSERT INTO citizen_reports (
                     report_id, category, description, latitude, longitude,
-                    demo_user_id, reported_at, status
+                    demo_user_id, reported_at, status, authenticated_user_id
                 ) VALUES (
                     :report_id, :category, :description, :latitude, :longitude,
-                    :demo_user_id, :reported_at, :status
+                    :demo_user_id, :reported_at, :status, :authenticated_user_id
                 )
                 """,
-                stored_report.model_dump(mode="json"),
+                {**stored_report.model_dump(mode="json"), "authenticated_user_id": authenticated_user_id},
             )
             compatible_reports = self._compatible_reports(
                 connection,
                 stored_report,
+                authenticated=authenticated_user_id is not None,
             )
             distinct_users = {
                 compatible.demo_user_id for compatible in compatible_reports
@@ -518,6 +529,7 @@ class CitizenReportRepository:
         self,
         connection: sqlite3.Connection,
         report: CitizenReportResponse,
+        *, authenticated: bool = False,
     ) -> list[CitizenReportResponse]:
         earliest_time = report.reported_at - self.cluster_window_seconds
         rows = connection.execute(
@@ -527,8 +539,9 @@ class CitizenReportRepository:
             FROM citizen_reports
             WHERE category = ?
               AND reported_at BETWEEN ? AND ?
+              AND (authenticated_user_id IS NOT NULL) = ?
             """,
-            (report.category.value, earliest_time, report.reported_at),
+            (report.category.value, earliest_time, report.reported_at, int(authenticated)),
         ).fetchall()
         candidates = [self._to_report(row) for row in rows]
         return [
