@@ -133,14 +133,11 @@ def test_pipeline_can_generate_stopped_vehicle_event(tmp_path: Path) -> None:
         speed_smoothing_window=1,
         movement_state_confirmations=1,
     )
-    track = update_track(
-        manager,
-        4,
-        [(2, 10), (8, 10), (10, 10), (10, 10), (10, 10)],
-    )
     frame = np.zeros((20, 20, 3), dtype=np.uint8)
-
-    events = pipeline.evaluate_frame(2.0, [track], frame)
+    events = []
+    for frame_index, x in enumerate((2, 6, 10, 14, 14, 14, 14)):
+        track = manager.update(4, frame_index, frame_index * .5, x, 10)
+        events.extend(pipeline.evaluate_frame(frame_index * .5, [track], frame))
 
     assert len(events) == 1
     assert events[0].event_type is EventType.STOPPED_VEHICLE
@@ -210,3 +207,43 @@ def test_rejects_invalid_event_pipeline_config(
 
     with pytest.raises(ValueError):
         EventPipeline(config, tmp_path)
+
+
+def test_live_restart_preserves_proposals_and_evidence(tmp_path: Path) -> None:
+    config = {**make_config(), "source_type": "RTSP", "camera_id": "camera-3"}
+    pipeline = EventPipeline(config, tmp_path)
+    manager = TrajectoryManager(history_size=10)
+    track = update_track(manager, 7, [(10, 2), (10, 5), (10, 9)])
+    first = pipeline.evaluate_frame(1.0, [track], np.full((30, 30, 3), 120, dtype=np.uint8))[0]
+    pipeline.write_events_json()
+    original_image = (tmp_path / first.evidence_image).read_bytes()
+    restarted = EventPipeline(config, tmp_path)
+    restarted.write_events_json()  # no new events must not erase pending delivery
+    assert [event.event_id for event in restarted.events] == [first.event_id]
+    other = update_track(TrajectoryManager(history_size=10), 8, [(10, 2), (10, 5), (10, 9)])
+    restarted.evaluate_frame(1.0, [other], np.full((30, 30, 3), 180, dtype=np.uint8))
+    restarted.write_events_json()
+    payload = json.loads((tmp_path / "events.json").read_text())
+    assert len(payload) == 2 and len({event["event_id"] for event in payload}) == 2
+    assert (tmp_path / first.evidence_image).read_bytes() == original_image
+    assert len({event["evidence_image"] for event in payload}) == 2
+
+
+def test_live_invalid_delivery_file_is_never_silently_overwritten(tmp_path: Path) -> None:
+    path = tmp_path / "events.json"; path.write_text("[")
+    with pytest.raises(ValueError):
+        EventPipeline({**make_config(), "source_type": "RTSP"}, tmp_path)
+    assert path.read_text() == "["
+
+
+def test_atomic_event_publication_preserves_previous_file_on_failure(tmp_path: Path, monkeypatch) -> None:
+    pipeline = EventPipeline(make_config(), tmp_path)
+    pipeline.write_events_json()
+    before = pipeline.events_path.read_bytes()
+    def fail_replace(*args):
+        raise OSError("controlled publication failure")
+    monkeypatch.setattr("event_pipeline.os.replace", fail_replace)
+    with pytest.raises(OSError):
+        pipeline.write_events_json()
+    assert pipeline.events_path.read_bytes() == before
+    assert list(tmp_path.glob(".events-*.tmp")) == []

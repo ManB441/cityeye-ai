@@ -1,9 +1,10 @@
+import { apiFetch } from "./auth";
 import type { SystemReadiness } from "../types";
 
 export async function fetchSystemReadiness(signal?: AbortSignal): Promise<SystemReadiness> {
-  const response = await fetch("/health/ready", { signal });
+  const response = await apiFetch("/health/ready", { signal });
   if (response.status === 404) {
-    const legacyResponse = await fetch("/health", { signal });
+    const legacyResponse = await apiFetch("/health", { signal });
     if (legacyResponse.ok) {
       return {
         status: "degraded",

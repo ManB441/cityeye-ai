@@ -3,7 +3,7 @@ import type { RoadBlockageDetails, ScenarioId, StoppedVehicleDetails, TrafficEve
 
 export function IncidentCard({ event, scenarioId, canReview, reviewing, onView, onDecision, live = false }: {
   event: TrafficEvent;
-  scenarioId: ScenarioId;
+  scenarioId?: ScenarioId;
   canReview: boolean;
   reviewing: boolean;
   onView: () => void;
@@ -29,7 +29,7 @@ export function IncidentCard({ event, scenarioId, canReview, reviewing, onView, 
 
 export function IncidentDetail({ event, scenarioId, canReview, reviewing, onClose, onDecision, evidenceSrc, live = false }: {
   event: TrafficEvent;
-  scenarioId: ScenarioId;
+  scenarioId?: ScenarioId;
   canReview: boolean;
   reviewing: boolean;
   onClose: () => void;
@@ -38,10 +38,15 @@ export function IncidentDetail({ event, scenarioId, canReview, reviewing, onClos
   live?: boolean;
 }) {
   const proposed = event.status === "PROPOSED";
-  const roadDetails = event.details && "zone_name" in event.details
+  const roadDetails = event.event_type === "ROAD_BLOCKAGE" && event.details && "zone_name" in event.details
     ? event.details as RoadBlockageDetails
     : null;
-  const stoppedDetails = event.details && !roadDetails
+  const stoppedDetails = event.event_type === "STOPPED_VEHICLE" && event.details
+    && typeof event.details.stationary_duration_seconds === "number"
+    && "movement_value" in event.details
+    && "pixel_speed_debug" in event.details
+    && typeof event.details.movement_value === "number"
+    && typeof event.details.pixel_speed_debug === "number"
     ? event.details as StoppedVehicleDetails
     : null;
   return (
@@ -52,7 +57,7 @@ export function IncidentDetail({ event, scenarioId, canReview, reviewing, onClos
         <div className="proposal-label"><i />AI PROPOSED EVENT<small>Requires municipal verification</small></div>
         <div className="detail-title"><div><h2>{event.event_type.replace(/_/g, " ")}</h2><p>{event.explanation}</p></div><span className={`severity ${event.severity.toLowerCase()}`}>{event.severity}</span></div>
         <dl className="detail-grid">
-          <div><dt>Source</dt><dd>{event.camera_name}</dd></div>
+          <div><dt>Source</dt><dd>{live ? "LIVE" : "RECORDED DEMO"} · {event.camera_name}</dd></div>
           <div><dt>{live ? "Observed at" : "Video timestamp"}</dt><dd>{live ? new Date(event.timestamp * 1000).toLocaleTimeString() : `${event.timestamp.toFixed(1)}s`}</dd></div>
           <div><dt>Confidence</dt><dd>{Math.round(event.confidence * 100)}%</dd></div>
           <div><dt>Review state</dt><dd>{event.status}</dd></div>

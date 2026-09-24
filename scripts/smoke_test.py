@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from http.cookies import SimpleCookie
 import sys
 import time
 from dataclasses import dataclass
@@ -38,6 +39,7 @@ class Smoke:
         self.admin_user = admin_user
         self.admin_password = admin_password
         self.passed = 0
+        self.read_token: str | None = None
 
     def request(
         self,
@@ -48,12 +50,17 @@ class Smoke:
         payload: dict[str, Any] | None = None,
         expected: int = 200,
         byte_range: str | None = None,
+        origin: str | None = None,
     ) -> Response:
         headers = {"Accept": "application/json", "X-Request-ID": "cityeye-smoke-test"}
+        if origin:
+            headers["Origin"] = origin
         data = None
         if payload is not None:
             data = json.dumps(payload).encode()
             headers["Content-Type"] = "application/json"
+        if token is None and method == "GET":
+            token = self.read_token
         if token:
             headers["Authorization"] = f"Bearer {token}"
         if byte_range:
@@ -96,11 +103,12 @@ class Smoke:
             "POST",
             f"{self.backend}/api/auth/login",
             payload={"username": username, "password": password},
-        ).json()
-        token = result.get("access_token")
-        if not isinstance(token, str) or not token:
-            raise SmokeFailure(f"Login for {username} returned no access token")
-        return token
+        )
+        cookie = SimpleCookie()
+        cookie.load(result.headers.get("Set-Cookie", ""))
+        if "cityeye_session" not in cookie or "access_token" in result.json():
+            raise SmokeFailure("Login must return an HttpOnly session cookie without a JSON token")
+        return cookie["cityeye_session"].value
 
     def run(self) -> None:
         self.wait()
@@ -129,7 +137,13 @@ class Smoke:
             f"unexpected anonymous session: {anonymous_session}",
         )
 
+        proxied_login = self.request(
+            "POST", f"{self.frontend}/api/auth/login", origin=self.frontend,
+            payload={"username": self.admin_user, "password": self.admin_password},
+        )
+        self.check("same-origin login through frontend proxy", "HttpOnly" in proxied_login.headers.get("Set-Cookie", ""), "session cookie missing")
         admin_token = self.login(self.admin_user, self.admin_password)
+        self.read_token = admin_token
         admin_session = self.request("GET", f"{self.backend}/api/auth/session", token=admin_token).json()
         self.check("current code authentication", admin_session.get("user", {}).get("role") == "ADMIN", str(admin_session))
 
@@ -155,7 +169,7 @@ class Smoke:
         scenarios_payload = self.request("GET", f"{self.backend}/api/scenarios").json()
         scenarios = scenarios_payload.get("scenarios", [])
         scenario_ids = {item.get("scenario_id") for item in scenarios}
-        expected_ids = {"normal_traffic", "congestion", "rainy_traffic", "stopped_vehicle"}
+        expected_ids = {"normal_traffic", "congestion", "rainy_traffic", "stopped_vehicle", "maydan_palestine"}
         self.check("scenario listing", expected_ids <= scenario_ids, f"missing scenarios: {expected_ids - scenario_ids}")
 
         first_samples: dict[str, int] = {}

@@ -35,6 +35,12 @@ SCENARIOS = {
         expected_event=None,
         source_url="user-provided",
     ),
+    "maydan_palestine": ScenarioInfo(
+        scenario_id="maydan_palestine", title="Palestine Square",
+        description="Recorded municipal intersection footage from Maydan Palestine.",
+        expected_event=None,
+        source_url="user-provided",
+    ),
 }
 
 

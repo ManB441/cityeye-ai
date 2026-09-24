@@ -14,9 +14,9 @@ from time import perf_counter
 from typing import AsyncIterator, Literal
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
+from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
@@ -33,7 +33,8 @@ from app.database import (
     EventRepository,
     TrafficObservationRepository,
 )
-from app.live_camera import mjpeg_frames, read_camera_health, read_live_metrics
+from app.live_incidents import LiveIncidentImporter
+from app.live_camera import mjpeg_frames, read_camera_health, read_live_snapshot
 from app.operational_analytics import (
     DEFAULT_SAMPLE_INTERVAL_SECONDS,
     collect_live_observation,
@@ -59,7 +60,7 @@ from app.schemas import (
     ScenarioInfo,
     ScenarioListResponse,
     CameraHealthResponse,
-    LiveMetricsResponse,
+    LiveMetricsSnapshot,
     OperationalAnalyticsResponse,
 )
 from app.scenarios import SCENARIOS, read_scenario_events, scenario_directory
@@ -99,11 +100,10 @@ class UserResponse(BaseModel):
     user_id: str
     username: str
     role: str
+    active: bool = True
 
 
 class LoginResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
     expires_at: float
     user: UserResponse
 
@@ -125,7 +125,12 @@ class AuditListResponse(BaseModel):
 class UserCreate(BaseModel):
     username: str = Field(min_length=1, max_length=80)
     password: str = Field(min_length=12, max_length=256)
-    role: Literal["OPERATOR", "REVIEWER", "ADMIN"]
+    role: Literal["CITIZEN", "EMPLOYEE", "ADMIN"]
+
+
+class UserUpdate(BaseModel):
+    role: Literal["CITIZEN", "EMPLOYEE", "ADMIN"] | None = None
+    active: bool | None = None
 
 
 class UserListResponse(BaseModel):
@@ -192,7 +197,10 @@ def resolve_live_camera_directory(root: Path, camera_id: str) -> Path:
     """Resolve one camera output without allowing path traversal."""
     if not LIVE_CAMERA_ID_PATTERN.fullmatch(camera_id):
         raise HTTPException(status_code=400, detail="Invalid live camera ID")
-    return root / camera_id
+    directory = (root / camera_id).resolve()
+    if directory.parent != root.resolve():
+        raise HTTPException(status_code=400, detail="Invalid live camera directory")
+    return directory
 
 
 def create_app(
@@ -246,6 +254,17 @@ def create_app(
         if camera_id.strip()
     )
 
+    incident_importer = LiveIncidentImporter(selected_live_output_dir, repository)
+
+    async def collect_live_incidents(stop: asyncio.Event) -> None:
+        while not stop.is_set():
+            for camera_id in configured_live_camera_ids:
+                await asyncio.to_thread(incident_importer.sync_safely, camera_id)
+            try:
+                await asyncio.wait_for(stop.wait(), timeout=2.0)
+            except TimeoutError:
+                pass
+
     async def collect_traffic_observations(stop: asyncio.Event) -> None:
         while not stop.is_set():
             for camera_id in configured_live_camera_ids:
@@ -293,6 +312,11 @@ def create_app(
         application.state.traffic_observation_repository = (
             traffic_observation_repository
         )
+        # Finish one replay at startup, including proposals created while offline.
+        for camera_id in configured_live_camera_ids:
+            await asyncio.to_thread(incident_importer.sync_safely, camera_id)
+        incident_stop = asyncio.Event()
+        incident_task = asyncio.create_task(collect_live_incidents(incident_stop))
         collector_stop = asyncio.Event()
         collector_task = asyncio.create_task(
             collect_traffic_observations(collector_stop)
@@ -301,7 +325,8 @@ def create_app(
             yield
         finally:
             collector_stop.set()
-            await collector_task
+            incident_stop.set()
+            await asyncio.gather(collector_task, incident_task)
 
     application = FastAPI(
         title="CityEye AI Backend",
@@ -317,8 +342,8 @@ def create_app(
         application.add_middleware(
             CORSMiddleware,
             allow_origins=list(security_settings.cors_origins),
-            allow_credentials=False,
-            allow_methods=["GET", "POST"],
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PATCH"],
             allow_headers=[
                 "Authorization",
                 "Content-Type",
@@ -333,7 +358,6 @@ def create_app(
             allowed_hosts=list(security_settings.trusted_hosts),
         )
 
-    @application.middleware("http")
     async def request_logging(request: Request, call_next):
         request_id = safe_request_id(request.headers.get("X-Request-ID")) or str(uuid4())
         request.state.request_id = request_id
@@ -352,6 +376,8 @@ def create_app(
                 },
             )
             raise
+        if request.url.path.startswith(("/api/", "/media/", "/evidence/")):
+            response.headers["Cache-Control"] = "no-store"
         response.headers["X-Request-ID"] = request_id
         for header, value in SECURITY_HEADERS.items():
             response.headers[header] = value
@@ -376,10 +402,13 @@ def create_app(
             return token
         return None
 
+    session_cookie_name = "cityeye_session"
+
     def optional_user(
         authorization: str | None = Header(default=None),
+        session_cookie: str | None = Cookie(default=None, alias=session_cookie_name),
     ) -> AuthenticatedUser | None:
-        token = token_from_header(authorization)
+        token = token_from_header(authorization) or session_cookie
         return auth_repository.resolve_session(token) if token else None
 
     def require_user(
@@ -416,21 +445,83 @@ def create_app(
         if not hmac.compare_digest(supplied_token, ingest_token):
             raise HTTPException(status_code=401, detail="Valid AI ingest token required")
 
+    @application.middleware("http")
+    async def protect_product_surfaces(request: Request, call_next):
+        """Enforce a valid human session before product data leaves the API."""
+        path = request.url.path
+        public = (
+            path in {"/health", "/health/live", "/health/ready", "/api/auth/login", "/api/auth/session"}
+            or path.startswith("/docs")
+            or path == "/openapi.json"
+            or (path == "/api/events/ingest" and request.method == "POST")
+            or (path == "/api/citizen-reports" and request.method == "POST")
+        )
+        protected = path.startswith(("/api/", "/media/", "/evidence/"))
+        if auth_settings.required and request.method not in {"GET", "HEAD", "OPTIONS"}:
+            # SameSite is defense in depth; reject browser writes from other origins.
+            origin = request.headers.get("origin")
+            allowed_origins = {*security_settings.cors_origins, str(request.base_url).rstrip("/")}
+            if origin and origin not in allowed_origins:
+                return JSONResponse(status_code=403, content={"detail": "Untrusted request origin"})
+        if auth_settings.required and protected and request.method != "OPTIONS":
+            token = token_from_header(request.headers.get("Authorization")) or request.cookies.get(session_cookie_name)
+            user = auth_repository.resolve_session(token) if token else None
+            if not public and user is None:
+                return JSONResponse(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    content={"detail": "Authentication required"},
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            citizen_surface = (
+                path in {"/api/auth/login", "/api/auth/session", "/api/auth/logout"}
+                or (path == "/api/citizen-reports" and request.method in {"GET", "HEAD", "POST"})
+                or (re.fullmatch(r"/api/citizen-reports/[^/]+", path) is not None
+                    and request.method in {"GET", "HEAD"})
+            )
+            if user is not None and user.role == "CITIZEN" and not citizen_surface:
+                return JSONResponse(status_code=403, content={"detail": "Citizen access is limited to the map"})
+        response = await call_next(request)
+        if protected:
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+    # Logging/security headers must also wrap rejected authentication requests.
+    application.middleware("http")(request_logging)
+
     @application.post("/api/auth/login", response_model=LoginResponse, tags=["authentication"])
-    def login(credentials: LoginRequest) -> LoginResponse:
+    def login(credentials: LoginRequest, request: Request, response: Response) -> LoginResponse:
         if not auth_settings.required:
             raise HTTPException(status_code=409, detail="Authentication is disabled in this environment")
         user = auth_repository.authenticate(credentials.username, credentials.password)
         if user is None:
+            auth_repository.record_audit(
+                actor=AuthenticatedUser("anonymous", "anonymous", "CITIZEN"),
+                action="LOGIN_FAILED",
+                target_type="authentication",
+                target_id="session",
+                previous_value=None,
+                new_value=None,
+                request_id=request.state.request_id,
+            )
             raise HTTPException(status_code=401, detail="Invalid username or password")
         token, expires_at = auth_repository.create_session(
             user, auth_settings.session_ttl_seconds
         )
-        return LoginResponse(
-            access_token=token,
-            expires_at=expires_at,
-            user=UserResponse(**user.__dict__),
+        response.set_cookie(
+            key=session_cookie_name,
+            value=token,
+            max_age=auth_settings.session_ttl_seconds,
+            httponly=True,
+            secure=environment == "production",
+            samesite="strict",
+            path="/",
         )
+        auth_repository.record_audit(
+            actor=user, action="LOGIN_SUCCEEDED", target_type="authentication",
+            target_id="session", previous_value=None, new_value=None,
+            request_id=request.state.request_id,
+        )
+        return LoginResponse(expires_at=expires_at, user=UserResponse(**user.__dict__))
 
     @application.get("/api/auth/session", response_model=SessionResponse, tags=["authentication"])
     def auth_session(user: AuthenticatedUser | None = Depends(optional_user)) -> SessionResponse:
@@ -446,17 +537,26 @@ def create_app(
         "/api/auth/logout", response_model=LogoutResponse, tags=["authentication"]
     )
     def logout(
+        request: Request,
+        response: Response,
         authorization: str | None = Header(default=None),
-        _user: AuthenticatedUser = Depends(require_user),
+        session_cookie: str | None = Cookie(default=None, alias=session_cookie_name),
+        user: AuthenticatedUser = Depends(require_user),
     ) -> LogoutResponse:
-        token = token_from_header(authorization)
+        token = token_from_header(authorization) or session_cookie
         if token:
             auth_repository.revoke_session(token)
+        response.delete_cookie(session_cookie_name, path="/", samesite="strict")
+        auth_repository.record_audit(
+            actor=user, action="LOGOUT", target_type="authentication",
+            target_id="session", previous_value=None, new_value=None,
+            request_id=request.state.request_id,
+        )
         return LogoutResponse(status="ok")
 
     @application.get("/api/audit", response_model=AuditListResponse, tags=["audit"])
     def audit_log(
-        _user: AuthenticatedUser = Depends(require_roles("ADMIN")),
+        _user: AuthenticatedUser = Depends(require_roles("EMPLOYEE", "ADMIN")),
     ) -> AuditListResponse:
         entries = auth_repository.list_audit()
         return AuditListResponse(entries=entries, total=len(entries))
@@ -495,6 +595,29 @@ def create_app(
             request_id=request.state.request_id,
         )
         return UserResponse(**user.__dict__)
+
+    @application.patch("/api/users/{user_id}", response_model=UserResponse, tags=["users"])
+    def update_user(
+        user_id: str,
+        payload: UserUpdate,
+        request: Request,
+        admin: AuthenticatedUser = Depends(require_roles("ADMIN")),
+    ) -> UserResponse:
+        try:
+            updated = auth_repository.update_user(
+                user_id, role=payload.role, active=payload.active
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        if updated is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        auth_repository.record_audit(
+            actor=admin, action="USER_ACCESS_UPDATED", target_type="user",
+            target_id=user_id, previous_value=None,
+            new_value=f"role={updated.role};active={updated.active}",
+            request_id=request.state.request_id,
+        )
+        return UserResponse(**updated.__dict__)
 
     @application.get("/health", response_model=HealthResponse, tags=["system"])
     def health() -> HealthResponse:
@@ -542,12 +665,12 @@ def create_app(
 
     @application.get(
         "/api/live-camera/metrics",
-        response_model=LiveMetricsResponse,
+        response_model=LiveMetricsSnapshot,
         tags=["live camera"],
     )
-    def live_camera_metrics() -> LiveMetricsResponse:
+    def live_camera_metrics() -> LiveMetricsSnapshot:
         try:
-            return read_live_metrics(selected_live_output_dir)
+            return read_live_snapshot(selected_live_output_dir, read_camera_health(selected_live_output_dir).camera_id)
         except ValueError as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -560,27 +683,30 @@ def create_app(
         merged = [repository.get(event.event_id) or event for event in events]
         return EventListResponse(events=merged, total=len(merged))
 
-    def review_live_event(event_id: str, decision: EventStatus) -> TrafficEventResponse:
+    def review_live_event(event_id: str, decision: EventStatus, actor: AuthenticatedUser, request: Request) -> TrafficEventResponse:
         events = read_scenario_events(selected_live_output_dir)
         source = next((item for item in events if item.event_id == event_id), None)
         if source is None:
             raise HTTPException(status_code=404, detail=f"Event not found: {event_id}")
         if repository.get(event_id) is None:
             repository.add(TrafficEventIngest.model_validate(source.model_dump()))
-        return update_event_status(repository, event_id, decision)
+        return apply_review(event_id, decision, actor, request)
 
     @application.post("/api/live-camera/events/{event_id}/verify", response_model=TrafficEventResponse, tags=["live camera"])
-    def verify_live_event(event_id: str) -> TrafficEventResponse:
-        return review_live_event(event_id, EventStatus.VERIFIED)
+    def verify_live_event(event_id: str, request: Request, actor: AuthenticatedUser = Depends(require_roles("EMPLOYEE", "ADMIN"))) -> TrafficEventResponse:
+        return review_live_event(event_id, EventStatus.VERIFIED, actor, request)
 
     @application.post("/api/live-camera/events/{event_id}/dismiss", response_model=TrafficEventResponse, tags=["live camera"])
-    def dismiss_live_event(event_id: str) -> TrafficEventResponse:
-        return review_live_event(event_id, EventStatus.DISMISSED)
+    def dismiss_live_event(event_id: str, request: Request, actor: AuthenticatedUser = Depends(require_roles("EMPLOYEE", "ADMIN"))) -> TrafficEventResponse:
+        return review_live_event(event_id, EventStatus.DISMISSED, actor, request)
 
     @application.get("/media/live-camera.mjpg", tags=["live camera"])
     def live_camera_stream() -> StreamingResponse:
+        camera_id = read_camera_health(selected_live_output_dir).camera_id
+        if read_live_snapshot(selected_live_output_dir, camera_id).metrics is None:
+            raise HTTPException(status_code=503, detail="Waiting for fresh AI data.")
         return StreamingResponse(
-            mjpeg_frames(selected_live_output_dir),
+            mjpeg_frames(selected_live_output_dir, is_current=lambda: read_live_snapshot(selected_live_output_dir, camera_id).metrics is not None),
             media_type="multipart/x-mixed-replace; boundary=frame",
             headers={"Cache-Control": "no-store"},
         )
@@ -620,12 +746,12 @@ def create_app(
 
     @application.get(
         "/api/live-cameras/{camera_id}/metrics",
-        response_model=LiveMetricsResponse,
+        response_model=LiveMetricsSnapshot,
         tags=["live camera"],
     )
-    def selected_live_camera_metrics(camera_id: str) -> LiveMetricsResponse:
-        return read_live_metrics(
-            resolve_live_camera_directory(selected_live_output_dir, camera_id)
+    def selected_live_camera_metrics(camera_id: str) -> LiveMetricsSnapshot:
+        return read_live_snapshot(
+            resolve_live_camera_directory(selected_live_output_dir, camera_id), camera_id
         )
 
     @application.get(
@@ -657,50 +783,51 @@ def create_app(
         tags=["live camera"],
     )
     def selected_live_camera_events(camera_id: str) -> EventListResponse:
-        directory = resolve_live_camera_directory(selected_live_output_dir, camera_id)
-        events = read_scenario_events(directory)
-        merged = [repository.get(event.event_id) or event for event in events]
-        return EventListResponse(events=merged, total=len(merged))
+        resolve_live_camera_directory(selected_live_output_dir, camera_id)
+        incident_importer.sync_safely(camera_id)
+        events = [event for event in repository.list()
+                  if event.source_type == "LIVE_CAMERA" and event.source_id == camera_id]
+        return EventListResponse(events=events, total=len(events))
 
     def review_selected_live_event(
-        camera_id: str, event_id: str, decision: EventStatus
+        camera_id: str, event_id: str, decision: EventStatus,
+        actor: AuthenticatedUser, request: Request,
     ) -> TrafficEventResponse:
-        directory = resolve_live_camera_directory(selected_live_output_dir, camera_id)
-        events = read_scenario_events(directory)
-        source = next((item for item in events if item.event_id == event_id), None)
-        if source is None:
+        resolve_live_camera_directory(selected_live_output_dir, camera_id)
+        incident_importer.sync_safely(camera_id)
+        source = repository.get(event_id)
+        if source is None or source.source_type != "LIVE_CAMERA" or source.source_id != camera_id:
             raise HTTPException(status_code=404, detail=f"Event not found: {event_id}")
-        if repository.get(event_id) is None:
-            repository.add(TrafficEventIngest.model_validate(source.model_dump()))
-        return update_event_status(repository, event_id, decision)
+        return apply_review(event_id, decision, actor, request)
 
     @application.post(
         "/api/live-cameras/{camera_id}/events/{event_id}/verify",
         response_model=TrafficEventResponse,
         tags=["live camera"],
     )
-    def verify_selected_live_event(camera_id: str, event_id: str) -> TrafficEventResponse:
-        return review_selected_live_event(camera_id, event_id, EventStatus.VERIFIED)
+    def verify_selected_live_event(camera_id: str, event_id: str, request: Request, actor: AuthenticatedUser = Depends(require_roles("EMPLOYEE", "ADMIN"))) -> TrafficEventResponse:
+        return review_selected_live_event(camera_id, event_id, EventStatus.VERIFIED, actor, request)
 
     @application.post(
         "/api/live-cameras/{camera_id}/events/{event_id}/dismiss",
         response_model=TrafficEventResponse,
         tags=["live camera"],
     )
-    def dismiss_selected_live_event(camera_id: str, event_id: str) -> TrafficEventResponse:
-        return review_selected_live_event(camera_id, event_id, EventStatus.DISMISSED)
+    def dismiss_selected_live_event(camera_id: str, event_id: str, request: Request, actor: AuthenticatedUser = Depends(require_roles("EMPLOYEE", "ADMIN"))) -> TrafficEventResponse:
+        return review_selected_live_event(camera_id, event_id, EventStatus.DISMISSED, actor, request)
 
     @application.get("/media/live-cameras/{camera_id}.mjpg", tags=["live camera"])
     def selected_live_camera_stream(camera_id: str) -> StreamingResponse:
         directory = resolve_live_camera_directory(selected_live_output_dir, camera_id)
-        health = read_camera_health(directory)
-        if health.state != "ONLINE":
+        snapshot = read_live_snapshot(directory, camera_id)
+        health = snapshot.health
+        if snapshot.metrics is None:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Camera {camera_id} is {health.state.lower()}.",
+                detail=f"Camera {camera_id} is {health.state.lower()}." if health.state != "ONLINE" else "Waiting for fresh AI data.",
             )
         return StreamingResponse(
-            mjpeg_frames(directory),
+            mjpeg_frames(directory, is_current=lambda: read_live_snapshot(directory, camera_id).metrics is not None),
             media_type="multipart/x-mixed-replace; boundary=frame",
             headers={"Cache-Control": "no-store"},
         )
@@ -802,17 +929,9 @@ def create_app(
         actor: AuthenticatedUser,
         request: Request,
     ) -> TrafficEventResponse:
-        previous = repository.get(event_id)
-        updated = update_event_status(repository, event_id, decision)
-        auth_repository.record_audit(
-            actor=actor,
-            action="EVENT_REVIEW",
-            target_type="traffic_event",
-            target_id=event_id,
-            previous_value=previous.status.value if previous else None,
-            new_value=updated.status.value,
-            request_id=request.state.request_id,
-        )
+        updated = repository.review_with_audit(event_id, decision, actor, request.state.request_id)
+        if updated is None:
+            raise HTTPException(status_code=404, detail=f"Event not found: {event_id}")
         return updated
 
     def review_scenario_event(
@@ -835,7 +954,7 @@ def create_app(
         scenario_id: str,
         event_id: str,
         request: Request,
-        actor: AuthenticatedUser = Depends(require_roles("REVIEWER", "ADMIN")),
+        actor: AuthenticatedUser = Depends(require_roles("EMPLOYEE", "ADMIN")),
     ) -> TrafficEventResponse:
         return review_scenario_event(
             scenario_id, event_id, EventStatus.VERIFIED, actor, request
@@ -846,7 +965,7 @@ def create_app(
         scenario_id: str,
         event_id: str,
         request: Request,
-        actor: AuthenticatedUser = Depends(require_roles("REVIEWER", "ADMIN")),
+        actor: AuthenticatedUser = Depends(require_roles("EMPLOYEE", "ADMIN")),
     ) -> TrafficEventResponse:
         return review_scenario_event(
             scenario_id, event_id, EventStatus.DISMISSED, actor, request
@@ -922,7 +1041,7 @@ def create_app(
     def verify_event(
         event_id: str,
         request: Request,
-        actor: AuthenticatedUser = Depends(require_roles("REVIEWER", "ADMIN")),
+        actor: AuthenticatedUser = Depends(require_roles("EMPLOYEE", "ADMIN")),
     ) -> TrafficEventResponse:
         """Apply a municipal human verification decision."""
         return apply_review(event_id, EventStatus.VERIFIED, actor, request)
@@ -935,7 +1054,7 @@ def create_app(
     def dismiss_event(
         event_id: str,
         request: Request,
-        actor: AuthenticatedUser = Depends(require_roles("REVIEWER", "ADMIN")),
+        actor: AuthenticatedUser = Depends(require_roles("EMPLOYEE", "ADMIN")),
     ) -> TrafficEventResponse:
         """Apply a municipal human dismissal decision."""
         return apply_review(event_id, EventStatus.DISMISSED, actor, request)

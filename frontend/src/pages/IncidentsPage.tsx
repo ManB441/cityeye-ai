@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchScenarioSnapshots } from "../api/analysis";
-import { reviewEvent } from "../api/events";
+import { evidenceUrl, fetchPersistentEvents, liveIncidentEvidenceUrl, reviewEvent, reviewPersistentEvent } from "../api/events";
 import { IncidentDetail } from "../components/Incident";
 import type { AuthState } from "../hooks/useAuth";
 import type { ScenarioId, ScenarioSnapshot, TrafficEvent } from "../types";
 import { PageTitle } from "./CamerasPage";
 
-type IncidentRow = { event: TrafficEvent; scenarioId: ScenarioId };
+type IncidentRow = { event: TrafficEvent; scenarioId?: ScenarioId };
 export function IncidentsPage({ auth }: { auth: AuthState }) {
   const [snapshots, setSnapshots] = useState<ScenarioSnapshot[]>([]);
+  const [liveEvents, setLiveEvents] = useState<TrafficEvent[]>([]);
+  const [liveError, setLiveError] = useState<string | null>(null);
+  const reviewVersion = useRef(0);
   const [filter, setFilter] = useState<
     "ALL" | "PROPOSED" | "VERIFIED" | "DISMISSED" | "HIGH"
   >("ALL");
@@ -19,7 +22,7 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
     !auth.loading &&
     !auth.error &&
     (!auth.authRequired ||
-      auth.user?.role === "REVIEWER" ||
+      auth.user?.role === "EMPLOYEE" ||
       auth.user?.role === "ADMIN");
   useEffect(() => {
     void fetchScenarioSnapshots().then((items) => {
@@ -27,12 +30,39 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
       setError(items.some(({ eventsError }) => eventsError) ? "Some incident sources are unavailable." : null);
     }).catch(() => setError("Incident data is unavailable."));
   }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    let inFlight = false;
+    async function refresh() {
+      if (inFlight) return;
+      inFlight = true;
+      const version = reviewVersion.current;
+      try {
+        const result = await fetchPersistentEvents(controller.signal);
+        if (controller.signal.aborted || version !== reviewVersion.current) return;
+        const items = result.events.filter((event) => event.source_type === "LIVE_CAMERA");
+        setLiveEvents(items);
+        setSelected((current) => current && !current.scenarioId
+          ? { ...current, event: items.find((event) => event.event_id === current.event.event_id) ?? current.event }
+          : current);
+        setLiveError(null);
+      } catch {
+        if (!controller.signal.aborted) setLiveError("Live incidents are unavailable. Recorded demos remain available.");
+      } finally { inFlight = false; }
+    }
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 2_000);
+    return () => { controller.abort(); window.clearInterval(timer); };
+  }, []);
+
   const incidents = useMemo(
     () =>
-      snapshots
-        .flatMap(({ scenario, events }) =>
-          events.map((event) => ({ event, scenarioId: scenario.scenario_id })),
-        )
+      [
+        ...liveEvents.map((event): IncidentRow => ({ event })),
+        ...snapshots.flatMap(({ scenario, events }) =>
+          events.map((event): IncidentRow => ({ event, scenarioId: scenario.scenario_id })),
+        ),
+      ].filter((row, index, rows) => rows.findIndex((other) => other.event.event_id === row.event.event_id) === index)
         .filter(
           ({ event }) =>
             filter === "ALL" ||
@@ -41,16 +71,17 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
               : event.status === filter),
         )
         .sort((a, b) => b.event.timestamp - a.event.timestamp),
-    [filter, snapshots],
+    [filter, snapshots, liveEvents],
   );
   async function decide(row: IncidentRow, decision: "verify" | "dismiss") {
+    reviewVersion.current += 1;
     setReviewing(row.event.event_id);
     try {
-      const event = await reviewEvent(
-        row.event.event_id,
-        decision,
-        row.scenarioId,
-      );
+      const event = row.scenarioId
+        ? await reviewEvent(row.event.event_id, decision, row.scenarioId)
+        : await reviewPersistentEvent(row.event.event_id, decision);
+      reviewVersion.current += 1;
+      setLiveEvents((current) => current.map((item) => item.event_id === event.event_id ? event : item));
       setSnapshots((current) =>
         current.map((snapshot) =>
           snapshot.scenario.scenario_id === row.scenarioId
@@ -83,6 +114,7 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
         copy="AI-proposed traffic events awaiting or carrying a municipal decision."
       />
       {error && <div className="command-error" role="alert">{error}</div>}
+      {liveError && <div className="command-error" role="alert">{liveError}</div>}
       <div className="filter-tabs incident-filters">
         {(["ALL", "PROPOSED", "VERIFIED", "DISMISSED", "HIGH"] as const).map(
           (item) => (
@@ -112,7 +144,7 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
           <article key={`${row.scenarioId}-${row.event.event_id}`}>
             <button className="evidence-thumb" onClick={() => setSelected(row)}>
               <img
-                src={`/evidence/scenarios/${row.scenarioId}/${encodeURIComponent(row.event.evidence_image.split("/").pop() ?? "")}`}
+                src={row.scenarioId ? evidenceUrl(row.event.evidence_image, row.scenarioId) : liveIncidentEvidenceUrl(row.event)}
                 alt=""
               />
               <span>
@@ -120,8 +152,8 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
                 <small>{row.event.explanation}</small>
               </span>
             </button>
-            <span>{row.event.camera_name}</span>
-            <time>{row.event.timestamp.toFixed(1)}s video time</time>
+            <span>{row.scenarioId ? "RECORDED DEMO" : "LIVE"} · {row.event.camera_name}</span>
+            <time>{row.scenarioId ? `${row.event.timestamp.toFixed(1)}s video time` : new Date(row.event.timestamp * 1000).toLocaleString()}</time>
             <span className={`review-status ${row.event.status.toLowerCase()}`}>
               {row.event.status}
             </span>
@@ -161,6 +193,8 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
         <IncidentDetail
           event={selected.event}
           scenarioId={selected.scenarioId}
+          live={!selected.scenarioId}
+          evidenceSrc={selected.scenarioId ? undefined : liveIncidentEvidenceUrl(selected.event)}
           canReview={canReview}
           reviewing={reviewing === selected.event.event_id}
           onClose={() => setSelected(null)}

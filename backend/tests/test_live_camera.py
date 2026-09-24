@@ -11,6 +11,7 @@ sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.live_camera import mjpeg_frames, read_camera_health, read_live_metrics
 from app.main import create_app
+from app.schemas import LiveMetricsResponse
 
 
 def test_missing_live_output_reports_offline(tmp_path: Path) -> None:
@@ -76,7 +77,7 @@ def test_camera_3_metrics_endpoint_accepts_current_worker_schema(tmp_path: Path)
     directory.mkdir()
     payload = {
         "frame": 94,
-        "timestamp": 1_700_000_001.0,
+        "timestamp": time.time(),
         "generation": 2,
         "current_detection_count": 2,
         "active_vehicle_count": 1,
@@ -93,12 +94,15 @@ def test_camera_3_metrics_endpoint_accepts_current_worker_schema(tmp_path: Path)
         "unknown_movement_vehicles": 0,
     }
     (directory / "live_metrics.json").write_text(json.dumps(payload), encoding="utf-8")
+    (directory / "camera_status.json").write_text(json.dumps({"camera_id": "camera-3", "state": "ONLINE", "last_frame_at": time.time(), "generation": 2}))
     client = TestClient(create_app(live_output_dir=tmp_path))
 
     response = client.get("/api/live-cameras/camera-3/metrics")
 
     assert response.status_code == 200
-    assert response.json() == payload
+    assert response.json()["metrics"] == payload
+    assert response.json()["reason"] == "FRESH"
+    assert response.json()["camera_id"] == "camera-3"
 
 
 def test_mjpeg_generator_wraps_latest_jpeg(tmp_path: Path) -> None:
@@ -202,7 +206,8 @@ def test_live_camera_api_exposes_status_metrics_and_events(tmp_path: Path) -> No
     assert status_response.status_code == 200
     assert status_response.json()["state"] == "OFFLINE"
     assert metrics_response.status_code == 200
-    assert metrics_response.json()["traffic_state"] == "UNKNOWN"
+    assert metrics_response.json()["metrics"] is None
+    assert metrics_response.json()["reason"] == "OFFLINE"
     assert events_response.status_code == 200
     assert events_response.json() == {"events": [], "total": 0}
 
@@ -222,22 +227,23 @@ def test_multi_camera_api_keeps_outputs_isolated(tmp_path: Path) -> None:
             encoding="utf-8",
         )
         (directory / "live_metrics.json").write_text(
-            json.dumps({"frame": 1, "cars": cars, "traffic_state": "NORMAL"}),
+            LiveMetricsResponse(frame=1, timestamp=time.time(), cars=cars, active_vehicle_count=cars, traffic_state="NORMAL").model_dump_json(),
             encoding="utf-8",
         )
         (directory / "events.json").write_text("[]", encoding="utf-8")
 
-    client = TestClient(create_app(live_output_dir=tmp_path))
+    with TestClient(create_app(database_path=tmp_path / "events.db", live_output_dir=tmp_path)) as client:
 
-    cameras = client.get("/api/live-cameras")
-    assert cameras.status_code == 200
-    assert [item["camera_id"] for item in cameras.json()] == [
-        "camera-3", "camera-5", "camera-7",
-    ]
-    assert client.get("/api/live-cameras/camera-5/metrics").json()["cars"] == 5
-    assert client.get("/api/live-cameras/camera-7/events").json() == {
-        "events": [], "total": 0,
-    }
+        cameras = client.get("/api/live-cameras")
+        assert cameras.status_code == 200
+        assert [item["camera_id"] for item in cameras.json()] == [
+            "camera-3", "camera-5", "camera-7",
+        ]
+        assert client.get("/api/live-cameras/camera-5/metrics").json()["metrics"]["cars"] == 5
+        assert client.get("/api/live-cameras/camera-7/events").json() == {
+            "events": [], "total": 0,
+        }
+
 
 
 def test_live_camera_listing_respects_configured_pilot_allowlist(

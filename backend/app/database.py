@@ -11,6 +11,8 @@ import time
 from typing import Callable, Iterator
 from uuid import uuid4
 
+from app.auth import AuthenticatedUser
+
 from app.schemas import (
     CitizenReportCreate,
     CitizenReportResponse,
@@ -214,6 +216,11 @@ class EventRepository:
             if "details" not in columns:
                 connection.execute("ALTER TABLE events ADD COLUMN details TEXT")
 
+            event_columns = {row[1] for row in connection.execute("PRAGMA table_info(events_v2)")}
+            for column in ("source_type", "source_id"):
+                if column not in event_columns:
+                    connection.execute(f"ALTER TABLE events_v2 ADD COLUMN {column} TEXT")
+
     def add(self, event: TrafficEventIngest) -> TrafficEventResponse:
         """Insert one AI-proposed event and reject duplicate IDs."""
         payload = event.model_dump(mode="json")
@@ -224,14 +231,14 @@ class EventRepository:
                     INSERT INTO events_v2 (
                         event_id, event_type, timestamp, confidence, severity,
                         explanation, camera_name, latitude, longitude,
-                        evidence_image, details_json, status
+                        evidence_image, details_json, status, source_type, source_id
                     ) VALUES (
                         :event_id, :event_type, :timestamp, :confidence, :severity,
                         :explanation, :camera_name, :latitude, :longitude,
-                        :evidence_image, :details_json, :status
+                        :evidence_image, :details_json, :status, :source_type, :source_id
                     )
                     """,
-                    {**payload, "details_json": json.dumps(payload.get("details")) if payload.get("details") is not None else None},
+                    {"source_type": None, "source_id": None, **payload, "details_json": json.dumps(payload.get("details")) if payload.get("details") is not None else None},
                 )
         except sqlite3.IntegrityError as exc:
             if "UNIQUE constraint failed: events_v2.event_id" in str(exc):
@@ -245,6 +252,58 @@ class EventRepository:
             raise RuntimeError(f"Stored event could not be read: {event.event_id}")
         return stored
 
+    def ingest_once(self, event: TrafficEventIngest) -> TrafficEventResponse:
+        """Reconcile delivery retries by AI UUID, never overwrite a human decision."""
+        stored = self.get(event.event_id)
+        if stored is None:
+            try:
+                return self.add(event)
+            except DuplicateEventError:
+                stored = self.get(event.event_id)
+        if stored is None:
+            raise RuntimeError("Incident disappeared during ingestion")
+        if stored.source_type is not None and (
+            stored.source_type != event.source_type or stored.source_id != event.source_id
+        ):
+            raise ValueError("Event ID already belongs to a different source")
+        if stored.source_type is None and event.source_type is not None:
+            # Adopt earlier lazy-imported incidents without resetting their review.
+            with self._connect() as connection:
+                connection.execute(
+                    "UPDATE events_v2 SET source_type = ?, source_id = ? WHERE event_id = ? AND source_type IS NULL",
+                    (event.source_type, event.source_id, event.event_id),
+                )
+            stored = self.get(event.event_id)
+        return stored
+
+    def review_with_audit(
+        self, event_id: str, status: EventStatus, actor: AuthenticatedUser, request_id: str,
+    ) -> TrafficEventResponse | None:
+        """Commit the decision and its audit entry together in the existing DB."""
+        if status not in {EventStatus.VERIFIED, EventStatus.DISMISSED}:
+            raise ValueError("status must be VERIFIED or DISMISSED")
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            previous = connection.execute(
+                "SELECT status FROM events_v2 WHERE event_id = ?", (event_id,),
+            ).fetchone()
+            if previous is None:
+                return None
+            connection.execute(
+                "UPDATE events_v2 SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE event_id = ?",
+                (status.value, event_id),
+            )
+            connection.execute(
+                """INSERT INTO audit_log (audit_id, actor_user_id, actor_username, action,
+                   target_type, target_id, previous_value, new_value, request_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (str(uuid4()), actor.user_id, actor.username,
+                 "INCIDENT_VERIFIED" if status == EventStatus.VERIFIED else "INCIDENT_DISMISSED",
+                 "traffic_event", event_id, previous["status"], status.value, request_id),
+            )
+            row = connection.execute("SELECT event_id, event_type, timestamp, confidence, severity, explanation, camera_name, latitude, longitude, evidence_image, details_json, status, source_type, source_id FROM events_v2 WHERE event_id = ?", (event_id,)).fetchone()
+            return self._to_event(row)
+
     def get(self, event_id: str) -> TrafficEventResponse | None:
         """Return one event by ID or None when it does not exist."""
         with self._connect() as connection:
@@ -252,7 +311,7 @@ class EventRepository:
                 """
                 SELECT event_id, event_type, timestamp, confidence, severity,
                        explanation, camera_name, latitude, longitude,
-                       evidence_image, details_json, status
+                       evidence_image, details_json, status, source_type, source_id
                 FROM events_v2
                 WHERE event_id = ?
                 """,
@@ -267,7 +326,7 @@ class EventRepository:
                 """
                 SELECT event_id, event_type, timestamp, confidence, severity,
                        explanation, camera_name, latitude, longitude,
-                       evidence_image, details_json, status
+                       evidence_image, details_json, status, source_type, source_id
                 FROM events_v2
                 ORDER BY timestamp DESC, event_id ASC
                 """

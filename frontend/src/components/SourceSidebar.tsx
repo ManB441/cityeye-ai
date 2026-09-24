@@ -1,3 +1,4 @@
+import { cameraIsOnline, cameraStateLabel, useFreshnessClock } from "../lib/liveTruth";
 import { useMemo, useState } from "react";
 import type { CameraHealth, ScenarioId, ScenarioInfo } from "../types";
 
@@ -15,6 +16,7 @@ export function SourceSidebar({ scenarios, selected, onSelect, liveCameras, sele
   selectedLiveCamera: string | null;
   onSelectLive: (cameraId: string) => void;
 }) {
+  const now = useFreshnessClock();
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => scenarios.filter((scenario) => (
     `${scenario.title} ${scenario.description}`.toLowerCase().includes(query.toLowerCase())
@@ -29,8 +31,8 @@ export function SourceSidebar({ scenarios, selected, onSelect, liveCameras, sele
           {liveCameras.map((camera) => (
             <button key={camera.camera_id} type="button" className={camera.camera_id === selectedLiveCamera ? "selected" : ""} onClick={() => onSelectLive(camera.camera_id)}>
               <span className="source-icon">●</span>
-              <span><strong>{CAMERA_NAMES[camera.camera_id] ?? camera.camera_id}</strong><small>Real DVR feed · {camera.processing_fps.toFixed(1)} FPS</small></span>
-              <em className={camera.state === "ONLINE" ? "online" : ""}>{camera.state}</em>
+              <span><strong>{CAMERA_NAMES[camera.camera_id] ?? camera.camera_id}</strong><small>Real DVR feed · {cameraIsOnline(camera, now) ? camera.camera_capture_fps.toFixed(1) : "—"} capture FPS</small></span>
+              <em className={cameraIsOnline(camera, now) ? "online" : ""}>{cameraStateLabel(camera, now)}</em>
             </button>
           ))}
         </div> : <div className="source-empty"><i />No live cameras configured<small>RTSP source required</small></div>}
@@ -39,7 +41,7 @@ export function SourceSidebar({ scenarios, selected, onSelect, liveCameras, sele
         <h2>MUNICIPALITY DEMO FOOTAGE</h2>
         <div className="source-list">
           {filtered.map((scenario) => (
-            <button key={scenario.scenario_id} type="button" className={scenario.scenario_id === selected ? "selected" : ""} onClick={() => onSelect(scenario.scenario_id)}>
+            <button key={scenario.scenario_id} type="button" className={selectedLiveCamera === null && scenario.scenario_id === selected ? "selected" : ""} onClick={() => onSelect(scenario.scenario_id)}>
               <span className="source-icon">▶</span>
               <span><strong>{scenario.title}</strong><small>Recorded test footage</small></span>
               <em>RECORDED</em>

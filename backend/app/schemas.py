@@ -1,7 +1,9 @@
 """Validated API schemas shared by the CityEye AI Backend endpoints."""
 
 from enum import Enum
+
 from pathlib import PurePosixPath
+
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -55,6 +57,7 @@ class TrafficEventDetails(BaseModel):
 
 class RoadBlockageDetails(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
     track_id: int = Field(ge=0)
     vehicle_class: str = Field(min_length=1)
     zone_name: str = Field(min_length=1)
@@ -83,8 +86,18 @@ class TrafficEventBase(BaseModel):
     latitude: float = Field(ge=-90, le=90, allow_inf_nan=False)
     longitude: float = Field(ge=-180, le=180, allow_inf_nan=False)
     evidence_image: str
+    source_type: Literal["LIVE_CAMERA", "RECORDED_SCENARIO"] | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
+    source_id: str | None = Field(
+        default=None,
+        pattern=r"^[A-Za-z0-9_-]+$",
+        exclude_if=lambda value: value is None,
+    )
     details: RoadBlockageDetails | dict[str, Any] | None = Field(
-        default=None, exclude_if=lambda value: value is None
+        default=None,
+        exclude_if=lambda value: value is None,
     )
 
     @field_validator("event_id", "explanation", "camera_name")
@@ -98,6 +111,7 @@ class TrafficEventBase(BaseModel):
     @classmethod
     def validate_evidence_image(cls, value: str) -> str:
         path = PurePosixPath(value)
+
         if (
             not value.strip()
             or path.is_absolute()
@@ -105,19 +119,26 @@ class TrafficEventBase(BaseModel):
             or path.suffix.lower() not in {".jpg", ".jpeg"}
         ):
             raise ValueError("evidence_image must be a safe relative JPG path")
+
         return value
 
     @model_validator(mode="after")
     def validate_event_details_match_type(self):
+        if (self.source_type is None) != (self.source_id is None):
+            raise ValueError("source_type and source_id must be supplied together")
+
         if self.event_type is EventType.ROAD_BLOCKAGE and not isinstance(
-            self.details, RoadBlockageDetails
+            self.details,
+            RoadBlockageDetails,
         ):
             raise ValueError("ROAD_BLOCKAGE requires structured road-blockage details")
+
         if (
             isinstance(self.details, RoadBlockageDetails)
             and self.event_type is not EventType.ROAD_BLOCKAGE
         ):
             raise ValueError("road-blockage details require ROAD_BLOCKAGE event type")
+
         return self
 
 
@@ -146,6 +167,7 @@ class CameraHealthResponse(BaseModel):
     """Sanitized runtime state published by one selected live camera."""
 
     model_config = ConfigDict(extra="forbid")
+
     camera_id: str = Field(min_length=1)
     source_type: Literal["RTSP"] = "RTSP"
     state: Literal["ONLINE", "STALE", "OFFLINE", "RECONNECTING"] = "OFFLINE"
@@ -166,14 +188,18 @@ class CameraHealthResponse(BaseModel):
     preview_publication_fps: float = Field(default=0.0, ge=0)
     preview_last_frame_at: float | None = Field(default=None, ge=0)
     buffer_pressure: int = Field(default=0, ge=0)
+    checked_at: float = Field(default=0, ge=0, allow_inf_nan=False)
+    valid_for_seconds: float = Field(default=0, ge=0, allow_inf_nan=False)
 
 
 class LiveMetricsResponse(BaseModel):
     """Latest real measurements for the processed live frame."""
 
     model_config = ConfigDict(extra="forbid")
+
+    camera_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
     frame: int = Field(default=0, ge=0)
-    timestamp: float = Field(default=0.0, ge=0)
+    timestamp: float = Field(default=0.0, ge=0, allow_inf_nan=False)
     generation: int = Field(default=0, ge=0)
     current_detection_count: int = Field(default=0, ge=0)
     active_vehicle_count: int = Field(default=0, ge=0)
@@ -190,10 +216,31 @@ class LiveMetricsResponse(BaseModel):
     unknown_movement_vehicles: int = Field(default=0, ge=0)
 
 
+class LiveMetricsSnapshot(BaseModel):
+    """Server-validated observation; absent/stale counts are null, never zero."""
+
+    camera_id: str
+    checked_at: float
+    max_age_seconds: float
+    valid_for_seconds: float
+    reason: Literal[
+        "FRESH",
+        "MISSING",
+        "INVALID",
+        "STALE",
+        "OFFLINE",
+        "SOURCE_MISMATCH",
+        "GENERATION_MISMATCH",
+    ]
+    health: CameraHealthResponse
+    metrics: LiveMetricsResponse | None = None
+
+
 class TrafficObservation(BaseModel):
     """One deduplicated historical snapshot from a live camera interval."""
 
     model_config = ConfigDict(extra="forbid")
+
     camera_id: str = Field(min_length=1)
     interval_start: float = Field(ge=0, allow_inf_nan=False)
     observed_at: float = Field(ge=0, allow_inf_nan=False)
@@ -224,6 +271,7 @@ class OperationalAnalyticsResponse(BaseModel):
     """Real historical analytics calculated from stored camera observations."""
 
     model_config = ConfigDict(extra="forbid")
+
     camera_id: str = Field(min_length=1)
     requested_start: float = Field(ge=0, allow_inf_nan=False)
     requested_end: float = Field(ge=0, allow_inf_nan=False)
@@ -271,6 +319,10 @@ class AnalysisFrame(BaseModel):
 
     frame: int = Field(ge=0)
     timestamp_sec: float = Field(ge=0, allow_inf_nan=False)
+
+    # AI-computed traffic condition for this exact recorded frame.
+    traffic_state: str = "UNKNOWN"
+
     active_vehicle_count: int = Field(ge=0)
     cars: int = Field(ge=0)
     buses: int = Field(ge=0)
@@ -298,7 +350,15 @@ class ScenarioInfo(BaseModel):
     """Public metadata for one fixed real-AI demonstration scenario."""
 
     model_config = ConfigDict(extra="forbid")
-    scenario_id: Literal["normal_traffic", "congestion", "stopped_vehicle", "rainy_traffic"]
+
+    scenario_id: Literal[
+        "normal_traffic",
+        "congestion",
+        "stopped_vehicle",
+        "rainy_traffic",
+        "maydan_palestine",
+    ]
+
     title: str = Field(min_length=1)
     description: str = Field(min_length=1)
     expected_event: EventType | None
@@ -322,12 +382,18 @@ class CitizenReportCreate(BaseModel):
 
     @field_validator("description", "demo_user_id", mode="before")
     @classmethod
-    def strip_and_reject_blank_report_text(cls, value: object) -> object:
+    def strip_and_reject_blank_report_text(
+        cls,
+        value: object,
+    ) -> object:
         if not isinstance(value, str):
             return value
+
         cleaned = value.strip()
+
         if not cleaned:
             raise ValueError("value must not be blank")
+
         return cleaned
 
 

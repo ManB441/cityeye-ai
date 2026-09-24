@@ -14,8 +14,8 @@ from typing import Literal
 from uuid import uuid4
 
 
-Role = Literal["OPERATOR", "REVIEWER", "ADMIN"]
-ROLES = {"OPERATOR", "REVIEWER", "ADMIN"}
+Role = Literal["CITIZEN", "EMPLOYEE", "ADMIN"]
+ROLES = {"CITIZEN", "EMPLOYEE", "ADMIN"}
 PBKDF2_ITERATIONS = 310_000
 
 
@@ -32,6 +32,8 @@ class AuthSettings:
     def from_environment(cls, environment: str) -> "AuthSettings":
         default_required = "true" if environment == "production" else "false"
         required = os.getenv("CITYEYE_AUTH_REQUIRED", default_required).lower() == "true"
+        if environment == "production" and not required:
+            raise ValueError("Production requires CITYEYE_AUTH_REQUIRED=true")
         ttl = int(os.getenv("CITYEYE_SESSION_TTL_SECONDS", "28800"))
         if ttl < 300 or ttl > 86400:
             raise ValueError("CITYEYE_SESSION_TTL_SECONDS must be between 300 and 86400")
@@ -58,6 +60,14 @@ class AuthenticatedUser:
     user_id: str
     username: str
     role: Role
+
+
+@dataclass(frozen=True)
+class UserRecord:
+    user_id: str
+    username: str
+    role: Role
+    active: bool
 
 
 def hash_password(password: str, salt: bytes | None = None) -> str:
@@ -114,7 +124,7 @@ class AuthRepository:
                     user_id TEXT PRIMARY KEY,
                     username TEXT NOT NULL UNIQUE COLLATE NOCASE,
                     password_hash TEXT NOT NULL,
-                    role TEXT NOT NULL CHECK (role IN ('OPERATOR', 'REVIEWER', 'ADMIN')),
+                    role TEXT NOT NULL CHECK (role IN ('CITIZEN', 'EMPLOYEE', 'ADMIN')),
                     active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
@@ -143,6 +153,28 @@ class AuthRepository:
                 """
             )
 
+            # Rebuild only the old role constraint; preserve IDs, passwords,
+            # activation, timestamps and sessions. Legacy staff become employees.
+            schema = connection.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='users'"
+            ).fetchone()[0]
+            if "'CITIZEN'" not in schema:
+                connection.execute("BEGIN IMMEDIATE")
+                connection.execute("""CREATE TABLE users_roles_v2 (
+                    user_id TEXT PRIMARY KEY,
+                    username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                    password_hash TEXT NOT NULL,
+                    role TEXT NOT NULL CHECK (role IN ('CITIZEN', 'EMPLOYEE', 'ADMIN')),
+                    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )""")
+                connection.execute("""INSERT INTO users_roles_v2
+                    SELECT user_id, username, password_hash,
+                        CASE WHEN role IN ('OPERATOR', 'REVIEWER') THEN 'EMPLOYEE' ELSE role END,
+                        active, created_at FROM users""")
+                connection.execute("DROP TABLE users")
+                connection.execute("ALTER TABLE users_roles_v2 RENAME TO users")
+
     def user_count(self) -> int:
         with self._connect() as connection:
             return int(connection.execute("SELECT COUNT(*) FROM users").fetchone()[0])
@@ -164,15 +196,52 @@ class AuthRepository:
             raise ValueError("Username already exists") from exc
         return user
 
-    def list_users(self) -> list[AuthenticatedUser]:
+    def list_users(self) -> list[UserRecord]:
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT user_id, username, role FROM users WHERE active = 1 ORDER BY username"
+                "SELECT user_id, username, role, active FROM users ORDER BY username"
             ).fetchall()
         return [
-            AuthenticatedUser(row["user_id"], row["username"], row["role"])
+            UserRecord(row["user_id"], row["username"], row["role"], bool(row["active"]))
             for row in rows
         ]
+
+    def update_user(
+        self,
+        user_id: str,
+        *,
+        role: Role | None = None,
+        active: bool | None = None,
+    ) -> UserRecord | None:
+        """Update access without allowing the final active admin to be removed."""
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT user_id, username, role, active FROM users WHERE user_id = ?",
+                (user_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            next_role = role or row["role"]
+            next_active = bool(row["active"]) if active is None else active
+            removes_admin = row["role"] == "ADMIN" and bool(row["active"]) and (
+                next_role != "ADMIN" or not next_active
+            )
+            if removes_admin:
+                active_admins = int(
+                    connection.execute(
+                        "SELECT COUNT(*) FROM users WHERE role = 'ADMIN' AND active = 1"
+                    ).fetchone()[0]
+                )
+                if active_admins <= 1:
+                    raise ValueError("The final active administrator cannot be removed")
+            connection.execute(
+                "UPDATE users SET role = ?, active = ? WHERE user_id = ?",
+                (next_role, int(next_active), user_id),
+            )
+            if not next_active:
+                connection.execute("DELETE FROM auth_sessions WHERE user_id = ?", (user_id,))
+        return UserRecord(user_id, row["username"], next_role, next_active)
 
     def authenticate(self, username: str, password: str) -> AuthenticatedUser | None:
         with self._connect() as connection:
@@ -180,7 +249,10 @@ class AuthRepository:
                 "SELECT user_id, username, password_hash, role FROM users WHERE username = ? AND active = 1",
                 (username.strip(),),
             ).fetchone()
-        if row is None or not verify_password(password, row["password_hash"]):
+        # Keep unknown/inactive-account work comparable to a failed password check.
+        stored = row["password_hash"] if row else f"pbkdf2_sha256${PBKDF2_ITERATIONS}${bytes(16).hex()}${bytes(32).hex()}"
+        valid = verify_password(password, stored)
+        if row is None or not valid:
             return None
         return AuthenticatedUser(row["user_id"], row["username"], row["role"])
 
@@ -242,7 +314,7 @@ class AuthRepository:
                 """SELECT audit_id, actor_user_id, actor_username, action,
                           target_type, target_id, previous_value, new_value,
                           request_id, created_at
-                   FROM audit_log ORDER BY created_at DESC, audit_id DESC LIMIT ?""",
+                   FROM audit_log ORDER BY rowid DESC LIMIT ?""",
                 (limit,),
             ).fetchall()
         return [dict(row) for row in rows]

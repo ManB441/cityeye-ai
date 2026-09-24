@@ -120,11 +120,15 @@ def test_moved_then_stopped_vehicle_triggers_once_when_motion_is_required() -> N
     )
     rule = make_rule(require_prior_motion=True)
     state = None
-    for frame, x in enumerate((2, 8, 10, 10, 10)):
+    matches = []
+    for frame, x in enumerate((2, 6, 10, 14, 14, 14, 14)):
         state = manager.update(1, frame, frame * 0.5, x, 10)
+        match = rule.evaluate(state)
+        if match is not None:
+            matches.append(match)
 
     assert state is not None and state.has_moved
-    assert rule.evaluate(state) is not None
+    assert len(matches) == 1
     assert rule.evaluate(state) is None
 
 
@@ -182,32 +186,21 @@ def test_normalized_threshold_is_resolution_independent() -> None:
 
 def test_stopped_episode_rearms_after_sustained_motion() -> None:
     manager = TrajectoryManager(
-        history_size=30,
-        movement_scale=20.0,
-        stationary_normalized_speed_threshold=0.05,
-        speed_smoothing_window=1,
+        history_size=30, movement_scale=20.0,
+        stationary_normalized_speed_threshold=0.05, speed_smoothing_window=1,
     )
     rule = make_rule(
-        min_stationary_seconds=1.0,
-        max_normalized_speed_per_sec=0.05,
-        release_normalized_speed_per_sec=0.1,
-        rearm_moving_seconds=0.5,
+        min_stationary_seconds=1.0, max_normalized_speed_per_sec=0.05,
+        release_normalized_speed_per_sec=0.1, rearm_moving_seconds=0.5,
+        require_prior_motion=True,
     )
-    state = None
-    for frame, x in enumerate((10, 10, 10)):
-        state = manager.update(1, frame, frame * 0.5, x, 10)
-    assert rule.evaluate(state) is not None
-
-    state = manager.update(1, 3, 1.5, 14, 10)
-    assert rule.evaluate(state) is None
-    state = manager.update(1, 4, 2.0, 18, 10)
-    assert rule.evaluate(state) is None
-
-    second_match = None
-    for frame in (5, 6, 7):
-        state = manager.update(1, frame, frame * 0.5, 18, 10)
-        second_match = rule.evaluate(state) or second_match
-    assert second_match is not None
+    matches = []
+    for frame, x in enumerate((2, 6, 10, 10, 10, 14, 18, 18, 18, 18, 18)):
+        state = manager.update(1, frame, frame * .5, x, 10)
+        match = rule.evaluate(state)
+        if match: matches.append(match)
+        assert rule.evaluate(state) is None  # Same frame cannot emit twice.
+    assert [match.timestamp for match in matches] == [2.0, 4.0]
 
 
 def test_instantaneous_speed_guard_rejects_stale_low_median() -> None:
@@ -247,3 +240,36 @@ def test_instantaneous_speed_guard_rejects_stale_low_median() -> None:
 def test_rejects_invalid_stopped_vehicle_configuration(overrides: dict) -> None:
     with pytest.raises(ValueError):
         make_rule(**overrides)
+
+
+def test_short_bbox_motion_does_not_qualify_preexisting_stationary_vehicle():
+    # Reproduces the recorded broken-car clip: brief box motion permanently
+    # set has_moved, even though movement never lasted the rearm interval.
+    manager = TrajectoryManager(history_size=60, speed_smoothing_window=1,
+                                movement_state_confirmations=2)
+    rule = make_rule(require_prior_motion=True)
+    points = [10.0] * 20 + [10.3, 10.6, 10.9] + [10.9] * 80
+    for frame, x in enumerate(points):
+        track = manager.update(7, frame, frame / 30, x, 10)
+        assert rule.evaluate(track) is None
+    assert track.has_moved  # A short MOVING state is not sufficient evidence.
+    assert track.stationary_duration > rule.min_stationary_seconds
+
+
+def test_sustained_prior_motion_outside_roi_qualifies_then_gap_forgets_it():
+    manager = TrajectoryManager(history_size=60, speed_smoothing_window=1,
+                                movement_state_confirmations=1)
+    rule = make_rule(require_prior_motion=True)
+    matches = []
+    for frame, x in enumerate((-16, -12, -8, -4, 0, 4, 4, 4, 4)):
+        track = manager.update(1, frame, frame * .5, x, 10)
+        match = rule.evaluate(track)
+        if match: matches.append(match)
+    assert len(matches) == 1
+    # A separate unlatched track cannot reuse movement across a detection gap.
+    for frame, x in enumerate((-16, -12, -8, -4)):
+        track = manager.update(2, frame, frame * .5, x, 10)
+        assert rule.evaluate(track) is None
+    for frame in range(8):
+        track = manager.update(2, frame + 4, 5 + frame * .5, 4, 10)
+        assert rule.evaluate(track) is None
