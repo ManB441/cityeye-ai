@@ -119,7 +119,12 @@ def test_recorded_config_is_unchanged_even_if_live_profile_present():
     assert resolve_camera_calibration(c,(1920,1080)) is None and c==before
     for path in (Path(__file__).resolve().parents[1]/'config/scenarios').glob('*.json'):
         recorded=json.loads(path.read_text());before=deepcopy(recorded)
-        assert resolve_camera_calibration(recorded,(640,480)) is None and recorded==before
+        result = resolve_camera_calibration(recorded,(640,480))
+        if 'recorded_calibration' in recorded:
+            assert result is not None and not result.enabled('road')
+        else:
+            assert result is None
+        assert recorded == before
 
 
 def test_unknown_geometry_does_not_publish_road_normalized_movement():
@@ -208,3 +213,66 @@ def test_missing_live_profile_never_uses_generic_geometry(camera_id, tmp_path):
     assert pipeline.stopped_vehicle_rule is None
     assert not pipeline.wrong_way_rules
     assert c == before
+
+
+def test_explicit_recorded_profile_gates_geometry_and_congestion(tmp_path):
+    c = config()
+    c['source_type'] = 'VIDEO_FILE'
+    c['recorded_calibration'] = c['camera_calibrations']['camera-3']
+    c['recorded_calibration']['congestion_confirmed'] = False
+    c['recorded_calibration']['direction_confirmed'] = False
+    p = EventPipeline(c, tmp_path, frame_size=(944, 1080))
+    assert p.calibration is not None
+    assert p.calibration.enabled('road')
+    assert p.stopped_vehicle_rule is not None
+    assert p.congestion_rule is None
+    assert p.wrong_way_rules == []
+    invalid = EventPipeline(c, tmp_path, frame_size=(1280, 720))
+    assert invalid.stopped_vehicle_rule is None
+
+
+def test_maydan_profile_excludes_nonroad_and_signal_queues():
+    from event_rules import point_in_polygon
+    c = json.loads((Path(__file__).resolve().parents[1] / 'config/scenarios/maydan_palestine.json').read_text())
+    result = resolve_camera_calibration(c, (1024, 576))
+    assert result is not None and result.enabled('road') and result.enabled('stopped_vehicle')
+    assert not result.enabled('wrong_way') and not result.enabled('congestion')
+    road = result.config['monitored_road_polygon']
+    stop = result.config['stopped_vehicle_polygon']
+    assert point_in_polygon((540, 300), road) and point_in_polygon((540, 300), stop)
+    for outside in [(470, 60), (120, 250), (860, 240), (650, 120), (430, 500)]:
+        assert not point_in_polygon(outside, road)
+        assert not point_in_polygon(outside, stop)
+
+
+def test_recorded_source_identity_rejects_replacement_before_processing(tmp_path):
+    import hashlib
+    from calibration import validate_recorded_source
+    from process_video import process_video
+    video = tmp_path / 'source.mp4'
+    video.write_bytes(b'inspected source bytes')
+    c = {'source_type': 'VIDEO_FILE', 'recorded_calibration': {'source_sha256': hashlib.sha256(video.read_bytes()).hexdigest()}}
+    validate_recorded_source(c, video)
+    video.write_bytes(b'different source bytes')
+    output = tmp_path / 'output'
+    with pytest.raises(ValueError, match='source changed'):
+        process_video(video, c, output)
+    assert not output.exists()
+
+
+@pytest.mark.parametrize('mutation', [{'camera_id': 'other'}, {'camera_id': None}, {'camera_id': []}])
+def test_recorded_profile_identity_fails_closed(mutation, tmp_path):
+    c = config()
+    c['source_type'] = 'VIDEO_FILE'
+    c['recorded_calibration'] = deepcopy(c['camera_calibrations']['camera-3'])
+    c.update(mutation)
+    result = resolve_camera_calibration(c, (944, 1080))
+    assert result is not None and not result.enabled('road')
+    assert not result.enabled('stopped_vehicle')
+
+
+@pytest.mark.parametrize('profile', [None, {}, {'source_sha256': 'invalid'}])
+def test_recorded_profile_requires_source_hash(profile, tmp_path):
+    from calibration import validate_recorded_source
+    with pytest.raises(ValueError, match='source_sha256'):
+        validate_recorded_source({'recorded_calibration': profile}, tmp_path/'missing.mp4')

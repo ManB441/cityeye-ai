@@ -58,7 +58,7 @@ Acceptance: stale/offline feeds do not appear live; raw and AI views recover aft
 Tests: stream/health failures, retry recovery and generation mismatches; controlled observation with a documented duration. No threshold tuning to hide failures.
 Document existing Camera 3 daylight-only operation and manual night shutdown; do not silently override the user's decision to keep daytime calibration enabled.
 
-## T07 — Maydan Palestine recorded source (P1)
+## T07 — Maydan Palestine recorded source (P1, prepared and validated; not deployed)
 
 Scope: inspect actual frames, confirm source metadata and calibrate only visible, defensible traffic regions using the existing configuration mechanism.
 Acceptance: playback and analysis refer to the same source/time; bounding boxes and ROI align at the actual resolution; no invented geographic coordinates or direction; unsupported rules remain disabled; recorded outputs are labeled RECORDED DEMO.
@@ -180,3 +180,16 @@ Validation: 252 backend tests, 80 frontend tests and 25 frame-source tests passe
 Passive Camera 3 observation: 120.24 seconds / 61 samples, all ONLINE, generation 127 throughout, reconnect counter 884 → 884, reported dropped-frame delta 0. Mean capture/preview/AI FPS: 12.03/10.95/3.95. No natural reconnect occurred; actual recovery latency remains unmeasured. No deliberate interruption of the sole camera, worker restart, production DB write or deployment was performed. This short sample does not certify long-term reliability.
 
 Local report and telemetry: `diagnostics/live-reliability/2026-09-24/report.md`, `report.json`, `observation.json`, and test logs. Existing Camera 3 daylight-only calibration/manual nighttime-disable policy remains documented and unchanged. T05 is deferred at the user's request; a second camera is not required for these controlled reliability tests.
+
+
+## T07 validation record — 2026-09-24
+
+Prepared a conservative central-intersection road/stopped ROI from seven actual native frames of the fixed 1024×576 Maydan Palestine source. Wrong Way and Congestion are explicitly disabled; traffic UNKNOWN. Existing 60-second stopped duration and all model/tracker/confidence/IoU/event thresholds are unchanged. No positive stopped event was observed, so enabling the ROI is not a claim of positive event acceptance. Geographic 0,0 placeholders remain unverified.
+
+Added opt-in recorded calibration using existing geometry checks plus exact source SHA-256 validation before processing. Identity/resolution/source mismatch cannot silently reuse the profile. Legacy recorded configurations remain unchanged. The Maydan scenario configuration is now tracked as the sole exception under the previously ignored scenario-config directory; video/model/output assets remain local.
+
+Full actual rerun: 6,243 frames / 312.15 seconds at 20 FPS, 52,689 detection/track rows, 52,626 vehicle observations, 712 distinct assigned vehicle IDs. 3,696 vehicle observations were inside the road ROI, 48,930 outside and 1,757 inside the stopped ROI. These are repeated observations, not unique throughput. Zero events; all traffic states UNKNOWN. Visual inspection also found an unboxed foreground car at 60s and a far van classified as car; model recall/class accuracy remain limitations.
+
+Validation: 231 AI tests passed. Native source/annotated/H.264 frame counts, FPS, resolution and timeline timestamps match; seven same-frame comparisons passed. Isolated API returned timeline/summary/events HTTP 200 and correct MP4 byte-range HTTP 206. Browser-compatible H.264 output was staged separately. No running backend/frontend deployment, replacement of served artifacts or production DB writes occurred.
+
+Local report: `diagnostics/maydan-palestine/validation-report.md` and JSON. Reference/overlay/detection images and `annotated-browser.mp4` are local only. Reproduction and publication limits are documented in `docs/MAYDAN_PALESTINE.md`.

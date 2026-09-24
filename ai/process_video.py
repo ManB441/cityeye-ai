@@ -31,7 +31,7 @@ import numpy as np
 from ultralytics import YOLO
 
 from event_pipeline import EventPipeline
-from calibration import has_camera_calibration, resolve_camera_calibration
+from calibration import has_camera_calibration, resolve_camera_calibration, validate_recorded_source
 from event_rules import VehicleObservation, point_in_polygon
 from frame_source import (
     CameraHealth,
@@ -635,6 +635,7 @@ def process_video(
     model_name: str | None = None,
     max_frames: int | None = None,
 ) -> tuple[Path, Path, Path]:
+    validate_recorded_source(config, video_path)
     output_dir.mkdir(parents=True, exist_ok=True)
     annotated_path = output_dir / "annotated.mp4"
     tracks_path = output_dir / "tracks.csv"
