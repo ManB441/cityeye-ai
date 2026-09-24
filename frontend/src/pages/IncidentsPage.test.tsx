@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AuthState } from "../hooks/useAuth";
 import type { TrafficEvent } from "../types";
@@ -73,4 +73,46 @@ describe("Unified incidents", () => {
     const restored = await screen.findByText("LIVE · DVR Camera 3");
     expect(within(restored.closest("article")!).getByText(status)).toBeInTheDocument();
   });
+});
+
+it("refreshes recorded incidents and their open detail after an external review", async () => {
+  const mock = backend(); const original = mock.getMockImplementation()!;
+  let status = "PROPOSED";
+  mock.mockImplementation(async (input, init) => String(input) === "/api/scenarios/congestion/events"
+    ? new Response(JSON.stringify({ events: [{ ...recorded, status }], total: 1 }))
+    : original(input, init));
+  render(<IncidentsPage auth={auth("EMPLOYEE")} />);
+  const label = await screen.findByText("RECORDED DEMO · Demo Camera");
+  fireEvent.click(within(label.closest("article")!).getByRole("button", { name: "View" }));
+  status = "VERIFIED";
+  await waitFor(() => expect(within(screen.getByRole("dialog")).getByText("VERIFIED")).toBeInTheDocument(), { timeout: 3500 });
+  expect(within(label.closest("article")!).getByText("VERIFIED")).toBeInTheDocument();
+});
+
+
+it.each(["Verify", "Dismiss"])("ignores a recorded poll started before %s completes", async (action) => {
+  const mock = backend(); const original = mock.getMockImplementation()!;
+  let hold = false; let release: ((response: Response) => void) | undefined;
+  const status = action === "Verify" ? "VERIFIED" : "DISMISSED";
+  mock.mockImplementation(async (input, init) => {
+    const url = String(input);
+    if (url === `/api/scenarios/congestion/events/recorded-uuid/${action.toLowerCase()}`)
+      return new Response(JSON.stringify({ ...recorded, status }));
+    if (hold && url === "/api/scenarios/congestion/events") {
+      hold = false;
+      return new Promise<Response>(resolve => { release = resolve; });
+    }
+    return original(input, init);
+  });
+  render(<IncidentsPage auth={auth("EMPLOYEE")} />);
+  const label = await screen.findByText("RECORDED DEMO · Demo Camera");
+  const row = label.closest("article")!;
+  fireEvent.click(within(row).getByRole("button", { name: "View" }));
+  hold = true;
+  await waitFor(() => expect(release).toBeDefined(), { timeout: 3000 });
+  fireEvent.click(within(row).getByRole("button", { name: action }));
+  await waitFor(() => expect(within(row).getByText(status)).toBeInTheDocument());
+  await act(async () => { release!(new Response(JSON.stringify({ events: [recorded], total: 1 }))); });
+  expect(within(row).getByText(status)).toBeInTheDocument();
+  expect(within(screen.getByRole("dialog")).getByText(status)).toBeInTheDocument();
 });

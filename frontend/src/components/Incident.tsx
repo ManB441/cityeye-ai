@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { evidenceUrl } from "../api/events";
 import type { RoadBlockageDetails, ScenarioId, StoppedVehicleDetails, TrafficEvent } from "../types";
 
@@ -37,6 +38,31 @@ export function IncidentDetail({ event, scenarioId, canReview, reviewing, onClos
   evidenceSrc?: string;
   live?: boolean;
 }) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+  const imageSrc = evidenceSrc ?? evidenceUrl(event.evidence_image, scenarioId);
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = dialogRef.current!;
+    const controls = () => Array.from(dialog.querySelectorAll<HTMLElement>("button:not(:disabled), [href], input:not(:disabled), [tabindex='0']"));
+    controls()[0]?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); close.current(); }
+      if (event.key !== "Tab") return;
+      const items = controls();
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+        event.preventDefault(); last?.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+        event.preventDefault(); first?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("keydown", onKey); previousFocus?.focus(); };
+  }, []);
   const proposed = event.status === "PROPOSED";
   const roadDetails = event.event_type === "ROAD_BLOCKAGE" && event.details && "zone_name" in event.details
     ? event.details as RoadBlockageDetails
@@ -51,10 +77,10 @@ export function IncidentDetail({ event, scenarioId, canReview, reviewing, onClos
     : null;
   return (
     <div className="detail-backdrop" role="presentation" onMouseDown={onClose}>
-      <aside className="incident-detail" role="dialog" aria-modal="true" aria-label="Incident detail" onMouseDown={(event) => event.stopPropagation()}>
+      <aside ref={dialogRef} className="incident-detail" role="dialog" aria-modal="true" aria-label="Incident detail" onMouseDown={(event) => event.stopPropagation()}>
         <div className="detail-header"><span>INCIDENT DETAIL</span><button type="button" className="icon-button" onClick={onClose} aria-label="Close incident detail">×</button></div>
-        <img src={evidenceSrc ?? evidenceUrl(event.evidence_image, scenarioId)} alt={`Evidence for ${event.event_type}`} />
-        <div className="proposal-label"><i />AI PROPOSED EVENT<small>Requires municipal verification</small></div>
+        {failedImage === imageSrc ? <div role="status" className="unavailable-detail">Evidence image is unavailable.</div> : <img src={imageSrc} onError={() => setFailedImage(imageSrc)} alt={`Evidence for ${event.event_type}`} />}
+        <div className="proposal-label"><i />{proposed ? "AI PROPOSED EVENT" : `MUNICIPAL DECISION: ${event.status}`}<small>{proposed ? "Requires municipal verification" : "Review decision saved"}</small></div>
         <div className="detail-title"><div><h2>{event.event_type.replace(/_/g, " ")}</h2><p>{event.explanation}</p></div><span className={`severity ${event.severity.toLowerCase()}`}>{event.severity}</span></div>
         <dl className="detail-grid">
           <div><dt>Source</dt><dd>{live ? "LIVE" : "RECORDED DEMO"} · {event.camera_name}</dd></div>
@@ -82,7 +108,7 @@ export function IncidentDetail({ event, scenarioId, canReview, reviewing, onClos
           <div><dt>Pixel speed (debug)</dt><dd>{stoppedDetails.pixel_speed_debug.toFixed(1)} px/s</dd></div>
         </dl> : <div className="unavailable-detail">Additional track measurements are not available for this event.</div>}
         <div className="detail-actions"><button disabled={!proposed || !canReview || reviewing} onClick={() => onDecision("verify")}>Verify event</button><button className="danger-ghost" disabled={!proposed || !canReview || reviewing} onClick={() => onDecision("dismiss")}>Dismiss</button></div>
-        {!canReview && proposed && <small className="permission-note">Reviewer or Admin access is required.</small>}
+        {!canReview && proposed && <small className="permission-note">Employee or Admin access is required.</small>}
       </aside>
     </div>
   );
