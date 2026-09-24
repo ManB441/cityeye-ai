@@ -37,8 +37,10 @@ export function evidenceUrl(evidenceImage: string, scenarioId?: ScenarioId): str
   return filename ? (scenarioId ? `/evidence/scenarios/${scenarioId}/${encodeURIComponent(filename)}` : `/evidence/${encodeURIComponent(filename)}`) : "";
 }
 
-export async function fetchPersistentEvents(signal?: AbortSignal): Promise<EventListResponse> {
-  return parseResponse<EventListResponse>(await apiFetch("/api/events", { signal }));
+export async function fetchPersistentEvents(signal?: AbortSignal, cursor?: string | null): Promise<EventListResponse> {
+  const query = new URLSearchParams({ source_type: "LIVE_CAMERA", limit: "100" });
+  if (cursor) query.set("cursor", cursor);
+  return parseResponse<EventListResponse>(await apiFetch(`/api/events?${query}`, { signal }));
 }
 
 export async function reviewPersistentEvent(eventId: string, decision: "verify" | "dismiss"): Promise<TrafficEvent> {

@@ -189,12 +189,20 @@ def query_operational_analytics(
     interval_seconds: int = DEFAULT_SAMPLE_INTERVAL_SECONDS,
 ) -> OperationalAnalyticsResponse:
     rows = observations.list_range(camera_id, start, end)
-    return build_operational_analytics(
+    result = build_operational_analytics(
         camera_id=camera_id,
         start=start,
         end=end,
         observations=rows,
         data_since=observations.first_timestamp(camera_id),
-        events=events.list(),
+        events=[],
         interval_seconds=interval_seconds,
     )
+    by_type: Counter = Counter()
+    by_status: Counter = Counter()
+    for row in events.counts_for_source(camera_id, start, end):
+        by_type[row["event_type"]] += row["count"]
+        by_status[row["status"]] += row["count"]
+    return result.model_copy(update={"incident_count": sum(by_type.values()),
+                                     "incidents_by_type": dict(sorted(by_type.items())),
+                                     "incidents_by_status": dict(sorted(by_status.items()))})

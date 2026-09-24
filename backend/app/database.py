@@ -6,6 +6,8 @@ from contextlib import contextmanager
 from math import asin, cos, radians, sin, sqrt
 from pathlib import Path
 import json
+import base64
+import math
 import sqlite3
 import time
 from typing import Callable, Iterator
@@ -17,6 +19,7 @@ from app.schemas import (
     CitizenReportCreate,
     CitizenReportResponse,
     EventStatus,
+    EventPageResponse,
     ReportStatus,
     TrafficEventIngest,
     TrafficEventResponse,
@@ -220,6 +223,8 @@ class EventRepository:
             for column in ("source_type", "source_id"):
                 if column not in event_columns:
                     connection.execute(f"ALTER TABLE events_v2 ADD COLUMN {column} TEXT")
+            connection.execute("CREATE INDEX IF NOT EXISTS idx_events_history ON events_v2(timestamp DESC, event_id ASC)")
+            connection.execute("CREATE INDEX IF NOT EXISTS idx_events_source_history ON events_v2(source_type, source_id, timestamp DESC, event_id ASC)")
 
     def add(self, event: TrafficEventIngest) -> TrafficEventResponse:
         """Insert one AI-proposed event and reject duplicate IDs."""
@@ -332,6 +337,64 @@ class EventRepository:
                 """
             ).fetchall()
         return [self._to_event(row) for row in rows]
+
+    def page(self, *, limit: int = 100, cursor: str | None = None,
+             source_type: str | None = None, source_id: str | None = None) -> EventPageResponse:
+        """Bounded keyset page; new inserts cannot enter an existing snapshot."""
+        if not 1 <= limit <= 200:
+            raise ValueError("limit must be between 1 and 200")
+        position = None
+        watermark = None
+        if cursor is not None:
+            try:
+                if len(cursor) > 2048:
+                    raise ValueError()
+                decoded = json.loads(base64.b64decode(cursor, altchars=b"-_", validate=True))
+                watermark, timestamp, event_id, previous_type, previous_id = decoded
+                if (type(watermark) is not int or not 0 <= watermark < 2**63
+                        or type(timestamp) not in (float, int) or not math.isfinite(timestamp) or timestamp < 0
+                        or not isinstance(event_id, str) or not event_id
+                        or (previous_type, previous_id) != (source_type, source_id)):
+                    raise ValueError()
+                position = (float(timestamp), event_id)
+            except (ValueError, TypeError, OverflowError) as exc:
+                raise ValueError("Invalid cursor or source mismatch") from exc
+        with self._connect() as connection:
+            # One read transaction keeps count, watermark and rows coherent.
+            connection.execute("BEGIN")
+            if watermark is None:
+                watermark = connection.execute("SELECT COALESCE(MAX(rowid), 0) FROM events_v2").fetchone()[0]
+            clauses = ["rowid <= ?"]
+            params: list[object] = [watermark]
+            for column, value in (("source_type", source_type), ("source_id", source_id)):
+                if value is not None:
+                    clauses.append(f"{column} = ?")
+                    params.append(value)
+            where = " AND ".join(clauses)
+            total = connection.execute(f"SELECT COUNT(*) FROM events_v2 WHERE {where}", params).fetchone()[0]
+            if position is not None:
+                where += " AND (timestamp < ? OR (timestamp = ? AND event_id > ?))"
+                params.extend((position[0], position[0], position[1]))
+            rows = connection.execute(f"""SELECT event_id,event_type,timestamp,confidence,severity,explanation,
+                camera_name,latitude,longitude,evidence_image,details_json,status,source_type,source_id
+                FROM events_v2 WHERE {where} ORDER BY timestamp DESC,event_id ASC LIMIT ?""",
+                [*params, limit + 1]).fetchall()
+        next_cursor = None
+        if len(rows) > limit:
+            last = rows[limit - 1]
+            next_cursor = base64.urlsafe_b64encode(json.dumps(
+                [watermark, last["timestamp"], last["event_id"], source_type, source_id]
+            ).encode()).decode()
+        return EventPageResponse(events=[self._to_event(row) for row in rows[:limit]],
+                                 total=total, next_cursor=next_cursor)
+
+    def counts_for_source(self, source_id: str, start: float, end: float) -> list[sqlite3.Row]:
+        """Aggregate persisted live incidents without loading their full history."""
+        with self._connect() as connection:
+            return connection.execute("""SELECT event_type, status, COUNT(*) AS count
+                FROM events_v2 WHERE source_type = 'LIVE_CAMERA' AND source_id = ?
+                AND timestamp BETWEEN ? AND ? GROUP BY event_type, status""",
+                (source_id, start, end)).fetchall()
 
     def update_status(
         self,

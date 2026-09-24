@@ -85,7 +85,7 @@ Acceptance: smoke tests leave the operational DB unchanged; a backup restores in
 Tests: temporary DB smoke run, backup/restore rehearsal and clean-checkout build. Never restore over the live DB.
 Define deployment hardening (TLS, exposure, rate limits) separately before public deployment; do not expose services as part of testing.
 
-## T11 — History scale and final regression (P1/P2)
+## T11 — History scale and final regression (P1/P2, implemented; not deployed)
 
 Scope: bounded history queries/pagination, storage retention policy and stale documentation.
 Acceptance: large synthetic histories remain bounded; page boundaries have no duplicates/missing records; retention policy preserves referenced evidence and requires explicit destructive-action authorization; docs reflect actual features and limitations.
@@ -224,3 +224,14 @@ The smoke creates a real SQLite backup of the synthetic current-schema DB, verif
 Added a stdlib-only recorded-input preflight with actionable missing config/video/model messages and calibrated source-hash verification, without downloading assets. Actual local Maydan preflight passed; a clean source snapshot correctly rejected its absent video/weights. This does not claim to decode the video or load YOLO.
 
 Validation: all 266 backend tests passed, including four new smoke/preflight regression tests and the existing backup suite. Shell syntax and `git diff --check` passed. Direct shell smoke and clean-snapshot smoke passed. Clean source frontend `npm ci --offline --no-audit --no-fund` and `npm run build` passed using the local cache. Backend smoke reused the existing Python environment; no fresh dependency installation, Docker build or real-camera validation is claimed. Runtime/local versions and the local AI NumPy mismatch are documented in `docs/REPRODUCIBLE_VALIDATION.md`. Database backup excludes external media/configuration/secrets. Public deployment hardening remains separate.
+
+
+## T11 validation record — 2026-09-24
+
+Reproduced unbounded `/api/events` responses before implementing cursor pagination (100 default, 200 maximum). Timestamp/ID keyset ordering plus an insertion watermark preserves page membership while later/backdated incidents arrive; source filters are carried in the cursor. Total represents the matching snapshot, not page length. Incidents holds one live page with Older/Latest controls and explicitly page-local status/severity filters. The selected live-camera queue is capped at the latest 100; finite recorded scenario artifacts remain separate and are not cursor-paginated.
+
+Added history/source indexes and SQL type/status aggregation so operational analytics no longer materializes all event records. Tests traverse 5,006 synthetic events with equal timestamps, insert a backdated incident mid-traversal, reject invalid limits/source-mismatched cursors, verify no duplicates/missing IDs, and preserve an evidence sentinel. Exact counts still scan matching index entries; arbitrary-scale constant latency is not claimed.
+
+Final software checks: 269 backend, 231 AI and 85 frontend tests passed; app/node TypeScript and Vite production build passed (`/tmp/cityeye-t11-build`); isolated synthetic smoke/backup restore and `git diff --check` passed. A final targeted pagination check also covers large numeric cursor timestamps. No production DB/media/backup deletion, running-service deployment or camera configuration change occurred.
+
+`docs/HISTORY_AND_RETENTION.md` documents preserve-by-default evidence retention and explicit approval before any destructive policy. `docs/STABILIZATION_VALIDATION.md` lists automated PASS versus partial/unobserved field results and provides the operator walkthrough for a deployed build. README frontend/map/scenario claims were corrected. This closes the software stabilization sequence, not T05's deferred natural moved-then-stopped acceptance, natural reconnect timing, staged artifact publication or production deployment validation.

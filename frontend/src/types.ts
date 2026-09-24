@@ -41,6 +41,7 @@ export type TrafficEvent = {
 };
 
 export type EventListResponse = {
+  next_cursor?: string | null;
   events: TrafficEvent[];
   total: number;
 };

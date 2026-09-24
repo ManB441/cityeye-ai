@@ -54,6 +54,7 @@ from app.schemas import (
     CitizenReportListResponse,
     CitizenReportResponse,
     EventListResponse,
+    EventPageResponse,
     EventStatus,
     TrafficEventIngest,
     TrafficEventResponse,
@@ -784,8 +785,7 @@ def create_app(
     def selected_live_camera_events(camera_id: str) -> EventListResponse:
         resolve_live_camera_directory(selected_live_output_dir, camera_id)
         incident_importer.sync_safely(camera_id)
-        events = [event for event in repository.list()
-                  if event.source_type == "LIVE_CAMERA" and event.source_id == camera_id]
+        events = repository.page(source_type="LIVE_CAMERA", source_id=camera_id).events
         return EventListResponse(events=events, total=len(events))
 
     def review_selected_live_event(
@@ -1013,15 +1013,22 @@ def create_app(
 
     @application.get(
         "/api/events",
-        response_model=EventListResponse,
+        response_model=EventPageResponse,
         tags=["events"],
     )
     def list_events(
         event_repository: EventRepository = Depends(get_event_repository),
-    ) -> EventListResponse:
-        """Return all events for two-second dashboard polling."""
-        events = event_repository.list()
-        return EventListResponse(events=events, total=len(events))
+        limit: int = Query(default=100, ge=1, le=200),
+        cursor: str | None = Query(default=None, max_length=2048),
+        source_type: Literal["LIVE_CAMERA", "RECORDED_SCENARIO"] | None = None,
+        source_id: str | None = Query(default=None, min_length=1, max_length=128),
+    ) -> EventPageResponse:
+        """Return bounded history; total counts the snapshot, not just this page."""
+        try:
+            return event_repository.page(limit=limit, cursor=cursor,
+                                         source_type=source_type, source_id=source_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @application.get(
         "/api/events/{event_id}",

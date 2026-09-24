@@ -224,35 +224,33 @@ The Backend stores one real live-camera observation per configured interval
 Set `CITYEYE_ANALYTICS_SAMPLE_INTERVAL_SECONDS` to change the interval. Analytics
 collection runs in the Backend, outside the live capture and AI frame hot path.
 
-## Frontend (placeholder)
+## Frontend
 
-React + TypeScript scaffold for Days 7–9:
+React + TypeScript operational UI:
 
 ```bash
 cd cityeye-ai/frontend
-npm install
+npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173`. The first Frontend slice displays a responsive
-Municipal Dashboard. Start the FastAPI Backend on port `8000` first; Vite proxies
-`/api`, `/evidence`, and `/media` requests to it. The Dashboard polls real stored
-events and AI output metadata every two seconds and provides working Verify and
-Dismiss actions. Before video playback, live counters start at zero. During
-playback, vehicle classes and events follow the corresponding timestamps from
-real `tracks.csv` and `events.json` output. The Leaflet citizen map is implemented
-separately.
+Open `http://127.0.0.1:5173` after starting FastAPI on port `8000`; Vite proxies
+`/api`, `/evidence`, and `/media`. The UI includes Command Center, Cameras,
+Incidents, Analytics and role-gated account administration. Citizen Map currently
+has no map provider configured and displays a placeholder plus available reports.
 
-The Dashboard offers four fixed scenarios backed only by real YOLO/ByteTrack
-outputs: `normal_traffic`, `congestion`, `stopped_vehicle`, and `rainy_traffic`. Their generated
-files live under `ai/scenario_outputs/<scenario_id>/` and remain outside Git.
-Each folder contains `annotated.mp4`, `tracks.csv`, `events.json`, and generated
-`evidence/*.jpg` files. Source clips: [normal traffic](https://www.pexels.com/video/traffic-in-an-intersecting-road-3002736/),
-[congestion](https://www.pexels.com/video/cars-stuck-in-traffic-3148319/), and
-[stopped vehicle](https://www.pexels.com/video/mechanic-repairing-car-on-busy-street-30125402/).
-Rainy Traffic is a user-provided wet-road test clip and does not imply weather detection.
-The UI resets counters to zero when switching scenarios and reveals only records
-whose real video timestamps have been reached.
+Recorded scenarios include `normal_traffic`, `congestion`, `stopped_vehicle`,
+`rainy_traffic` and `maydan_palestine`. Generated media and analysis remain outside
+Git under `ai/scenario_outputs/<scenario_id>/`. Availability depends on local assets.
+`traffic_timeline.json` records processed frames alongside `tracks.csv`,
+`events.json`, `annotated.mp4` and evidence. Counters follow observed timestamps;
+missing analysis remains unknown. Rainy Traffic is a supplied wet-road clip, not
+weather detection. See [Maydan calibration](docs/MAYDAN_PALESTINE.md) for its limits.
+
+Live incident history uses bounded cursor pages. See [history and retention](docs/HISTORY_AND_RETENTION.md)
+for the API contract, page-local filters and evidence-preservation policy, and
+[stabilization validation](docs/STABILIZATION_VALIDATION.md) for tested behavior,
+remaining field validations and the operator walkthrough.
 
 Run Frontend checks:
 
