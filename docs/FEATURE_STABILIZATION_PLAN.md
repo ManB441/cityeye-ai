@@ -21,7 +21,7 @@ Acceptance: HTTP failure leaves PROPOSED; Verify and Dismiss each display errors
 Tests: four regression cases cover the live/recorded × verify/dismiss matrix. These mock API behavior and do not certify database persistence or real-camera events.
 Out of scope: redesigning dialogs, event algorithms, and comprehensive concurrent-review/poll ordering (T04).
 
-## T02 — Recorded timeline and truthful counters (P0)
+## T02 — Recorded timeline and truthful counters (P0, implemented)
 
 Scope: AI per-frame output, backend timeline and recorded playback counters.
 Reproduce missing zero-detection frames; emit an explicit zero observation where analysis actually ran, distinguish missing analysis from zero, and preserve correct seeking/source boundaries.
@@ -102,3 +102,20 @@ Completed T01 checks (2026-09-24):
 - Vite production build: passed, 62 modules; output written to `/tmp/cityeye-stabilization-build`, not deployed over the running application.
 - `git diff --check`: passed.
 - Production database and camera/event processing were not changed by T01. Earlier baseline work is intentionally in its own commit.
+
+
+## T02 validation record — 2026-09-24
+
+The existing AI producer already writes every processed recorded frame to `traffic_timeline.json`; no YOLO, ByteTrack, thresholds or producer changes were needed. The backend now combines valid processed-frame observations with detection rows. An observed frame without detections has zero counts; arbitrary gaps in CSV are not filled. Summary counts also use the last observed frame, including a trailing empty frame.
+
+Recorded observations expose `duration_sec`, inferred from the median timestamp/frame interval of the existing fixed-rate output. The frontend stops retaining counts beyond that observation interval and shows unknown during gaps. A single observation cannot establish a duration; its duration is null and is not held into later playback. Legacy frontend fixtures without this new field retain compatibility. This duration calculation assumes the current fixed-rate recorded pipeline, not a variable-rate external timeline.
+
+Evidence and checks:
+- Regression failed before the change: observed empty frames 1 and 4 were absent; only detection frames 0 and 3 were returned.
+- Actual local `rainy_traffic` artifacts, read without modification: 611 CSV frame groups became 787 observations, including 176 zero-vehicle frames.
+- Backend: 251 tests passed. Includes empty observations, missing-frame gaps, invalid manifest rejection, trailing-zero summary and existing API tests.
+- Frontend: 64 tests passed. Includes positive → zero → missing/unknown → positive, backward seek and playback beyond the final observation; existing source-switch tests also passed.
+- TypeScript app/node checks and production Vite build passed; build output is in `/tmp/cityeye-t02-build`.
+- Updated the pre-existing timeline test's outdated message expectation while retaining exact count assertions.
+
+Limitations: this is validation against saved AI outputs and automated playback fixtures, not a new model inference or live-camera event validation. The changes are not deployed to the running application. Manifest and CSV must belong to the same completed analysis run; artifact generation identity/atomic multi-file publication remains a separate provenance concern.

@@ -339,6 +339,11 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
       selected = frame;
     }
 
+    // A missing analyzed frame is unknown, not the previous observation.
+    if (selected && selected.duration_sec !== undefined &&
+        videoTime >= selected.timestamp_sec + (selected.duration_sec ?? 0) + 0.001) {
+      return null;
+    }
     return selected;
   }, [timeline, videoTime]);
 
