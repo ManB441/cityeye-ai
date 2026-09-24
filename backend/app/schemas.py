@@ -286,15 +286,16 @@ class OperationalAnalyticsResponse(BaseModel):
     peak_period_start: float | None = Field(default=None, ge=0)
     peak_period_end: float | None = Field(default=None, ge=0)
     congestion_episodes: int = Field(ge=0)
-    congestion_duration_minutes: float = Field(ge=0)
+    congestion_duration_minutes: float = Field(ge=0, description="Heavy sample count × interval / 60; not measured duration")
     incident_count: int = Field(ge=0)
     average_capture_fps: float | None = Field(default=None, ge=0)
     average_ai_fps: float | None = Field(default=None, ge=0)
-    observed_minutes: float = Field(ge=0)
+    observed_minutes: float = Field(ge=0, description="Sample-equivalent minutes; not continuous coverage")
     vehicle_composition_observations: dict[str, int]
     incidents_by_type: dict[str, int]
     incidents_by_status: dict[str, int]
     traffic_series: list[AnalyticsSeriesPoint]
+    traffic_status_samples: dict[str, int] = Field(default_factory=dict)
 
 
 class AnalysisSummary(BaseModel):

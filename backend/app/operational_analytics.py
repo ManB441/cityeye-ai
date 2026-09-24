@@ -18,12 +18,7 @@ from app.schemas import (
 
 LOGGER = logging.getLogger(__name__)
 DEFAULT_SAMPLE_INTERVAL_SECONDS = 60
-CONGESTED_STATES = {"MODERATE", "HEAVY_CONGESTION", "CONGESTED"}
-CAMERA_EVENT_NAMES = {
-    "camera-3": "DVR Camera 3",
-    "camera-5": "DVR Camera 5",
-    "camera-7": "DVR Camera 7",
-}
+CONGESTED_STATES = {"HEAVY_CONGESTION", "CONGESTED"}
 
 
 def collect_live_observation(
@@ -111,6 +106,7 @@ def _congestion_summary(
         congested_samples += 1
         if (
             previous is None
+            or observation.generation != previous.generation
             or observation.interval_start - previous.interval_start > interval_seconds * 1.5
         ):
             episodes += 1
@@ -134,10 +130,10 @@ def build_operational_analytics(
     episodes, congestion_minutes = _congestion_summary(
         observations, interval_seconds
     )
-    camera_name = CAMERA_EVENT_NAMES.get(camera_id, camera_id)
     period_events = [
         event for event in events
-        if event.camera_name == camera_name and start <= event.timestamp <= end
+        if event.source_type == "LIVE_CAMERA" and event.source_id == camera_id
+        and start <= event.timestamp <= end
     ]
     by_type = Counter(event.event_type.value for event in period_events)
     by_status = Counter(event.status.value for event in period_events)
@@ -179,6 +175,7 @@ def build_operational_analytics(
         incidents_by_type=dict(sorted(by_type.items())),
         incidents_by_status=dict(sorted(by_status.items())),
         traffic_series=series,
+        traffic_status_samples=dict(sorted(Counter(item.traffic_status for item in observations).items())),
     )
 
 

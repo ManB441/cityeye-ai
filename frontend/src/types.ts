@@ -190,6 +190,7 @@ export type OperationalAnalytics = {
   incidents_by_type: Record<string, number>;
   incidents_by_status: Record<string, number>;
   traffic_series: AnalyticsSeriesPoint[];
+  traffic_status_samples?: Record<string, number>;
 };
 
 export type ScenarioSnapshot = {
