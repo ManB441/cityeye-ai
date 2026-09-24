@@ -17,6 +17,7 @@ export function LiveMjpegImage({
 }) {
   const [retryToken, setRetryToken] = useState(0);
   const [streamState, setStreamState] = useState<VisualStreamState>("LIVE");
+  const consecutiveFailures = useRef(0);
   const retryTimer = useRef<number | null>(null);
   const cameraGeneration = useRef(0);
 
@@ -30,6 +31,7 @@ export function LiveMjpegImage({
   useEffect(() => {
     cameraGeneration.current += 1;
     clearRetryTimer();
+    consecutiveFailures.current = 0;
     setRetryToken(0);
     setStreamState("LIVE");
     return clearRetryTimer;
@@ -37,22 +39,24 @@ export function LiveMjpegImage({
 
   function scheduleReconnect() {
     if (retryTimer.current !== null || streamState === "ERROR") return;
-    if (retryToken >= RETRY_DELAYS_MS.length) {
+    if (consecutiveFailures.current >= RETRY_DELAYS_MS.length) {
       setStreamState("ERROR");
       return;
     }
 
+    const delay = RETRY_DELAYS_MS[consecutiveFailures.current++];
     const expectedGeneration = cameraGeneration.current;
     setStreamState("RECONNECTING");
     retryTimer.current = window.setTimeout(() => {
       retryTimer.current = null;
       if (cameraGeneration.current !== expectedGeneration) return;
       setRetryToken((current) => current + 1);
-    }, RETRY_DELAYS_MS[retryToken]);
+    }, delay);
   }
 
   function reconnectManually() {
     clearRetryTimer();
+    consecutiveFailures.current = 0;
     setStreamState("RECONNECTING");
     setRetryToken((current) => current + 1);
   }
@@ -65,12 +69,14 @@ export function LiveMjpegImage({
   return (
     <>
       <img
+        key={streamUrl}
         className={className}
         src={streamUrl}
         alt={alt}
         onError={scheduleReconnect}
         onLoad={() => {
           clearRetryTimer();
+          consecutiveFailures.current = 0;
           setStreamState("LIVE");
         }}
       />

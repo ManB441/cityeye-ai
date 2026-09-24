@@ -843,8 +843,17 @@ def create_app(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=f"Camera {camera_id} is {health.state.lower()}.",
             )
+        def preview_is_current() -> bool:
+            try:
+                current = read_camera_health(directory)
+            except ValueError:
+                return False
+            return (current.state == "ONLINE" and current.camera_id == camera_id
+                    and current.generation == health.generation
+                    and current.last_connected_at == health.last_connected_at)
+
         return StreamingResponse(
-            mjpeg_frames(directory, filename="preview.jpg"),
+            mjpeg_frames(directory, filename="preview.jpg", is_current=preview_is_current),
             media_type="multipart/x-mixed-replace; boundary=frame",
             headers={"Cache-Control": "no-store"},
         )
