@@ -36,7 +36,7 @@ Reproduce the potential `int(None)` path before changing it. Avoid activating ge
 Acceptance: bicycle detections with disabled calibration do not crash; unavailable traffic status stays UNKNOWN; camera identity/resolution and polygon validation still reject invalid profiles.
 Tests: targeted AI regression including vehicles/persons/bicycles, disabled and valid profiles. No new ROI or thresholds.
 
-## T04 — Incident queue consistency and review experience (P1)
+## T04 — Incident queue consistency and review experience (P1, implemented)
 
 Scope: stale polling responses, source switching during requests, review races, history refresh and detail usability.
 Acceptance: a GET started before a completed review cannot revert the saved status; switching away and back does not accept an obsolete request; pending/error state is source-scoped; review status is consistent between card/detail/Incidents after reload; Escape/focus and evidence-image failure are usable.
@@ -132,3 +132,24 @@ Regression evidence: adding a bicycle to the existing simulated worker reconnect
 Validation: all 222 AI tests passed using a temporary test directory (`PYTHONDONTWRITEBYTECODE=1 ai/.venv/bin/python -m pytest ai/tests -q -p no:cacheprovider --basetemp=/tmp/cityeye-t03-ai`). This includes existing bounds, degenerate/self-intersecting polygons, zero direction, identity and resolution validation. `git diff --check` passed.
 
 No production camera configuration, model, tracking algorithm, threshold or ROI coordinates were changed. This is automated worker/pipeline regression with controlled detections, not a new real-camera observation. The running worker has not been restarted or deployed.
+
+
+## T04 validation record — 2026-09-24
+
+Reproduced the live polling race before fixing it: for both Verify and Dismiss, a delayed incident GET reverted the card to PROPOSED after a successful save, while the detail retained the saved status.
+
+Changes:
+- Version incident requests around reviews so responses begun before a completed save cannot overwrite it. Live metrics updates remain independent of this incident-only guard.
+- Scope recorded requests and pending review state to a particular source selection, including A → B → A. A previous operation cannot clear a new pending operation or update the new selection.
+- Serialize review actions within the active selection/page and disable review controls while saving.
+- Synchronize open details with accepted incident refreshes. Recorded incident history now refreshes every two seconds alongside live history; unavailable recorded sources retain known incidents and display an error.
+- Keep review errors separate from background loading errors.
+- Show the saved review state in the detail banner, trap keyboard Tab navigation, close with Escape, restore opener focus and display a fallback when evidence cannot load.
+
+Validation:
+- 75 frontend tests passed across seven files, including 11 new regression cases.
+- New cases cover live late-GET Verify/Dismiss, recorded late-GET reviews, A → B → A review isolation, old live success/failure isolation, externally reviewed recorded detail refresh, evidence failure, Escape/Tab/focus restoration and saved banners.
+- Existing persistence-through-remount tests and failed-save retry tests continue to pass.
+- App and node TypeScript checks passed; production Vite build passed (62 modules, temporary output `/tmp/cityeye-t04-build`). `git diff --check` passed.
+
+These are frontend integration tests with controlled API responses, not proof of new database writes or live-camera events. Backend/AI algorithms and production data were not modified. The running application has not been redeployed. Requests initiated after a completed review remain authoritative, allowing legitimate later server updates rather than permanently pinning a local decision.

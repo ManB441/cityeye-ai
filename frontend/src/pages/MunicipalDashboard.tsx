@@ -70,6 +70,9 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
       ? source.id
       : null;
 
+  const liveReviewVersion = useRef(0);
+  const pendingReview = useRef<typeof source | null>(null);
+
   const [reviewError, setReviewError] = useState<string | null>(null);
 
   const now = useFreshnessClock();
@@ -116,7 +119,7 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
     reviewingEventId,
     refresh,
     decide,
-  } = useEvents(scenarioId);
+  } = useEvents(scenarioId, source);
 
   const {
     summary,
@@ -226,6 +229,7 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
           selectedLiveCamera &&
           !cancelled
         ) {
+          const reviewVersion = liveReviewVersion.current;
           const [
             metrics,
             incidents,
@@ -270,21 +274,14 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
               );
             }
 
-            if (
-              incidents.status ===
-              "fulfilled"
-            ) {
-              setLiveEvents(
-                incidents.value.events
-              );
-            }
-
-            setLiveError(
-              incidents.status ===
-                "rejected"
+            if (reviewVersion === liveReviewVersion.current) {
+              if (incidents.status === "fulfilled") {
+                setLiveEvents(incidents.value.events);
+              }
+              setLiveError(incidents.status === "rejected"
                 ? "Incident queue is unavailable. Saved incidents are retained."
-                : null
-            );
+                : null);
+            }
           }
         }
       } finally {
@@ -505,6 +502,8 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
       | "dismiss"
   ) {
     const origin = source;
+    if (pendingReview.current === origin) return;
+    pendingReview.current = origin;
 
     const stillSelected = () => sourceRef.current === origin;
 
@@ -513,9 +512,11 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
     try {
       let updated: TrafficEvent | undefined;
       if (liveMode && selectedLiveCamera) {
+        ++liveReviewVersion.current;
         setReviewingLiveId(event.event_id);
         updated = await reviewLiveEvent(selectedLiveCamera, event.event_id, decision);
         if (!stillSelected()) return;
+        ++liveReviewVersion.current;
         const saved = updated;
         setLiveEvents(current => current.map(item => item.event_id === saved.event_id ? saved : item));
       } else {
@@ -529,10 +530,18 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
         setReviewError(requestError instanceof Error ? requestError.message : "Review action failed");
       }
     } finally {
+      if (pendingReview.current === origin) pendingReview.current = null;
       if (stillSelected()) setReviewingLiveId(null);
     }
   }
 
+
+  useEffect(() => {
+    const items = source.kind === "LIVE_CAMERA" ? liveEvents : events;
+    setSelectedEvent(current => current
+      ? items.find(item => item.event_id === current.event_id) ?? current
+      : current);
+  }, [source, liveEvents, events]);
 
   const combinedError = reviewError ?? (
     liveMode
@@ -1046,10 +1055,7 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
                   canReview
                 }
                 reviewing={
-                  (liveMode
-                    ? reviewingLiveId
-                    : reviewingEventId) ===
-                  event.event_id
+                  Boolean(liveMode ? reviewingLiveId : reviewingEventId)
                 }
                 onView={() =>
                   setSelectedEvent(
@@ -1089,10 +1095,7 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
           }
           canReview={canReview}
           reviewing={
-            (liveMode
-              ? reviewingLiveId
-              : reviewingEventId) ===
-            selectedEvent.event_id
+            Boolean(liveMode ? reviewingLiveId : reviewingEventId)
           }
           onClose={() =>
             setSelectedEvent(

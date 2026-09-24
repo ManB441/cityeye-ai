@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MunicipalDashboard } from "./MunicipalDashboard";
 import type { AuthState } from "../hooks/useAuth";
@@ -142,4 +142,67 @@ describe("Recorded observation boundaries", () => {
     seek(.05); expect(value("Vehicles")).toBe("2");
     seek(.5); expect(value("Vehicles")).toBe("—");
   });
+});
+
+
+describe("Review and polling ordering", () => {
+  it.each(["verify", "dismiss"])("a late live GET cannot undo %s in the card or dialog", async (decision) => {
+    backend();
+    const original = vi.mocked(fetch).getMockImplementation()!;
+    let hold = false;
+    let release: ((response: Response) => void) | undefined;
+    const status = decision === "verify" ? "VERIFIED" : "DISMISSED";
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.endsWith(`/${decision}`)) {
+        const response = await original("/api/live-cameras/camera-3/events");
+        const payload = await response.json();
+        return new Response(JSON.stringify({ ...payload.events[0], status }));
+      }
+      if (hold && url.includes("/live-cameras/") && url.endsWith("/events")) {
+        hold = false;
+        return new Promise<Response>(resolve => { release = resolve; });
+      }
+      return original(input, init);
+    });
+    render(<MunicipalDashboard auth={auth} />);
+    fireEvent.click(await screen.findByRole("button", { name: "View" }));
+    const dialog = screen.getByRole("dialog");
+    hold = true;
+    await waitFor(() => expect(release).toBeDefined(), { timeout: 3000 });
+    fireEvent.click(within(dialog).getByRole("button", { name: decision === "verify" ? "Verify event" : "Dismiss" }));
+    await waitFor(() => expect(within(dialog).getByText(status)).toBeInTheDocument());
+    const stale = await original("/api/live-cameras/camera-3/events");
+    await act(async () => { release!(stale); });
+    expect(screen.queryByText("PROPOSED")).not.toBeInTheDocument();
+    expect(screen.getAllByText(status)).toHaveLength(2);
+  });
+});
+
+
+it.each(["success", "failure"])("ignores an old live review %s after leaving and returning to the camera", async (outcome) => {
+  backend();
+  const original = vi.mocked(fetch).getMockImplementation()!;
+  const pending: Array<(response: Response) => void> = [];
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    if (String(input).endsWith("/verify")) return new Promise<Response>(resolve => { pending.push(resolve); });
+    return original(input, init);
+  });
+  render(<MunicipalDashboard auth={auth} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Verify" }));
+  await waitFor(() => expect(pending).toHaveLength(1));
+  fireEvent.click(screen.getByRole("button", { name: /Heavy Congestion/ }));
+  fireEvent.click(screen.getByRole("button", { name: /DVR Camera 3/ }));
+  const newButton = await screen.findByRole("button", { name: "Verify" });
+  expect(newButton).toBeEnabled();
+  fireEvent.click(newButton);
+  await waitFor(() => expect(pending).toHaveLength(2));
+  const payload = await (await original("/api/live-cameras/camera-3/events")).json();
+  const saved = { ...payload.events[0], status: "VERIFIED" };
+  await act(async () => { pending[0](outcome === "failure" ? new Response("{}", { status: 500 }) : new Response(JSON.stringify(saved))); });
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(newButton).toBeDisabled();
+  expect(screen.getByText("PROPOSED")).toBeInTheDocument();
+  await act(async () => { pending[1](new Response(JSON.stringify(saved))); });
+  expect(screen.getByText("VERIFIED")).toBeInTheDocument();
 });

@@ -12,6 +12,8 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
   const [liveEvents, setLiveEvents] = useState<TrafficEvent[]>([]);
   const [liveError, setLiveError] = useState<string | null>(null);
   const reviewVersion = useRef(0);
+  const pendingReview = useRef(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const [filter, setFilter] = useState<
     "ALL" | "PROPOSED" | "VERIFIED" | "DISMISSED" | "HIGH"
   >("ALL");
@@ -25,10 +27,33 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
       auth.user?.role === "EMPLOYEE" ||
       auth.user?.role === "ADMIN");
   useEffect(() => {
-    void fetchScenarioSnapshots().then((items) => {
-      setSnapshots(items);
-      setError(items.some(({ eventsError }) => eventsError) ? "Some incident sources are unavailable." : null);
-    }).catch(() => setError("Incident data is unavailable."));
+    const controller = new AbortController();
+    let inFlight = false;
+    async function refresh() {
+      if (inFlight) return;
+      inFlight = true;
+      const version = reviewVersion.current;
+      try {
+        const items = await fetchScenarioSnapshots(controller.signal);
+        if (controller.signal.aborted || version !== reviewVersion.current) return;
+        // Retain known incidents when a source is temporarily unavailable.
+        setSnapshots(previous => items.map(item => item.eventsError
+          ? { ...item, events: previous.find(old => old.scenario.scenario_id === item.scenario.scenario_id)?.events ?? [] }
+          : item));
+        setSelected(current => {
+          if (!current?.scenarioId) return current;
+          const event = items.find(item => item.scenario.scenario_id === current.scenarioId)?.events
+            .find(item => item.event_id === current.event.event_id);
+          return event ? { ...current, event } : current;
+        });
+        setError(items.some(({ eventsError }) => eventsError) ? "Some incident sources are unavailable." : null);
+      } catch {
+        if (!controller.signal.aborted && version === reviewVersion.current) setError("Incident data is unavailable.");
+      } finally { inFlight = false; }
+    }
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 2_000);
+    return () => { controller.abort(); window.clearInterval(timer); };
   }, []);
   useEffect(() => {
     const controller = new AbortController();
@@ -47,7 +72,7 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
           : current);
         setLiveError(null);
       } catch {
-        if (!controller.signal.aborted) setLiveError("Live incidents are unavailable. Recorded demos remain available.");
+        if (!controller.signal.aborted && version === reviewVersion.current) setLiveError("Live incidents are unavailable. Recorded demos remain available.");
       } finally { inFlight = false; }
     }
     void refresh();
@@ -74,6 +99,9 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
     [filter, snapshots, liveEvents],
   );
   async function decide(row: IncidentRow, decision: "verify" | "dismiss") {
+    if (pendingReview.current) return;
+    pendingReview.current = true;
+    setReviewError(null);
     reviewVersion.current += 1;
     setReviewing(row.event.event_id);
     try {
@@ -99,10 +127,11 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
           ? { ...current, event }
           : current,
       );
-      setError(null);
+      setReviewError(null);
     } catch {
-      setError("The municipal decision could not be saved. Please retry.");
+      setReviewError("The municipal decision could not be saved. Please retry.");
     } finally {
+      pendingReview.current = false;
       setReviewing(null);
     }
   }
@@ -113,6 +142,7 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
         title="Incidents"
         copy="AI-proposed traffic events awaiting or carrying a municipal decision."
       />
+      {reviewError && <div className="command-error" role="alert">{reviewError}</div>}
       {error && <div className="command-error" role="alert">{error}</div>}
       {liveError && <div className="command-error" role="alert">{liveError}</div>}
       <div className="filter-tabs incident-filters">
@@ -165,7 +195,7 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
                 disabled={
                   row.event.status !== "PROPOSED" ||
                   !canReview ||
-                  reviewing === row.event.event_id
+                  reviewing !== null
                 }
                 onClick={() => void decide(row, "verify")}
               >
@@ -176,7 +206,7 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
                 disabled={
                   row.event.status !== "PROPOSED" ||
                   !canReview ||
-                  reviewing === row.event.event_id
+                  reviewing !== null
                 }
                 onClick={() => void decide(row, "dismiss")}
               >
@@ -196,7 +226,7 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
           live={!selected.scenarioId}
           evidenceSrc={selected.scenarioId ? undefined : liveIncidentEvidenceUrl(selected.event)}
           canReview={canReview}
-          reviewing={reviewing === selected.event.event_id}
+          reviewing={reviewing !== null}
           onClose={() => setSelected(null)}
           onDecision={(decision) => void decide(selected, decision)}
         />
