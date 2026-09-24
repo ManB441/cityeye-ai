@@ -97,8 +97,8 @@ class Calibration:
 
 def has_camera_calibration(config):
     if str(config.get("source_type", "VIDEO_FILE")).upper() != "RTSP" or "camera_calibrations" not in config: return False
-    profiles=config["camera_calibrations"]
-    return not isinstance(profiles,dict) or config.get("camera_id") in profiles
+    # A registry opts in every live camera: an absent profile must fail closed.
+    return True
 
 
 def resolve_camera_calibration(config, frame_size=None):
@@ -113,7 +113,8 @@ def resolve_camera_calibration(config, frame_size=None):
     def set_rule(name, error):
         rules[name]={"status":"CALIBRATION_REQUIRED" if error else "READY", "diagnostic":error}
     common=None
-    if not isinstance(profile,dict): common="invalid calibration profile"
+    if isinstance(profiles, dict) and config["camera_id"] not in profiles: common="camera-specific calibration profile is missing"
+    elif not isinstance(profile,dict): common="invalid calibration profile"
     elif profile.get("camera_id") != config["camera_id"]: common="calibration belongs to a different camera"
     elif profile.get("coordinate_space") != "absolute_pixels": common="unsupported coordinate space"
     elif frame_size is None: common="waiting for actual frame dimensions"

@@ -150,7 +150,8 @@ def test_worker_revalidates_dimensions_and_resets_tracks_on_reconnect(tmp_path,m
         def track(self,*args,**kw):
             box=SimpleNamespace(cls=np.array(2),conf=np.array(.9),id=np.array(7),xyxy=np.array([[300,300,400,400]]))
             person=SimpleNamespace(cls=np.array(0),conf=np.array(.9),id=np.array(8),xyxy=np.array([[10,10,30,50]]))
-            return [SimpleNamespace(boxes=[box,person])]
+            bicycle=SimpleNamespace(cls=np.array(1),conf=np.array(.9),id=np.array(9),xyxy=np.array([[300,300,340,360]]))
+            return [SimpleNamespace(boxes=[box,person,bicycle])]
     managers=[]
     class Manager(TrajectoryManager):
         def __init__(self,**kw):super().__init__(**kw);managers.append(self)
@@ -166,9 +167,10 @@ def test_worker_revalidates_dimensions_and_resets_tracks_on_reconnect(tmp_path,m
     reports=[d for n,d in writes if n=='calibration_status.json']
     assert [d['status'] for d in reports]==['READY','CALIBRATION_REQUIRED','READY']
     assert [d['generation'] for d in reports]==[1,1,2]
-    snapshots=[d for n,d in writes if n=='live_metrics.json' and d['current_detection_count']==2]
+    snapshots=[d for n,d in writes if n=='live_metrics.json' and d['current_detection_count']==3]
     assert len(snapshots)==4
     assert snapshots[2]['traffic_state']=='UNKNOWN' and snapshots[2]['unknown_movement_vehicles']==1
+    assert all(d['bicycles'] == 1 for d in snapshots)
     assert snapshots[-1]['generation']==2
     assert len(managers)==4  # Initial, first calibrated frame, shape change, generation change.
     assert len(managers[-1].tracks[7].history)==1
@@ -191,3 +193,18 @@ def test_malformed_calibration_fails_closed_without_crashing_worker(profiles,tmp
     p=EventPipeline(c,tmp_path,(944,1080))
     assert p.calibration.report['status']=='CALIBRATION_REQUIRED'
     assert p.congestion_rule is None and p.stopped_vehicle_rule is None and not p.wrong_way_rules
+
+
+@pytest.mark.parametrize("camera_id", ["camera-5", "camera-7"])
+def test_missing_live_profile_never_uses_generic_geometry(camera_id, tmp_path):
+    c = config()
+    c["camera_id"] = camera_id
+    c["allowed_direction"] = {"start": [200, 500], "end": [800, 500]}
+    before = deepcopy(c)
+    pipeline = EventPipeline(c, tmp_path, frame_size=(944, 1080))
+    assert pipeline.calibration is not None
+    assert not pipeline.calibration.enabled("road")
+    assert pipeline.congestion_rule is None
+    assert pipeline.stopped_vehicle_rule is None
+    assert not pipeline.wrong_way_rules
+    assert c == before

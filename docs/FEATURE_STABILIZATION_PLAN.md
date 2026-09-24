@@ -29,7 +29,7 @@ Acceptance: positive → zero → positive fixture matches frame timestamps; zer
 Tests: AI output and backend timeline regressions plus frontend playback tests. Resolve the known backend timeline message assertion against the intended API contract without weakening numeric checks.
 Depends on: baseline only. Deliver a separate commit with fixture-based evidence.
 
-## T03 — Disabled-calibration safety (P0)
+## T03 — Disabled-calibration safety (P0, implemented)
 
 Scope: bicycle aggregation when a calibration-dependent congestion rule is absent; camera-specific safe fallback.
 Reproduce the potential `int(None)` path before changing it. Avoid activating generic geometry for uncalibrated cameras.
@@ -119,3 +119,16 @@ Evidence and checks:
 - Updated the pre-existing timeline test's outdated message expectation while retaining exact count assertions.
 
 Limitations: this is validation against saved AI outputs and automated playback fixtures, not a new model inference or live-camera event validation. The changes are not deployed to the running application. Manifest and CSV must belong to the same completed analysis run; artifact generation identity/atomic multi-file publication remains a separate provenance concern.
+
+
+## T03 validation record — 2026-09-24
+
+Two minimal fixes:
+- Bicycle diagnostic ROI counting now handles unknown membership without `int(None)`. The underlying `bicycle_in_road` remains None when there is no calibrated rule; it is not relabeled as a confirmed outside-road detection.
+- An RTSP configuration with a camera calibration registry now requires a matching camera profile. Missing profiles disable geometry-dependent rules with an explicit diagnostic instead of falling back to generic geometry. Recorded configurations and legacy configurations without a registry preserve their existing behavior.
+
+Regression evidence: adding a bicycle to the existing simulated worker reconnect/resolution test reproduced a crash on the mismatched-resolution frame. Missing-profile tests also failed before the fix. Afterward, the worker processes car/person/bicycle detections through valid → invalid resolution → restored calibration, retains UNKNOWN traffic during invalid calibration, resets tracks on reconnect and emits no spurious event. Camera-5/camera-7 profile tests verify generic geometry is not activated, even when a generic direction is supplied.
+
+Validation: all 222 AI tests passed using a temporary test directory (`PYTHONDONTWRITEBYTECODE=1 ai/.venv/bin/python -m pytest ai/tests -q -p no:cacheprovider --basetemp=/tmp/cityeye-t03-ai`). This includes existing bounds, degenerate/self-intersecting polygons, zero direction, identity and resolution validation. `git diff --check` passed.
+
+No production camera configuration, model, tracking algorithm, threshold or ROI coordinates were changed. This is automated worker/pipeline regression with controlled detections, not a new real-camera observation. The running worker has not been restarted or deployed.
