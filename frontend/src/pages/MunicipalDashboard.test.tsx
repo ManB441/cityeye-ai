@@ -74,3 +74,45 @@ describe("Live truth",()=>{
     expect(screen.getByAltText("Raw live preview for DVR Camera 3")).toBeInTheDocument();
   });
 });
+
+describe("Incident review persistence", () => {
+  it.each([
+    ["live", "verify"], ["live", "dismiss"],
+    ["recorded", "verify"], ["recorded", "dismiss"],
+  ])("%s %s keeps proposed status on failed save and permits retry", async (mode, decision) => {
+    const savedStatus = decision === "verify" ? "VERIFIED" : "DISMISSED";
+    const buttonName = decision === "verify" ? "Verify event" : "Dismiss";
+    backend();
+    const original = vi.mocked(fetch).getMockImplementation()!;
+    let fail = true;
+    const incident = { event_id: "review-test", event_type: "WRONG_WAY", timestamp: 0, confidence: .9, severity: "HIGH", camera_name: "Test camera", explanation: "Review persistence test", evidence_image: "evidence/test.jpg", status: "PROPOSED" };
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (mode === "recorded" && url === "/api/live-cameras") return new Response("[]");
+      if (url.endsWith("/verify") || url.endsWith("/dismiss")) return fail
+        ? new Response("{}", { status: 500 })
+        : new Response(JSON.stringify({ ...incident, status: savedStatus }));
+      if (url.endsWith("/events")) return new Response(JSON.stringify({ events: [incident], total: 1 }));
+      return original(input, init);
+    });
+    render(<MunicipalDashboard auth={auth} />);
+    if (mode === "recorded") {
+      await screen.findByText(/Start recorded footage/);
+      const video = document.querySelector("video")!;
+      fireEvent.play(video);
+      fireEvent.timeUpdate(video);
+    }
+    fireEvent.click(await screen.findByRole("button", { name: "View" }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: buttonName }));
+    await screen.findByRole("alert");
+    expect(within(dialog).getByText("PROPOSED")).toBeInTheDocument();
+    expect(within(dialog).queryByText(savedStatus)).not.toBeInTheDocument();
+    await new Promise(resolve => setTimeout(resolve, 2100));
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    fail = false;
+    fireEvent.click(within(dialog).getByRole("button", { name: buttonName }));
+    await waitFor(() => expect(within(dialog).getByText(savedStatus)).toBeInTheDocument());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});

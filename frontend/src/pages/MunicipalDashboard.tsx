@@ -70,6 +70,8 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
       ? source.id
       : null;
 
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
   const now = useFreshnessClock();
 
   const [scenarios, setScenarios] = useState<ScenarioInfo[]>([]);
@@ -461,6 +463,8 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
     setSelectedEvent(null);
 
     setLiveError(null);
+    setReviewError(null);
+    setReviewingLiveId(null);
   }
 
 
@@ -484,6 +488,8 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
     setLiveEvents([]);
 
     setLiveError(null);
+    setReviewError(null);
+    setReviewingLiveId(null);
   }
 
 
@@ -495,84 +501,40 @@ export function MunicipalDashboard({ auth }: { auth: AuthState }) {
   ) {
     const origin = source;
 
-    const stillSelected = () =>
-      sourceRef.current.kind ===
-        origin.kind &&
-      sourceRef.current.id ===
-        origin.id;
+    const stillSelected = () => sourceRef.current === origin;
 
 
-    if (
-      liveMode &&
-      selectedLiveCamera
-    ) {
-      setReviewingLiveId(
-        event.event_id
-      );
-
-      try {
-        const updated =
-          await reviewLiveEvent(
-            selectedLiveCamera,
-            event.event_id,
-            decision
-          );
-
-        if (!stillSelected())
-          return;
-
-        setLiveEvents(
-          (current) =>
-            current.map(
-              (item) =>
-                item.event_id ===
-                  updated.event_id
-                  ? updated
-                  : item
-            )
-        );
-
-        setSelectedEvent(
-          updated
-        );
-      } finally {
-        setReviewingLiveId(null);
+    setReviewError(null);
+    try {
+      let updated: TrafficEvent | undefined;
+      if (liveMode && selectedLiveCamera) {
+        setReviewingLiveId(event.event_id);
+        updated = await reviewLiveEvent(selectedLiveCamera, event.event_id, decision);
+        if (!stillSelected()) return;
+        const saved = updated;
+        setLiveEvents(current => current.map(item => item.event_id === saved.event_id ? saved : item));
+      } else {
+        updated = await decide(event.event_id, decision);
       }
-
-      return;
+      if (!stillSelected() || !updated) return;
+      const saved = updated;
+      setSelectedEvent(current => current?.event_id === saved.event_id ? saved : current);
+    } catch (requestError) {
+      if (stillSelected()) {
+        setReviewError(requestError instanceof Error ? requestError.message : "Review action failed");
+      }
+    } finally {
+      if (stillSelected()) setReviewingLiveId(null);
     }
-
-
-    await decide(
-      event.event_id,
-      decision
-    );
-
-    if (!stillSelected())
-      return;
-
-    setSelectedEvent(
-      (current) =>
-        current?.event_id ===
-        event.event_id
-          ? {
-              ...current,
-              status:
-                decision === "verify"
-                  ? "VERIFIED"
-                  : "DISMISSED",
-            }
-          : current
-    );
   }
 
 
-  const combinedError =
+  const combinedError = reviewError ?? (
     liveMode
       ? liveError
       : scenarioError ??
         error ??
-        analysisError;
+        analysisError);
 
 
   return (

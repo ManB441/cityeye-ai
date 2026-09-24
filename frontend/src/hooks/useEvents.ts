@@ -46,12 +46,12 @@ export function useEvents(scenarioId: ScenarioId) {
     try {
       const updated = await reviewEvent(eventId, decision, scenarioId);
       if (selectedSource.current !== scenarioId) return;
+      ++requestVersion.current;
       setEvents((current) => current.map((event) => (
         event.event_id === updated.event_id ? updated : event
       )));
       setError(null);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Review action failed");
+      return updated;
     } finally {
       setReviewingEventId(null);
     }
