@@ -304,3 +304,28 @@ def test_live_preview_rejects_offline_camera_even_when_old_frame_exists(
     annotated_response = client.get("/media/live-cameras/camera-3.mjpg")
     assert annotated_response.status_code == 503
     assert annotated_response.json() == {"detail": "Camera camera-3 is offline."}
+
+
+def test_open_raw_preview_rechecks_health_and_generation(tmp_path, monkeypatch):
+    import app.main as main
+    directory = tmp_path / 'camera-3'
+    directory.mkdir()
+    status_file = directory / 'camera_status.json'
+    original = {'camera_id': 'camera-3', 'source_type': 'RTSP', 'state': 'ONLINE',
+                'last_frame_at': time.time(), 'heartbeat_at': time.time(), 'generation': 1}
+    status_file.write_text(json.dumps(original))
+    checked = []
+    def fake_frames(directory, **kwargs):
+        check = kwargs['is_current']
+        checked.append(check())
+        for update in [{'state': 'RECONNECTING'}, {'state': 'STALE'}, {'generation': 2},
+                       {'heartbeat_at': time.time() - 60, 'last_frame_at': time.time() - 60}]:
+            status_file.write_text(json.dumps({**original, **update}))
+            checked.append(check())
+        status_file.write_text('{invalid')
+        checked.append(check())
+        return iter(())
+    monkeypatch.setattr(main, 'mjpeg_frames', fake_frames)
+    client = TestClient(create_app(database_path=tmp_path / 'test.db', live_output_dir=tmp_path))
+    assert client.get('/media/live-cameras/camera-3/preview.mjpg').status_code == 200
+    assert checked == [True, False, False, False, False, False]

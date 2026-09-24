@@ -116,3 +116,37 @@ it.each(["Verify", "Dismiss"])("ignores a recorded poll started before %s comple
   expect(within(row).getByText(status)).toBeInTheDocument();
   expect(within(screen.getByRole("dialog")).getByText(status)).toBeInTheDocument();
 });
+
+// Controlled synthetic proposal: validates review UI, not physical vehicle motion.
+it.each(["Verify", "Dismiss"])("can view and %s a stopped-vehicle proposal and reload its saved state", async (action) => {
+  const mock = backend(); const original = mock.getMockImplementation()!;
+  let stored: TrafficEvent = {
+    ...live, event_type: "STOPPED_VEHICLE", explanation: "SYNTHETIC stopped-vehicle regression",
+    details: {
+      track_id: 1, stationary_duration_seconds: 8, movement_value: 0,
+      pixel_speed_debug: 0, roi_status: "INSIDE", movement_state: "STATIONARY",
+      was_previously_moving: true,
+    },
+  };
+  mock.mockImplementation(async (input, init) => {
+    const url = String(input);
+    if (url === "/api/events") return new Response(JSON.stringify({ events: [stored], total: 1 }));
+    if (url === `/api/events/live-uuid/${action.toLowerCase()}`) {
+      stored = { ...stored, status: action === "Verify" ? "VERIFIED" : "DISMISSED" };
+      return new Response(JSON.stringify(stored));
+    }
+    return original(input, init);
+  });
+  const page = render(<IncidentsPage auth={auth("EMPLOYEE")} />);
+  const label = await screen.findByText("LIVE · DVR Camera 3");
+  fireEvent.click(within(label.closest("article")!).getByRole("button", { name: "View" }));
+  const dialog = screen.getByRole("dialog");
+  expect(within(dialog).getByText("8.0s")).toBeInTheDocument();
+  expect(within(dialog).getByText("INSIDE")).toBeInTheDocument();
+  expect(within(dialog).getByRole("img")).toHaveAttribute("src", "/evidence/live-cameras/camera-3/live.jpg");
+  fireEvent.click(within(dialog).getByRole("button", { name: action === "Verify" ? "Verify event" : "Dismiss" }));
+  await waitFor(() => expect(within(dialog).getByText(stored.status)).toHaveTextContent(action === "Verify" ? "VERIFIED" : "DISMISSED"));
+  page.unmount(); render(<IncidentsPage auth={auth("EMPLOYEE")} />);
+  const restored = await screen.findByText("LIVE · DVR Camera 3");
+  expect(within(restored.closest("article")!).getByText(stored.status)).toBeInTheDocument();
+});

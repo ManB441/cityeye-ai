@@ -86,3 +86,28 @@ describe("LiveMjpegImage", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 });
+
+it.each(["live", "ai"] as const)("%s gets a fresh retry budget after recovery", mode => {
+  vi.useFakeTimers();
+  render(<LiveMjpegImage cameraId="camera-3" mode={mode} alt="Camera feed" />);
+  for (let episode = 0; episode < 5; episode++) {
+    fireEvent.error(streamImage());
+    expect(screen.getByRole("status")).toHaveTextContent("RECONNECTING");
+    act(() => vi.advanceTimersByTime(500));
+    expect(streamImage().getAttribute("src")).toContain(`retry=${episode + 1}`);
+    fireEvent.load(streamImage());
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  }
+});
+
+it("manual reconnect resets the automatic retry budget", () => {
+  vi.useFakeTimers();
+  render(<LiveMjpegImage cameraId="camera-3" alt="Camera feed" />);
+  for (const delay of [500, 1000, 2000]) { fireEvent.error(streamImage()); act(() => vi.advanceTimersByTime(delay)); }
+  fireEvent.error(streamImage());
+  fireEvent.click(screen.getByRole("button", { name: "Reconnect stream" }));
+  fireEvent.error(streamImage());
+  expect(screen.getByRole("status")).toHaveTextContent("RECONNECTING");
+  act(() => vi.advanceTimersByTime(500));
+  expect(streamImage().getAttribute("src")).toContain("retry=5");
+});

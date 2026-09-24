@@ -43,7 +43,7 @@ Acceptance: a GET started before a completed review cannot revert the saved stat
 Tests: deferred-response race tests, both review decisions, source switch, reload and keyboard interaction. Keep concurrency fixes separate from cosmetic changes if necessary.
 Depends on T01.
 
-## T05 — Stopped Vehicle end-to-end (P0 validation)
+## T05 — Stopped Vehicle end-to-end (P0 validation, DEFERRED by user — natural positive evidence pending)
 
 Scope: moving → inside valid ROI → stationary for configured duration → one proposed event → evidence → DB → review.
 Observe Camera 3 over a documented reasonable interval. Record track, transitions, duration, UUID, evidence, DB status and review outcome. If no qualifying natural sequence occurs, mark REAL CAMERA NOT VALIDATED and use the existing recorded scenario for a separately labeled RECORDED DEMO test.
@@ -51,7 +51,7 @@ Acceptance: pre-existing parked vehicles produce no event; one episode produces 
 Tests: state-machine regression plus recorded pipeline and import/review integration. Only a demonstrated minimal algorithm bug permits a behavior change.
 Depends on T01 and T03. A lack of real-world opportunity is not a passing result.
 
-## T06 — Live preview and reconnection reliability (P1)
+## T06 — Live preview and reconnection reliability (P1, implemented; natural recovery timing not observed)
 
 Scope: stream failure, stale health, recovery and generation transitions.
 Acceptance: stale/offline feeds do not appear live; raw and AI views recover after reconnect; old-generation metrics remain unknown; a timed soak records reconnects per observation duration, dropped frames and recovery latency.
@@ -153,3 +153,30 @@ Validation:
 - App and node TypeScript checks passed; production Vite build passed (62 modules, temporary output `/tmp/cityeye-t04-build`). `git diff --check` passed.
 
 These are frontend integration tests with controlled API responses, not proof of new database writes or live-camera events. Backend/AI algorithms and production data were not modified. The running application has not been redeployed. Requests initiated after a completed review remain authoritative, allowing legitimate later server updates rather than permanently pinning a local decision.
+
+
+## T05 validation record — 2026-09-24
+
+Status: PARTIAL. Real Camera 3 remains NOT VALIDATED; the current recorded clip does not pass positive moved-then-stopped acceptance. No production bug was demonstrated in this run and no production behavior was changed.
+
+- Passive Camera 3 observation: 300.86 seconds, 151 samples, 151 distinct preview hashes and sampled AI frames. Maximum vehicles/tracks: 0/0. Current frames are dark/glared; the existing daytime ROI cannot be visually validated. No new live incident was generated. A read-only production DB query returned no STOPPED_VEHICLE rows.
+- Actual recorded rerun: all 318 frames at 1920×1080/30 FPS, 1672 detection/track rows, zero events. The prominent car is already stopped at the beginning. Assigned track IDs do not establish physical movement or stable identity. The generic scenario geometry is not newly certified for this source resolution. No positive recorded event, evidence or DB persistence is claimed.
+- Separate SYNTHETIC regression with existing Camera 3 geometry and 8-second threshold: two stopped episodes produce exactly two proposals after sustained motion/rearm. A pre-existing stationary track produces no event; continued stationary frames produce no repeats. Detection and ByteTrack are bypassed in this synthetic check.
+- The actual generated synthetic proposals and evidence were automatically imported into temporary backend databases. Four cases (EMPLOYEE/ADMIN × Verify/Dismiss) verified evidence access, list/detail access, persisted review across restart and duplicate-import suppression. No synthetic proposal entered production.
+- Added two stopped-vehicle review UI tests for View, measured details, Verify/Dismiss and remount persistence with controlled API responses. This is not a manual production browser validation.
+- Checks: 38 stopped/pipeline AI tests, 11 backend import tests and all 77 frontend tests passed. TypeScript passed. Only tests and this plan changed in Git.
+
+Local evidence is retained under `diagnostics/camera3-stopped-validation/2026-09-24/`: validation-report.json, validation-report.md, validation-frame.jpg, validation-overlay.jpg, raw observation samples, recorded outputs, synthetic outputs and diagnostic scripts. Historical reports remain untouched. Images, videos, local artifacts and temporary test credentials are excluded from commits.
+
+Next action: obtain a clear daytime Camera 3 sequence with sustained movement inside the existing ROI followed by at least 8 seconds stopped, then repeat positive end-to-end acceptance. Do not label T05 complete until observed evidence supports it.
+
+
+## T06 validation record — 2026-09-24
+
+Fixed two reproduced issues: cumulative retry exhaustion after successful recovery, and raw MJPEG health checked only on connection opening. Raw/AI frontend retries now use a consecutive-failure budget independent of the URL token. Success, manual retry and source/mode changes restore the budget; backoff limits remain unchanged. Raw streams now close when existing health validity, source identity or connection generation checks fail, using the existing 250 ms currentness polling. AI freshness behavior is unchanged.
+
+Validation: 252 backend tests, 80 frontend tests and 25 frame-source tests passed; TypeScript and production frontend build passed. Before fixes, all three new frontend retry regressions and the new raw endpoint currentness regression failed.
+
+Passive Camera 3 observation: 120.24 seconds / 61 samples, all ONLINE, generation 127 throughout, reconnect counter 884 → 884, reported dropped-frame delta 0. Mean capture/preview/AI FPS: 12.03/10.95/3.95. No natural reconnect occurred; actual recovery latency remains unmeasured. No deliberate interruption of the sole camera, worker restart, production DB write or deployment was performed. This short sample does not certify long-term reliability.
+
+Local report and telemetry: `diagnostics/live-reliability/2026-09-24/report.md`, `report.json`, `observation.json`, and test logs. Existing Camera 3 daylight-only calibration/manual nighttime-disable policy remains documented and unchanged. T05 is deferred at the user's request; a second camera is not required for these controlled reliability tests.
