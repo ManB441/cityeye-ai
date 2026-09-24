@@ -264,3 +264,7 @@ npm run build
 ## License
 
 University competition project — see team documentation for license details.
+
+### Isolated validation and recovery rehearsal
+
+Run `./scripts/smoke-test.sh` for a disposable synthetic API and database recovery check. It accepts no server URL and does not touch the running stack. See [reproducible validation](docs/REPRODUCIBLE_VALIDATION.md) for prerequisites, recorded-input preflight, clean builds and backup limitations.

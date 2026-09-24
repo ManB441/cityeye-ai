@@ -78,7 +78,7 @@ Acceptance: sampled detections are not labeled unique throughput; missing minute
 Tests: multi-camera fixtures, irregular sample timing, zero/missing periods and UI rendering. Do not invent unavailable speed or forecast data.
 Depends on T02.
 
-## T10 — Repeatable tests, backups and reproducibility (P1)
+## T10 — Repeatable tests, backups and reproducibility (P1, implemented; not deployed)
 
 Scope: isolate the obsolete smoke script, align role names, document runtime prerequisites and verify backup restoration safely.
 Acceptance: smoke tests leave the operational DB unchanged; a backup restores into a disposable database with integrity checks; required config/model/video prerequisites and versions are documented; absent local assets produce actionable errors.
@@ -213,3 +213,14 @@ Reproduced three backend failures: name-based incident attribution mixed other/r
 Three frontend regressions reproduced compressed time gaps/connected history, UNKNOWN classification displayed as no congestion, and absent per-state counts. Chart dots now use real bucket timestamps across the requested axis with no interpolation. Zero observations remain zero; unobserved buckets remain absent. UI labels the existing minutes fields as sample-equivalent estimates, uses the configured sample interval, and flags no recent observation near the requested end (over two sampling intervals). This is not a camera-health assertion. Loading, empty, failed source switch and retry behavior are covered; counts remain sampled detections, never unique throughput.
 
 Validation: all 262 backend tests and 84 frontend tests passed, including four new backend and four new frontend regressions. App/node TypeScript checks and Vite production build passed (output `/tmp/cityeye-t09-build`); `git diff --check` passed. No model, tracker, camera geometry, thresholds, capture/event rules, production DB, or running services were modified. These are isolated multi-source fixtures and frontend integration checks, not a new live-camera observation or deployment. Long-range event-query scaling remains T11; no speeds or forecasts were invented.
+
+
+## T10 validation record — 2026-09-24
+
+Replaced obsolete remote-target/Docker smoke entry points with an in-process, temporary-directory SYNTHETIC API check. Old OPERATOR/REVIEWER roles are gone from the smoke; ADMIN/EMPLOYEE/CITIZEN and session revocation are exercised. No host URL or destination DB argument is accepted, no Docker volumes are deleted, and inherited CityEye environment paths are cleared before importing the application. A sentinel-DB regression confirms inherited operational paths remain unchanged. Both new isolation regressions failed against the previous script.
+
+The smoke creates a real SQLite backup of the synthetic current-schema DB, verifies its checksum/integrity, restores into a new disposable DB, compares full schema/data dumps and the unchanged source hash, and checks login, dismissed event and audit persistence after application restart. Existing production backup code did not require modification. No live backup or production restore was performed.
+
+Added a stdlib-only recorded-input preflight with actionable missing config/video/model messages and calibrated source-hash verification, without downloading assets. Actual local Maydan preflight passed; a clean source snapshot correctly rejected its absent video/weights. This does not claim to decode the video or load YOLO.
+
+Validation: all 266 backend tests passed, including four new smoke/preflight regression tests and the existing backup suite. Shell syntax and `git diff --check` passed. Direct shell smoke and clean-snapshot smoke passed. Clean source frontend `npm ci --offline --no-audit --no-fund` and `npm run build` passed using the local cache. Backend smoke reused the existing Python environment; no fresh dependency installation, Docker build or real-camera validation is claimed. Runtime/local versions and the local AI NumPy mismatch are documented in `docs/REPRODUCIBLE_VALIDATION.md`. Database backup excludes external media/configuration/secrets. Public deployment hardening remains separate.
