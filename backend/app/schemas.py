@@ -163,6 +163,10 @@ class EventListResponse(BaseModel):
     total: int = Field(ge=0)
 
 
+class EventPageResponse(EventListResponse):
+    next_cursor: str | None = None
+
+
 class CameraHealthResponse(BaseModel):
     """Sanitized runtime state published by one selected live camera."""
 

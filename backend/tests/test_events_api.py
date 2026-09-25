@@ -77,7 +77,7 @@ def test_list_events_returns_empty_wrapper(client: TestClient) -> None:
     response = client.get("/api/events")
 
     assert response.status_code == 200
-    assert response.json() == {"events": [], "total": 0}
+    assert response.json() == {"events": [], "total": 0, "next_cursor": None}
 
 
 def test_get_event_returns_stored_event(client: TestClient) -> None:

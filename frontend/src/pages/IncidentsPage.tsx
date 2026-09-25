@@ -10,6 +10,10 @@ type IncidentRow = { event: TrafficEvent; scenarioId?: ScenarioId };
 export function IncidentsPage({ auth }: { auth: AuthState }) {
   const [snapshots, setSnapshots] = useState<ScenarioSnapshot[]>([]);
   const [liveEvents, setLiveEvents] = useState<TrafficEvent[]>([]);
+  const [historyCursor, setHistoryCursor] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [pageLoading, setPageLoading] = useState(true);
   const [liveError, setLiveError] = useState<string | null>(null);
   const reviewVersion = useRef(0);
   const pendingReview = useRef(false);
@@ -57,28 +61,33 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
   }, []);
   useEffect(() => {
     const controller = new AbortController();
+    setLiveEvents([]);
+    setNextCursor(null);
+    setPageLoading(true);
     let inFlight = false;
     async function refresh() {
       if (inFlight) return;
       inFlight = true;
       const version = reviewVersion.current;
       try {
-        const result = await fetchPersistentEvents(controller.signal);
+        const result = await fetchPersistentEvents(controller.signal, historyCursor);
         if (controller.signal.aborted || version !== reviewVersion.current) return;
         const items = result.events.filter((event) => event.source_type === "LIVE_CAMERA");
         setLiveEvents(items);
+        setNextCursor(result.next_cursor ?? null);
+        setHistoryTotal(result.total);
         setSelected((current) => current && !current.scenarioId
           ? { ...current, event: items.find((event) => event.event_id === current.event.event_id) ?? current.event }
           : current);
         setLiveError(null);
       } catch {
         if (!controller.signal.aborted && version === reviewVersion.current) setLiveError("Live incidents are unavailable. Recorded demos remain available.");
-      } finally { inFlight = false; }
+      } finally { inFlight = false; if (!controller.signal.aborted) setPageLoading(false); }
     }
     void refresh();
     const timer = window.setInterval(() => void refresh(), 2_000);
     return () => { controller.abort(); window.clearInterval(timer); };
-  }, []);
+  }, [historyCursor]);
 
   const incidents = useMemo(
     () =>
@@ -145,6 +154,12 @@ export function IncidentsPage({ auth }: { auth: AuthState }) {
       {reviewError && <div className="command-error" role="alert">{reviewError}</div>}
       {error && <div className="command-error" role="alert">{error}</div>}
       {liveError && <div className="command-error" role="alert">{liveError}</div>}
+      <div className="filter-tabs" aria-label="Live history pages">
+        <span>{pageLoading ? "Loading live history…" : `${liveEvents.length} live events on this page · ${historyTotal} in history`}</span>
+        <button disabled={!historyCursor || pageLoading || reviewing !== null} onClick={() => { setSelected(null); setHistoryCursor(null); }}>Latest live events</button>
+        <button disabled={!nextCursor || pageLoading || reviewing !== null} onClick={() => { setSelected(null); setHistoryCursor(nextCursor); }}>Older live events</button>
+      </div>
+      <p>Filters apply to this live page and the recorded demos below. Return to the latest page to see new live events.</p>
       <div className="filter-tabs incident-filters">
         {(["ALL", "PROPOSED", "VERIFIED", "DISMISSED", "HIGH"] as const).map(
           (item) => (

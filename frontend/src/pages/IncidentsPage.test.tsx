@@ -26,7 +26,7 @@ function backend() {
   const mock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const url = String(input);
     const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
-    if (url === "/api/events") return json({ events: [stored, recorded], total: 2 });
+    if (url.startsWith("/api/events?")) return json({ events: [stored, recorded], total: 2 });
     if (url === "/api/scenarios") return json({ scenarios: [{ scenario_id: "congestion", title: "Heavy Congestion" }] });
     if (url.endsWith("/analysis/summary")) return json({ status: "READY" });
     if (url === "/api/scenarios/congestion/events") return json({ events: [recorded], total: 1 });
@@ -130,7 +130,7 @@ it.each(["Verify", "Dismiss"])("can view and %s a stopped-vehicle proposal and r
   };
   mock.mockImplementation(async (input, init) => {
     const url = String(input);
-    if (url === "/api/events") return new Response(JSON.stringify({ events: [stored], total: 1 }));
+    if (url.startsWith("/api/events?")) return new Response(JSON.stringify({ events: [stored], total: 1 }));
     if (url === `/api/events/live-uuid/${action.toLowerCase()}`) {
       stored = { ...stored, status: action === "Verify" ? "VERIFIED" : "DISMISSED" };
       return new Response(JSON.stringify(stored));
@@ -149,4 +149,32 @@ it.each(["Verify", "Dismiss"])("can view and %s a stopped-vehicle proposal and r
   page.unmount(); render(<IncidentsPage auth={auth("EMPLOYEE")} />);
   const restored = await screen.findByText("LIVE · DVR Camera 3");
   expect(within(restored.closest("article")!).getByText(stored.status)).toBeInTheDocument();
+});
+
+
+it("pages live history without retaining older pages and can return to latest", async () => {
+  const mock = backend();
+  const old = { ...live, event_id: "older", explanation: "Older history record" };
+  const original = mock.getMockImplementation()!;
+  mock.mockImplementation(async (input, init) => {
+    const url = String(input);
+    if (url.startsWith("/api/events?")) {
+      const params = new URL(url, "http://localhost").searchParams;
+      expect(params.get("source_type")).toBe("LIVE_CAMERA");
+      expect(params.get("limit")).toBe("100");
+      return new Response(JSON.stringify(params.has("cursor")
+        ? { events: [old], total: 2, next_cursor: null }
+        : { events: [live], total: 2, next_cursor: "snapshot-cursor" }));
+    }
+    return original(input, init);
+  });
+  render(<IncidentsPage auth={auth("EMPLOYEE")} />);
+  await screen.findByText("Controlled live proposal");
+  fireEvent.click(screen.getByRole("button", { name: "Older live events" }));
+  await screen.findByText("Older history record");
+  expect(screen.queryByText("Controlled live proposal")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Older live events" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Latest live events" }));
+  await screen.findByText("Controlled live proposal");
+  expect(screen.queryByText("Older history record")).not.toBeInTheDocument();
 });
