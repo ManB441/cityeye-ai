@@ -575,7 +575,7 @@ class CitizenReportRepository:
             ).fetchone()
         return self._to_report(row) if row is not None else None
 
-    def list(self) -> list[CitizenReportResponse]:
+    def list(self, limit: int | None = None) -> list[CitizenReportResponse]:
         """Return all reports newest first."""
         with self._connect() as connection:
             rows = connection.execute(
@@ -583,8 +583,9 @@ class CitizenReportRepository:
                 SELECT report_id, category, description, latitude, longitude,
                        demo_user_id, reported_at, status
                 FROM citizen_reports
-                ORDER BY reported_at DESC, report_id ASC
-                """
+                ORDER BY reported_at DESC, report_id ASC LIMIT ?
+                """,
+                (limit if limit is not None else -1,),
             ).fetchall()
         return [self._to_report(row) for row in rows]
 
