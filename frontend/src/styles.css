@@ -81,3 +81,21 @@ button, input { font:inherit; } button { cursor:pointer; } button:disabled { cur
 @media(prefers-reduced-motion:reduce) { .login-card,.login-network i { animation:none; } .login-submit { transition:none; } }
 
 .login-password { display:grid; gap:8px; }
+
+/* Geographic observations: provider canvas and accessible parallel list. */
+.map-toolbar,.map-legend{display:flex;flex-wrap:wrap;gap:16px;padding:16px 0}.map-toolbar label,.map-legend span{display:flex;align-items:center;gap:8px;font-size:.8rem}.cityeye-map-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:16px}.traffic-map-shell{position:relative;min-height:540px;border:1px solid var(--line);background:#0d1c25;border-radius:12px;overflow:hidden}.google-traffic-map{height:540px;width:100%}.map-setup{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;background:#0d1c25}.map-setup p{max-width:430px;line-height:1.7;color:#a5bbc6}.map-observations{border:1px solid var(--line);padding:16px;border-radius:12px;max-height:540px;overflow:auto}.map-observations h2{font-size:1rem}.map-observations>p,.map-notice{color:#95abb7;font-size:.8rem;line-height:1.65}.map-observations>button{display:flex;text-align:left;gap:12px;align-items:center;width:100%;padding:13px;margin:8px 0;background:#10212c;border:1px solid var(--line);border-radius:8px;color:#d6e6ef}.map-observations>button.selected{border-color:#42b8d0}.map-observations small{display:block;margin-top:5px;font-size:.68rem;color:#a5bac5}.map-observations i,.map-legend i{display:inline-block;width:11px;height:11px;border-radius:50%;flex-shrink:0}.map-detail{padding:20px;border:1px solid var(--line);border-radius:12px}.map-detail h2{font-size:1.1rem}.map-detail p{font-size:.85rem;color:#a5bbc6}.map-detail>button{float:right}@media(max-width:850px){.cityeye-map-layout{grid-template-columns:1fr}.traffic-map-shell,.google-traffic-map{min-height:380px;height:380px}.map-observations{max-height:300px}}
+
+.journey-map .map-detail button {
+  background: #18c6c4;
+  color: #062329;
+  border: 1px solid #32d9d5;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.journey-map .map-detail button:disabled { opacity: .6; cursor: wait; }
+.journey-map .map-detail button:focus-visible { outline: 3px solid white; outline-offset: 3px; }
+.location-help { padding: 16px; border: 1px solid #dfaa42; border-radius: 8px; margin-top: 16px; }
+.location-help li { margin-block: 10px; line-height: 1.7; }

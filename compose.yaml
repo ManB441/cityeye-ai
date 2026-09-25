@@ -21,6 +21,7 @@ services:
       CITYEYE_SCENARIO_OUTPUT_ROOT: /ai/scenario_outputs
       CITYEYE_LIVE_OUTPUT_DIR: /ai/live_output
       CITYEYE_LIVE_AI_MAX_AGE_SECONDS: ${CITYEYE_LIVE_AI_MAX_AGE_SECONDS:-5}
+      CITYEYE_MAP_CONFIG: ${CITYEYE_MAP_CONFIG:-}
       CITYEYE_LIVE_CAMERA_IDS: ${CITYEYE_LIVE_CAMERA_IDS:-camera-3}
     volumes:
       - cityeye_database:/data
@@ -46,6 +47,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
     restart: unless-stopped
     depends_on:
       backend:

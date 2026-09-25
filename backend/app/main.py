@@ -33,6 +33,7 @@ from app.database import (
     EventRepository,
     TrafficObservationRepository,
 )
+from app.map_view import load_map_config, map_snapshot
 from app.live_incidents import LiveIncidentImporter
 from app.live_camera import mjpeg_frames, read_camera_health, read_live_snapshot
 from app.operational_analytics import (
@@ -474,6 +475,7 @@ def create_app(
                 )
             citizen_surface = (
                 path in {"/api/auth/login", "/api/auth/session", "/api/auth/logout"}
+                or (path == "/api/map" and request.method in {"GET", "HEAD"})
                 or (path == "/api/citizen-reports" and request.method in {"GET", "HEAD", "POST"})
                 or (re.fullmatch(r"/api/citizen-reports/[^/]+", path) is not None
                     and request.method in {"GET", "HEAD"})
@@ -1073,6 +1075,15 @@ def create_app(
     ) -> TrafficEventResponse:
         """Apply a municipal human dismissal decision."""
         return apply_review(event_id, EventStatus.DISMISSED, actor, request)
+
+    @application.get("/api/map", tags=["map"])
+    def geographic_map(actor: AuthenticatedUser = Depends(require_user)):
+        try:
+            config = load_map_config(os.getenv("CITYEYE_MAP_CONFIG"))
+        except (OSError, ValueError):
+            raise HTTPException(status_code=503, detail="Map geographic configuration is invalid or unavailable")
+        return map_snapshot(config, selected_live_output_dir, repository,
+                            citizen_report_repository.list(limit=200), citizen=actor.role == "CITIZEN")
 
     @application.post(
         "/api/citizen-reports",

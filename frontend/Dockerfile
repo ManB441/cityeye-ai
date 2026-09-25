@@ -15,6 +15,9 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 FROM dependencies AS build
 
+ARG VITE_GOOGLE_MAPS_API_KEY=""
+ENV VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
+
 COPY . ./
 RUN npm run build
 

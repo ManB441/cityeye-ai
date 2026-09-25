@@ -46,7 +46,7 @@ export default function App() {
       <Route path="/incidents" element={<IncidentsPage auth={auth} />} />
       <Route path="/users" element={auth.user?.role === "ADMIN" ? <UsersPage /> : <AccessRestricted />} />
       <Route path="/analytics" element={<AnalyticsPage />} />
-      <Route path="/citizen-map" element={<CitizenMapPage />} />
+      <Route path="/citizen-map" element={<CitizenMapPage key={`${auth.user?.user_id}:${auth.user?.role}`} />} />
       <Route path="/map" element={<Navigate to="/citizen-map" replace />} />
       <Route path="*" element={<Navigate to="/command-center" replace />} />
     </Routes></div>

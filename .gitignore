@@ -38,3 +38,7 @@ frontend/vite.config.d.ts
 
 # YOLO model weights (downloaded on first run)
 *.pt
+
+# Local browser configuration / Maps key
+.env.local
+.env.*.local

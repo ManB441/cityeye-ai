@@ -236,8 +236,9 @@ npm run dev
 
 Open `http://127.0.0.1:5173` after starting FastAPI on port `8000`; Vite proxies
 `/api`, `/evidence`, and `/media`. The UI includes Command Center, Cameras,
-Incidents, Analytics and role-gated account administration. Citizen Map currently
-has no map provider configured and displays a placeholder plus available reports.
+Incidents, Analytics and role-gated account administration. Citizen Map integrates Google Maps with road/camera/incident/report layers. A restricted
+Google browser key and confirmed geographic configuration are required; see
+[Google Maps setup](docs/GOOGLE_MAPS_SETUP.md). Unconfigured locations are not guessed.
 
 Recorded scenarios include `normal_traffic`, `congestion`, `stopped_vehicle`,
 `rainy_traffic` and `maydan_palestine`. Generated media and analysis remain outside

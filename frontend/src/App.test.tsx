@@ -77,6 +77,7 @@ function mockBackend(
     const url = String(input);
     if (url === "/health/ready") return jsonResponse({ status: "ready", service: "cityeye-ai-backend", components: {} });
     if (url === "/api/citizen-reports") return jsonResponse({ reports: [], total: 0 });
+    if (url === "/api/map") return jsonResponse({ type: "FeatureCollection", features: [], scope: "PUBLIC", configured_cameras: 0 });
     if (url === "/api/auth/session") return jsonResponse(authSession);
     if (url === "/api/live-cameras") return jsonResponse([]);
     if (url.startsWith("/api/analytics/traffic?")) return jsonResponse(operationalAnalytics);
@@ -162,7 +163,7 @@ describe("CityEye municipal dashboard", () => {
     expect(await screen.findByRole("heading", { name: "Citizen Map" })).toBeInTheDocument();
     expect(screen.getAllByRole("link").map(link => link.getAttribute("href"))).toEqual(["/citizen-map"]);
     const urls = request.mock.calls.map(([url]) => String(url));
-    expect(urls.every(url => ["/api/auth/session", "/api/citizen-reports"].includes(url))).toBe(true);
+    expect(urls.every(url => ["/api/auth/session", "/api/citizen-reports", "/api/map"].includes(url))).toBe(true);
     expect(screen.queryByRole("button", { name: "Verify" })).not.toBeInTheDocument();
   });
 
@@ -225,11 +226,12 @@ describe("CityEye municipal dashboard", () => {
     await waitFor(() => expect(within(metrics).getByText("Vehicles").parentElement).toHaveTextContent("2"));
   });
 
-  it("shows a truthful Citizen Map placeholder", async () => {
+  it("shows map setup honestly when no Google key is configured", async () => {
     mockBackend();
     render(<MemoryRouter initialEntries={["/map"]}><App /></MemoryRouter>);
     expect(await screen.findByRole("heading", { name: "Citizen Map" })).toBeInTheDocument();
-    expect(screen.getAllByText("NOT YET AVAILABLE").length).toBeGreaterThan(0);
+    expect(screen.getByText("حدد موقعك من الجهاز")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Map legend" })).toBeInTheDocument();
   });
 
   it("shows only real configured camera sources", async () => {
@@ -249,6 +251,7 @@ describe("CityEye municipal dashboard", () => {
       if (url === "/api/auth/session") return jsonResponse({ auth_required: false, user: { user_id: "demo", username: "Demo Operator", role: "ADMIN" } });
       if (url === "/api/scenarios") return jsonResponse({ scenarios: [] });
       if (url === "/api/citizen-reports") return jsonResponse({ reports: [], total: 0 });
+    if (url === "/api/map") return jsonResponse({ type: "FeatureCollection", features: [], scope: "PUBLIC", configured_cameras: 0 });
       return jsonResponse({ detail: "Not Found" }, 404);
     });
     render(<MemoryRouter initialEntries={["/analytics"]}><App /></MemoryRouter>);
@@ -276,6 +279,7 @@ describe("CityEye municipal dashboard", () => {
       if (url === "/health/ready") return jsonResponse({ status: "ready", service: "cityeye-ai-backend", components: {} });
       if (url === "/api/auth/session") return jsonResponse({ auth_required: false, user: { user_id: "demo", username: "Demo", role: "ADMIN" } });
       if (url === "/api/citizen-reports") return jsonResponse({ reports: [], total: 0 });
+    if (url === "/api/map") return jsonResponse({ type: "FeatureCollection", features: [], scope: "PUBLIC", configured_cameras: 0 });
       if (url === "/api/live-cameras") return jsonResponse([]);
       return jsonResponse({ detail: "Not found" }, 404);
     });
@@ -291,6 +295,7 @@ describe("CityEye municipal dashboard", () => {
       if (url === "/health/ready") return jsonResponse({ status: "ready", service: "cityeye-ai-backend", components: {} });
       if (url === "/api/auth/session") return jsonResponse({ auth_required: false, user: { user_id: "demo", username: "Demo", role: "ADMIN" } });
       if (url === "/api/citizen-reports") return jsonResponse({ reports: [], total: 0 });
+    if (url === "/api/map") return jsonResponse({ type: "FeatureCollection", features: [], scope: "PUBLIC", configured_cameras: 0 });
       if (url === "/api/live-cameras") return jsonResponse([]);
       return jsonResponse({ detail: "Not found" }, 404);
     });
@@ -304,6 +309,7 @@ describe("CityEye municipal dashboard", () => {
       if (url === "/health/ready") return jsonResponse({ status: "ready", service: "cityeye-ai-backend", components: {} });
       if (url === "/api/auth/session") return jsonResponse({ auth_required: false, user: { user_id: "demo", username: "Demo", role: "ADMIN" } });
       if (url === "/api/citizen-reports") return jsonResponse({ reports: [], total: 0 });
+    if (url === "/api/map") return jsonResponse({ type: "FeatureCollection", features: [], scope: "PUBLIC", configured_cameras: 0 });
       if (url === "/api/live-cameras") return jsonResponse([]);
       if (url.startsWith("/api/analytics/traffic?")) return jsonResponse({ detail: "failed" }, 500);
       return jsonResponse({ detail: "Not found" }, 404);
