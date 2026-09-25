@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../api/auth";
-import { GoogleTrafficMap } from "../maps/GoogleTrafficMap";
+import { JourneyMap } from "../maps/JourneyMap";
 import { expireFeatures, featureColor, type MapKind, type MapSnapshot } from "../maps/model";
 import { PageTitle } from "./CamerasPage";
 
@@ -47,7 +47,7 @@ export function CitizenMapPage() {
     {error && <div className="command-error" role="alert">{error}<button onClick={() => setRetry(value => value + 1)}>Retry data</button></div>}
     {loading && <p role="status">Loading map observations…</p>}
     <section className="cityeye-map-layout">
-      <GoogleTrafficMap features={features} onSelect={setSelected} />
+      <JourneyMap features={features} onSelect={setSelected} />
       <aside className="map-observations" aria-label="Map observations">
         <h2>{features.length} visible observations</h2>
         {snapshot && snapshot.data.configured_cameras === 0 && <p>No confirmed camera locations are configured. No road or camera position is guessed.</p>}

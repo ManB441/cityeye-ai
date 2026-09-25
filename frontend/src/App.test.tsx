@@ -230,7 +230,7 @@ describe("CityEye municipal dashboard", () => {
     mockBackend();
     render(<MemoryRouter initialEntries={["/map"]}><App /></MemoryRouter>);
     expect(await screen.findByRole("heading", { name: "Citizen Map" })).toBeInTheDocument();
-    expect(screen.getByText("Google Maps setup required")).toBeInTheDocument();
+    expect(screen.getByText("حدد موقعك من الجهاز")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Map legend" })).toBeInTheDocument();
   });
 

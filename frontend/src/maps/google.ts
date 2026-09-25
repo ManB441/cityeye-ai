@@ -1,7 +1,11 @@
 // Narrow SDK surface used by this integration; no key or response is logged.
 import type { MapFeature } from "./model";
 export type DataFeature = { getProperty(name: string): unknown };
+export type Position = { lat: number; lng: number };
 export type GoogleMap = {
+  setCenter(point: Position): void;
+  setZoom(zoom: number): void;
+  addListener(name: string, callback: (event: { latLng?: { lat(): number; lng(): number } }) => void): { remove(): void };
   data: { addGeoJson(data: { type: string; features: MapFeature[] }): void;
     forEach(callback: (feature: DataFeature) => void): void; remove(feature: DataFeature): void;
     setStyle(callback: (feature: DataFeature) => object): void;

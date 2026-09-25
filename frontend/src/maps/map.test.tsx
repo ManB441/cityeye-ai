@@ -45,7 +45,7 @@ it("loads the SDK only once and replaces map data without reloading the base map
   const removed = vi.fn();
   const addGeoJson = vi.fn();
   const Map = vi.fn(function () { return { data: { addGeoJson, forEach: vi.fn(), remove: vi.fn(), setStyle: vi.fn(),
-    addListener: (_name: string, cb: typeof callback) => { callback = cb; return { remove: removed }; } }, fitBounds: vi.fn() }; });
+    addListener: (_name: string, cb: typeof callback) => { callback = cb; return { remove: removed }; } }, setCenter: vi.fn(), setZoom: vi.fn(), addListener: vi.fn(), fitBounds: vi.fn() }; });
   window.google = { maps: { Map, LatLngBounds: vi.fn(function () { return { extend: vi.fn() }; }), SymbolPath: { CIRCLE: 0 } } };
   const select = vi.fn();
   const view = render(<GoogleTrafficMap features={snapshot.features} onSelect={select} apiKey="synthetic-test-key" />);
