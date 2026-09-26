@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { COLORS, type MapFeature } from "./model";
-import { loadGoogleMaps, type GoogleMap, type Position } from "./google";
+import { loadGoogleMaps, type GoogleMap, type Position, type RouteOption } from "./google";
 
-export function GoogleTrafficMap({ features, onSelect, origin, destination, onPick, apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "" }:
-  { features: MapFeature[]; onSelect: (id: string) => void; apiKey?: string; origin?: Position; destination?: Position; onPick?: (point: Position) => void }) {
+export function GoogleTrafficMap({ features, onSelect, origin, destination, onPick, routes = [], selectedRoute = 0, routeProgress = 0, currentPosition, apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "" }:
+  { features: MapFeature[]; onSelect: (id: string) => void; apiKey?: string; origin?: Position; destination?: Position; onPick?: (point: Position) => void; routes?: RouteOption[]; selectedRoute?: number; routeProgress?: number; currentPosition?: Position }) {
   const container = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<GoogleMap | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
   const fitted = useRef(false);
+  const routeShapes = useRef<Array<{ setMap(map: GoogleMap | null): void }>>([]);
+  const journeyMarkers = useRef<Array<{ setMap(map: GoogleMap | null): void }>>([]);
   const pick = useRef(onPick); pick.current = onPick;
   const initialOrigin = useRef(origin);
   const select = useRef(onSelect); select.current = onSelect;
@@ -55,6 +57,26 @@ export function GoogleTrafficMap({ features, onSelect, origin, destination, onPi
     }
   }, [map, features, origin, destination]);
   useEffect(() => { if (map && origin) { map.setCenter(origin); map.setZoom(15); } }, [map, origin]);
+  useEffect(() => { if (map && currentPosition) { map.setCenter(currentPosition); map.setZoom(16); } }, [map, currentPosition]);
+  useEffect(() => {
+    if (!map || !window.google?.maps) return;
+    routeShapes.current.forEach(shape => shape.setMap(null));
+    journeyMarkers.current.forEach(marker => marker.setMap(null));
+    routeShapes.current = [];
+    journeyMarkers.current = [];
+    const sdk = window.google.maps;
+    routes.forEach((route, index) => {
+      if (index === selectedRoute) {
+        const complete = route.path.slice(0, Math.max(1, routeProgress + 1));
+        const remaining = route.path.slice(Math.max(0, routeProgress));
+        if (complete.length > 1) routeShapes.current.push(new sdk.Polyline({ path: complete, map, strokeColor: "#647987", strokeOpacity: .8, strokeWeight: 6 }));
+        if (remaining.length > 1) routeShapes.current.push(new sdk.Polyline({ path: remaining, map, strokeColor: "#18c6c4", strokeOpacity: .95, strokeWeight: 7 }));
+      } else routeShapes.current.push(new sdk.Polyline({ path: route.path, map, strokeColor: "#71818d", strokeOpacity: .6, strokeWeight: 4 }));
+    });
+    if (currentPosition) journeyMarkers.current.push(new sdk.Marker({ position: currentPosition, map, title: "Your current location", icon: { path: sdk.SymbolPath.CIRCLE, scale: 8, fillColor: "#18c6c4", fillOpacity: 1, strokeColor: "#ffffff", strokeWeight: 2 } }));
+    if (destination) journeyMarkers.current.push(new sdk.Marker({ position: destination, map, title: "Destination" }));
+    return () => { routeShapes.current.forEach(shape => shape.setMap(null)); journeyMarkers.current.forEach(marker => marker.setMap(null)); };
+  }, [map, routes, selectedRoute, routeProgress, currentPosition, destination]);
   return <div className="traffic-map-shell">
     <div ref={container} className="google-traffic-map" aria-label="CityEye geographic map" />
     {!apiKey ? <div className="map-setup"><strong>Google Maps setup required</strong><p>Add a restricted Maps JavaScript API key to your local frontend environment to display the map. No Google requests are made before configuration.</p></div>

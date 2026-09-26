@@ -26,6 +26,26 @@ the base map every polling interval. Network/authentication failures show a visi
 error. Actual Google authorization, billing restrictions and basemap rendering
 cannot be certified without the user's key.
 
+## Enable destination search and navigation
+
+The Citizen Map requests a real destination lookup and driving route from Google
+only after the user chooses a destination. It never draws a straight-line
+substitute or guesses a route.
+
+Enable these APIs for the same browser key and billing project before using the
+navigation controls:
+
+- **Routes API** for driving routes, alternatives, duration, distance and
+  step-by-step maneuvers.
+- **Geocoding API** for named destinations and addresses. **Places API (New)**
+  is also required if the destination picker is later upgraded to interactive
+  autocomplete.
+
+If a required service is unavailable, CityEye keeps the existing map layers
+visible and shows a short retryable message rather than a technical error or an
+invented route. Browser geolocation remains the sole source of the starting and
+live navigation position, and the map does not persist it.
+
 The frontend CSP allows Google Maps resource domains and the SDK's `unsafe-eval`
 requirement, but not inline scripts. Referrer policy is `strict-origin-when-cross-origin`
 so Google can validate website restrictions without receiving URL paths. Backend
@@ -92,11 +112,12 @@ colors here represent CityEye observations, not Google's traffic estimates.
 
 ## Validation
 
-276 backend tests and 90 frontend tests passed; TypeScript and production build
+276 backend tests and 94 frontend tests passed; TypeScript and production build
 passed. New tests cover missing/unconfirmed geography, stale data, congestion
 calibration gating, citizen redaction, authentication, invalid configuration,
-report identity redaction, SDK reuse, layer selection and API failure. A local
-isolated browser preview verified the no-key/setup and empty-geography states.
-SDK drawing interactions were tested with a mock; actual Google tiles, credentials
-and production CSP remain awaiting key-based validation. No production DB writes,
-real camera relocation, ROI/model/threshold changes or container deployment occurred.
+report identity redaction, SDK reuse, layer selection, compact location-permission
+handling, route progress and route-relevant observations. A local isolated browser
+preview verified the no-key/setup and empty-geography states. SDK drawing
+interactions were tested with a mock; actual Google tiles, credentials, routes and
+production CSP remain awaiting key-based validation. No production DB writes, real
+camera relocation, ROI/model/threshold changes or container deployment occurred.

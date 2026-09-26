@@ -160,7 +160,7 @@ describe("CityEye municipal dashboard", () => {
       user: { user_id: "citizen-1", username: "citizen", role: "CITIZEN" },
     });
     render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>);
-    expect(await screen.findByRole("heading", { name: "Citizen Map" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Citizen Map" })).toBeInTheDocument();
     expect(screen.getAllByRole("link").map(link => link.getAttribute("href"))).toEqual(["/citizen-map"]);
     const urls = request.mock.calls.map(([url]) => String(url));
     expect(urls.every(url => ["/api/auth/session", "/api/citizen-reports", "/api/map"].includes(url))).toBe(true);
@@ -229,8 +229,8 @@ describe("CityEye municipal dashboard", () => {
   it("shows map setup honestly when no Google key is configured", async () => {
     mockBackend();
     render(<MemoryRouter initialEntries={["/map"]}><App /></MemoryRouter>);
-    expect(await screen.findByRole("heading", { name: "Citizen Map" })).toBeInTheDocument();
-    expect(screen.getByText("حدد موقعك من الجهاز")).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Citizen Map" })).toBeInTheDocument();
+    expect(screen.getByText("حدد موقعك لعرض المعلومات القريبة منك")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Map legend" })).toBeInTheDocument();
   });
 
