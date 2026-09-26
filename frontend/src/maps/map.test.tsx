@@ -26,6 +26,7 @@ it("filters geographic layers and shows textual details without a Google key", a
   render(<CitizenMapPage />);
   fireEvent.click(await screen.findByRole("button", { name: /Test road/ }));
   expect(screen.getByRole("region", { name: "Selected map observation" })).toHaveTextContent("MONITORED SEGMENT");
+  fireEvent.click(screen.getByRole("button", { name: "الطبقات" }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Road conditions" }));
   expect(screen.queryByRole("button", { name: /Test road/ })).not.toBeInTheDocument();
 });
@@ -36,7 +37,7 @@ it("clears observations after API failure instead of displaying stale road state
   render(<CitizenMapPage />);
   await screen.findByRole("button", { name: /Test road/ });
   fetch.mockImplementation(async () => new Response("{}", { status: 503 }));
-  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("503"), { timeout: 4500 });
+  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("تعذر تحديث بيانات CityEye"), { timeout: 4500 });
   expect(screen.queryByRole("button", { name: /Test road/ })).not.toBeInTheDocument();
 });
 
@@ -46,7 +47,7 @@ it("loads the SDK only once and replaces map data without reloading the base map
   const addGeoJson = vi.fn();
   const Map = vi.fn(function () { return { data: { addGeoJson, forEach: vi.fn(), remove: vi.fn(), setStyle: vi.fn(),
     addListener: (_name: string, cb: typeof callback) => { callback = cb; return { remove: removed }; } }, setCenter: vi.fn(), setZoom: vi.fn(), addListener: vi.fn(), fitBounds: vi.fn() }; });
-  window.google = { maps: { Map, LatLngBounds: vi.fn(function () { return { extend: vi.fn() }; }), SymbolPath: { CIRCLE: 0 } } };
+  window.google = { maps: { Map, Polyline: vi.fn(function () { return { setMap: vi.fn() }; }), Marker: vi.fn(function () { return { setMap: vi.fn() }; }), LatLngBounds: vi.fn(function () { return { extend: vi.fn() }; }), SymbolPath: { CIRCLE: 0 } } };
   const select = vi.fn();
   const view = render(<GoogleTrafficMap features={snapshot.features} onSelect={select} apiKey="synthetic-test-key" />);
   await waitFor(() => expect(addGeoJson).toHaveBeenCalled());
