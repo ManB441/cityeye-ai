@@ -1,0 +1,188 @@
+{
+  "source_sha256": "0c089a536c0f4d1b690c92a42023202a9ece7b8232302e16e9fb87354618cc2d",
+  "metadata": {
+    "width": 1024,
+    "height": 576,
+    "fps": 20.0,
+    "frames": 6243
+  },
+  "timeline_frames": 6243,
+  "timestamp_alignment": "PASS",
+  "same_scene_comparisons": [
+    {
+      "frame": 0,
+      "timestamp_sec": 0.0,
+      "fraction_pixels_with_channel_difference_under_30": 0.9610104031032987
+    },
+    {
+      "frame": 600,
+      "timestamp_sec": 30.0,
+      "fraction_pixels_with_channel_difference_under_30": 0.9553460015190972
+    },
+    {
+      "frame": 1200,
+      "timestamp_sec": 60.0,
+      "fraction_pixels_with_channel_difference_under_30": 0.955108642578125
+    },
+    {
+      "frame": 2400,
+      "timestamp_sec": 120.0,
+      "fraction_pixels_with_channel_difference_under_30": 0.9576873779296875
+    },
+    {
+      "frame": 3600,
+      "timestamp_sec": 180.0,
+      "fraction_pixels_with_channel_difference_under_30": 0.9582756890190972
+    },
+    {
+      "frame": 4800,
+      "timestamp_sec": 240.0,
+      "fraction_pixels_with_channel_difference_under_30": 0.9405348036024306
+    },
+    {
+      "frame": 6000,
+      "timestamp_sec": 300.0,
+      "fraction_pixels_with_channel_difference_under_30": 0.9684533013237847
+    }
+  ],
+  "all_detections": 52689,
+  "vehicle_detections": 52626,
+  "distinct_vehicle_track_ids": 712,
+  "vehicle_confidence_range": [
+    0.25,
+    0.9534
+  ],
+  "road_roi_vehicle_observations": 3696,
+  "outside_road_roi_vehicle_observations": 48930,
+  "stopped_roi_vehicle_observations": 1757,
+  "events": [],
+  "traffic_states": [
+    "UNKNOWN"
+  ],
+  "limitations": [
+    "Detection-row counts are repeated per-frame observations, not unique vehicle throughput.",
+    "Distinct track IDs do not certify identity continuity.",
+    "Stopped ROI is configured, not a validated positive stopped incident.",
+    "Coordinates 0,0 remain unverified location placeholders.",
+    "Artifacts are staged, not deployed to the running app.",
+    "At frame 1200 (60s), the visible foreground white car has no detection box; the far yellow van is labeled car. Detection recall/class accuracy are not certified and the model was not changed."
+  ],
+  "calibration": {
+    "camera_id": "maydan-palestine",
+    "coordinate_space": "absolute_pixels",
+    "frame_size": [
+      1024,
+      576
+    ],
+    "source_sha256": "0c089a536c0f4d1b690c92a42023202a9ece7b8232302e16e9fb87354618cc2d",
+    "road_confirmed": true,
+    "stopped_confirmed": true,
+    "direction_confirmed": false,
+    "congestion_confirmed": false,
+    "monitored_road_polygon": [
+      [
+        390,
+        245
+      ],
+      [
+        620,
+        185
+      ],
+      [
+        750,
+        215
+      ],
+      [
+        735,
+        275
+      ],
+      [
+        810,
+        323
+      ],
+      [
+        720,
+        430
+      ],
+      [
+        550,
+        438
+      ],
+      [
+        435,
+        348
+      ],
+      [
+        310,
+        305
+      ]
+    ],
+    "stopped_vehicle_polygon": [
+      [
+        430,
+        260
+      ],
+      [
+        610,
+        220
+      ],
+      [
+        700,
+        240
+      ],
+      [
+        710,
+        300
+      ],
+      [
+        660,
+        360
+      ],
+      [
+        540,
+        365
+      ]
+    ],
+    "direction_zones": [],
+    "note": "RECORDED DEMO. Conservative central intersection interior observed at 0/30/60/120/180/240/300 seconds. Excludes sidewalks, buildings, islands, crossing stripes and signal queues. Stopped rule uses unchanged 60s threshold; no positive event validation implied. Multiple movements and turning paths preclude one permitted vector. Congestion is disabled: central intersection occupancy is not calibrated approach-queue density. Latitude/longitude 0,0 are legacy placeholders, not a verified location."
+  },
+  "api_validation": {
+    "isolated_backend": true,
+    "auth_scope": "local no-auth test mode only; production auth untouched",
+    "timeline_http": 200,
+    "frames": 6243,
+    "range_playback_http": 206,
+    "range_bytes": 4096,
+    "events": 0,
+    "summary": {
+      "status": "READY",
+      "current_vehicle_count": 6,
+      "current_people_count": 1,
+      "current_bicycle_count": 0,
+      "last_frame": 6242,
+      "total_track_records": 52689,
+      "annotated_video_available": true,
+      "message": "Summary calculated from the real tracks.csv output."
+    }
+  },
+  "browser_video": {
+    "codec_name": "h264",
+    "width": 1024,
+    "height": 576,
+    "avg_frame_rate": "20/1",
+    "duration": "312.150000",
+    "nb_frames": "6243"
+  },
+  "tests": {
+    "ai_passed": 231
+  },
+  "status": {
+    "detection": "PASS functional, observed misses",
+    "tracking": "PASS assigned IDs, continuity not certified",
+    "road_roi": "PASS conservative visual/geometry checks",
+    "stopped_vehicle": "CONFIGURED - positive event NOT VALIDATED",
+    "wrong_way": "DISABLED",
+    "congestion": "DISABLED / UNKNOWN",
+    "deployment": "STAGED ONLY"
+  }
+}

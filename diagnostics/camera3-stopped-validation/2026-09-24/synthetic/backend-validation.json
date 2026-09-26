@@ -1,0 +1,50 @@
+[
+  {
+    "validation_type": "SYNTHETIC ONLY",
+    "role": "EMPLOYEE",
+    "decision": "verify",
+    "event_uuid": "fc4d48a6-46e3-4c72-9ab6-ff861be26fba",
+    "event_generated_by": "actual EventPipeline using synthetic tracks",
+    "evidence_http": 200,
+    "db_persisted": true,
+    "status_after_restart": "VERIFIED",
+    "duplicate_import_preserves_count_and_review": true,
+    "database": "temporary isolated database removed after test"
+  },
+  {
+    "validation_type": "SYNTHETIC ONLY",
+    "role": "EMPLOYEE",
+    "decision": "dismiss",
+    "event_uuid": "fc4d48a6-46e3-4c72-9ab6-ff861be26fba",
+    "event_generated_by": "actual EventPipeline using synthetic tracks",
+    "evidence_http": 200,
+    "db_persisted": true,
+    "status_after_restart": "DISMISSED",
+    "duplicate_import_preserves_count_and_review": true,
+    "database": "temporary isolated database removed after test"
+  },
+  {
+    "validation_type": "SYNTHETIC ONLY",
+    "role": "ADMIN",
+    "decision": "verify",
+    "event_uuid": "fc4d48a6-46e3-4c72-9ab6-ff861be26fba",
+    "event_generated_by": "actual EventPipeline using synthetic tracks",
+    "evidence_http": 200,
+    "db_persisted": true,
+    "status_after_restart": "VERIFIED",
+    "duplicate_import_preserves_count_and_review": true,
+    "database": "temporary isolated database removed after test"
+  },
+  {
+    "validation_type": "SYNTHETIC ONLY",
+    "role": "ADMIN",
+    "decision": "dismiss",
+    "event_uuid": "fc4d48a6-46e3-4c72-9ab6-ff861be26fba",
+    "event_generated_by": "actual EventPipeline using synthetic tracks",
+    "evidence_http": 200,
+    "db_persisted": true,
+    "status_after_restart": "DISMISSED",
+    "duplicate_import_preserves_count_and_review": true,
+    "database": "temporary isolated database removed after test"
+  }
+]

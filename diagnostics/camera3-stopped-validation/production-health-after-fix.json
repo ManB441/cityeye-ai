@@ -1,0 +1,22 @@
+{
+  "camera_id": "camera-3",
+  "source_type": "RTSP",
+  "state": "ONLINE",
+  "last_frame_at": 1789734224.887448,
+  "last_connected_at": 1789734194.9732218,
+  "last_error": null,
+  "processing_fps": 4.2,
+  "ai_inference_fps": 4.2,
+  "reconnect_attempts": 0,
+  "generation": 1,
+  "dropped_frames": 0,
+  "heartbeat_at": 1789734224.887448,
+  "last_visual_change_at": 1789734224.878258,
+  "callback_sequence": 352,
+  "visual_sequence": 86,
+  "consecutive_similar_frames": 1,
+  "camera_capture_fps": 12.233629835128554,
+  "preview_publication_fps": 11.431424600038156,
+  "preview_last_frame_at": 1789734224.887448,
+  "buffer_pressure": 0
+}

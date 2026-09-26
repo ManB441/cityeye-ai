@@ -1,0 +1,346 @@
+{
+  "hashes": {
+    "ai/config/live_camera.json": "773f7f0f80279ee158f9b5e9b508d0cf812791de8d2dd181fa882d29ce00e171",
+    "ai/config/scenarios/stopped_vehicle.json": "4c5c13de9a4df7cf776d7ffba67fac2ef6017b1c5f6340e17f976451afcd641a",
+    "ai/process_video.py": "5531f545da6ad969ff36dd4ffe63d853750917fe93591084f816242d76da3bff",
+    "ai/event_pipeline.py": "3b340f866a40388bdc763b4fe6dd5b76a3f9afcf29f54815e4b461de479b7c0c",
+    "ai/event_rules.py": "a84aa23d166788be614c836bdda14c1a5d68b002a9a8d91db2158ba21490a753",
+    "ai/trajectory.py": "2cc8fa0f43b87b72c59b8f094e73aebc46a8db3cfc6d2998aa574a483fafd251",
+    "ai/calibration.py": "8f0deb148f97433b458c73faf75675581b1d4a93fbbe5cdf9923cd9c5aa588dd",
+    "ai/config/bytetrack_cityeye.yaml": "84144761397e4b3a51cffe146f96d7aaf5a5779b2526c1b231ccb6ae8c201e56",
+    "backend/app/auth.py": "7dbd1ba4788772eca44167cc63eefd2298dc99ef066abd0c4d467f8c54a97600",
+    "frontend/src/pages/IncidentsPage.tsx": "aec2b7012786938322eae7cf5e37cb24bb22cb1bb72ca73d5b2384d11d8dcf9f"
+  },
+  "live_config": {
+    "camera_id": "municipal-pilot-01",
+    "camera_name": "Municipal Pilot Camera 01",
+    "source_type": "RTSP",
+    "capture_backend": "VLC",
+    "enabled": true,
+    "location": "Pilot intersection \u2014 replace locally",
+    "description": "One selected live camera for the CityEye municipal pilot",
+    "latitude": 31.9038,
+    "longitude": 35.2034,
+    "rtsp_url_env": "CITYEYE_RTSP_URL",
+    "connect_timeout": 10.0,
+    "reconnect_enabled": true,
+    "reconnect_delay_seconds": 2.0,
+    "max_reconnect_delay_seconds": 16.0,
+    "stale_after_seconds": 5.0,
+    "vlc_network_caching_ms": 200,
+    "vlc_rtsp_tcp": true,
+    "preview_fps": 12.0,
+    "visual_difference_threshold": 0.08,
+    "visual_stale_after_seconds": 15.0,
+    "visual_minimum_similar_frames": 30,
+    "visual_changes_to_arm": 3,
+    "inference_fps": 5.0,
+    "diagnostic_capture_enabled": false,
+    "diagnostic_capture_dir": "diagnostic_capture",
+    "diagnostic_capture_max_ai_frames": 120,
+    "model": "yolov8n.pt",
+    "tracker": "config/bytetrack_cityeye.yaml",
+    "confidence_threshold": 0.22,
+    "inference_image_size": 960,
+    "iou_threshold": 0.7,
+    "person_detection_enabled": true,
+    "person_confidence_threshold": 0.22,
+    "bicycle_confidence_threshold": 0.22,
+    "vehicle_classes": [
+      "car",
+      "bus",
+      "truck",
+      "motorcycle"
+    ],
+    "trajectory_history_size": 30,
+    "trajectory_max_observation_gap_seconds": 1.0,
+    "track_state_expiration_seconds": 2.0,
+    "vehicle_class_history_size": 7,
+    "vehicle_state_confirmations": 2,
+    "vehicle_state_moving_hysteresis_multiplier": 2.0,
+    "monitored_road_polygon": [
+      [
+        100,
+        100
+      ],
+      [
+        1180,
+        100
+      ],
+      [
+        1180,
+        650
+      ],
+      [
+        100,
+        650
+      ]
+    ],
+    "stopped_vehicle_polygon": [
+      [
+        100,
+        360
+      ],
+      [
+        1180,
+        360
+      ],
+      [
+        1180,
+        650
+      ],
+      [
+        100,
+        650
+      ]
+    ],
+    "direction_zones": [
+      {
+        "name": "near_lanes",
+        "polygon": [
+          [
+            100,
+            360
+          ],
+          [
+            1180,
+            360
+          ],
+          [
+            1180,
+            650
+          ],
+          [
+            100,
+            650
+          ]
+        ],
+        "allowed_direction": {
+          "start": [
+            200,
+            500
+          ],
+          "end": [
+            1080,
+            500
+          ]
+        }
+      },
+      {
+        "name": "far_lanes",
+        "polygon": [
+          [
+            100,
+            100
+          ],
+          [
+            1180,
+            100
+          ],
+          [
+            1180,
+            359
+          ],
+          [
+            100,
+            359
+          ]
+        ],
+        "allowed_direction": {
+          "start": [
+            1080,
+            230
+          ],
+          "end": [
+            200,
+            230
+          ]
+        }
+      }
+    ],
+    "event_thresholds": {
+      "wrong_way_min_confidence": 0.8,
+      "wrong_way_min_displacement_px": 30.0,
+      "wrong_way_min_normalized_displacement": 0.04,
+      "wrong_way_min_track_points": 6,
+      "wrong_way_min_opposite_observations": 4,
+      "stopped_vehicle_seconds": 8.0,
+      "stopped_vehicle_max_speed_px_per_sec": 3.0,
+      "stopped_vehicle_max_normalized_speed_per_sec": 0.01,
+      "stopped_vehicle_release_normalized_speed_per_sec": 0.025,
+      "stopped_vehicle_speed_smoothing_window": 5,
+      "stopped_vehicle_rearm_moving_seconds": 1.0,
+      "stopped_vehicle_require_prior_motion": true,
+      "stopped_vehicle_min_track_points": 5,
+      "congestion_min_vehicles": 16,
+      "congestion_moderate_min_vehicles": 12,
+      "congestion_min_density": 0.04,
+      "congestion_max_normalized_spacing": 0.12,
+      "congestion_max_normalized_movement": 0.12,
+      "congestion_duration_seconds": 5.0
+    },
+    "camera_calibrations": {
+      "camera-3": {
+        "camera_id": "camera-3",
+        "coordinate_space": "absolute_pixels",
+        "frame_size": [
+          944,
+          1080
+        ],
+        "road_confirmed": true,
+        "stopped_confirmed": true,
+        "direction_confirmed": false,
+        "monitored_road_polygon": [
+          [
+            515,
+            105
+          ],
+          [
+            610,
+            110
+          ],
+          [
+            638,
+            205
+          ],
+          [
+            595,
+            320
+          ],
+          [
+            525,
+            450
+          ],
+          [
+            390,
+            700
+          ],
+          [
+            95,
+            700
+          ],
+          [
+            80,
+            570
+          ],
+          [
+            180,
+            400
+          ],
+          [
+            355,
+            225
+          ]
+        ],
+        "stopped_vehicle_polygon": [
+          [
+            385,
+            260
+          ],
+          [
+            570,
+            255
+          ],
+          [
+            520,
+            400
+          ],
+          [
+            380,
+            610
+          ],
+          [
+            170,
+            610
+          ],
+          [
+            235,
+            440
+          ]
+        ],
+        "direction_zones": [],
+        "source_condition": "DAYLIGHT_ONLY",
+        "reference_frame": "diagnostics/camera3-calibration-day/calibration-frame.jpg",
+        "note": "Daylight-only conservative interior roadway calibration from the current 944x1080 Camera 3 reference. Excludes the left frontage/parked edge, upper parking forecourt and right steps/building. Wrong Way remains disabled: road shape alone does not establish a unique permitted direction. No event threshold changed; no real stopped/congestion event validation implied. Operator requested keeping the calibration enabled after daytime validation. No automatic day/night detection exists; disable road_confirmed and stopped_confirmed manually and restart Camera 3 before night operation."
+      }
+    }
+  },
+  "scenario_config": {
+    "camera_name": "Pexels Broken Car Test",
+    "latitude": 0.0,
+    "longitude": 0.0,
+    "video_source": "sample_videos/stopped_vehicle.mp4",
+    "model": "yolov8n.pt",
+    "confidence_threshold": 0.4,
+    "vehicle_classes": [
+      "car",
+      "bus",
+      "truck",
+      "motorcycle"
+    ],
+    "trajectory_history_size": 60,
+    "trajectory_max_observation_gap_seconds": 1.0,
+    "monitored_road_polygon": [
+      [
+        150,
+        280
+      ],
+      [
+        1120,
+        280
+      ],
+      [
+        1120,
+        650
+      ],
+      [
+        150,
+        650
+      ]
+    ],
+    "stopped_vehicle_polygon": [
+      [
+        150,
+        380
+      ],
+      [
+        1120,
+        380
+      ],
+      [
+        1120,
+        650
+      ],
+      [
+        150,
+        650
+      ]
+    ],
+    "allowed_direction": {
+      "start": [
+        100,
+        400
+      ],
+      "end": [
+        1180,
+        400
+      ]
+    },
+    "event_thresholds": {
+      "wrong_way_min_confidence": 0.95,
+      "wrong_way_min_displacement_px": 10000.0,
+      "wrong_way_min_track_points": 30,
+      "stopped_vehicle_seconds": 1.5,
+      "stopped_vehicle_max_speed_px_per_sec": 80.0,
+      "stopped_vehicle_max_normalized_speed_per_sec": 0.08,
+      "stopped_vehicle_release_normalized_speed_per_sec": 0.18,
+      "stopped_vehicle_speed_smoothing_window": 15,
+      "stopped_vehicle_rearm_moving_seconds": 1.0,
+      "stopped_vehicle_min_track_points": 5,
+      "congestion_min_vehicles": 99,
+      "congestion_duration_seconds": 60.0,
+      "congestion_max_track_age_seconds": 1.0,
+      "congestion_max_evaluation_gap_seconds": 1.0
+    }
+  }
+}

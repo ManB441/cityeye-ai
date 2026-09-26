@@ -1,0 +1,26 @@
+[
+  {
+    "decision": "verify",
+    "role": "REVIEWER",
+    "status": "VERIFIED",
+    "http_status": 200,
+    "evidence_http": 200,
+    "duplicate_http": 409,
+    "audit": {
+      "detail": "Insufficient role"
+    },
+    "scope": "Isolated temporary DB, same real pre-fix recorded proposal, not a new Camera 3 incident"
+  },
+  {
+    "decision": "dismiss",
+    "role": "REVIEWER",
+    "status": "DISMISSED",
+    "http_status": 200,
+    "evidence_http": 200,
+    "duplicate_http": 409,
+    "audit": {
+      "detail": "Insufficient role"
+    },
+    "scope": "Isolated temporary DB, same real pre-fix recorded proposal, not a new Camera 3 incident"
+  }
+]

@@ -1,0 +1,223 @@
+{
+  "captured_at": 1789730216.6426518,
+  "health": {
+    "camera_id": "camera-3",
+    "source_type": "RTSP",
+    "state": "ONLINE",
+    "last_frame_at": 1789730216.379549,
+    "last_connected_at": 1789729408.6216052,
+    "last_error": null,
+    "processing_fps": 4.0,
+    "ai_inference_fps": 4.0,
+    "reconnect_attempts": 4,
+    "generation": 5,
+    "dropped_frames": 0,
+    "heartbeat_at": 1789730216.5091279,
+    "last_visual_change_at": 1789730215.541023,
+    "callback_sequence": 9599,
+    "visual_sequence": 6190,
+    "consecutive_similar_frames": 11,
+    "camera_capture_fps": 12.046555384361092,
+    "preview_publication_fps": 10.641123922852298,
+    "preview_last_frame_at": 1789730216.5091279,
+    "buffer_pressure": 0
+  },
+  "hashes": {
+    "ai/config/live_camera.json": "198897661070f65298515dc84e31f12c3cf4afef861dae8318e547342edcc8ee",
+    "ai/calibration.py": "8f0deb148f97433b458c73faf75675581b1d4a93fbbe5cdf9923cd9c5aa588dd",
+    "ai/process_video.py": "5531f545da6ad969ff36dd4ffe63d853750917fe93591084f816242d76da3bff",
+    "ai/event_pipeline.py": "3b340f866a40388bdc763b4fe6dd5b76a3f9afcf29f54815e4b461de479b7c0c",
+    "ai/config/bytetrack_cityeye.yaml": "84144761397e4b3a51cffe146f96d7aaf5a5779b2526c1b231ccb6ae8c201e56",
+    "ai/event_rules.py": "a84aa23d166788be614c836bdda14c1a5d68b002a9a8d91db2158ba21490a753",
+    "ai/trajectory.py": "2cc8fa0f43b87b72c59b8f094e73aebc46a8db3cfc6d2998aa574a483fafd251"
+  },
+  "live_config": {
+    "camera_id": "municipal-pilot-01",
+    "camera_name": "Municipal Pilot Camera 01",
+    "source_type": "RTSP",
+    "capture_backend": "VLC",
+    "enabled": true,
+    "location": "Pilot intersection \u2014 replace locally",
+    "description": "One selected live camera for the CityEye municipal pilot",
+    "latitude": 31.9038,
+    "longitude": 35.2034,
+    "rtsp_url_env": "CITYEYE_RTSP_URL",
+    "connect_timeout": 10.0,
+    "reconnect_enabled": true,
+    "reconnect_delay_seconds": 2.0,
+    "max_reconnect_delay_seconds": 16.0,
+    "stale_after_seconds": 5.0,
+    "vlc_network_caching_ms": 200,
+    "vlc_rtsp_tcp": true,
+    "preview_fps": 12.0,
+    "visual_difference_threshold": 0.08,
+    "visual_stale_after_seconds": 15.0,
+    "visual_minimum_similar_frames": 30,
+    "visual_changes_to_arm": 3,
+    "inference_fps": 5.0,
+    "diagnostic_capture_enabled": false,
+    "diagnostic_capture_dir": "diagnostic_capture",
+    "diagnostic_capture_max_ai_frames": 120,
+    "model": "yolov8n.pt",
+    "tracker": "config/bytetrack_cityeye.yaml",
+    "confidence_threshold": 0.22,
+    "inference_image_size": 960,
+    "iou_threshold": 0.7,
+    "person_detection_enabled": true,
+    "person_confidence_threshold": 0.22,
+    "bicycle_confidence_threshold": 0.22,
+    "vehicle_classes": [
+      "car",
+      "bus",
+      "truck",
+      "motorcycle"
+    ],
+    "trajectory_history_size": 30,
+    "trajectory_max_observation_gap_seconds": 1.0,
+    "track_state_expiration_seconds": 2.0,
+    "vehicle_class_history_size": 7,
+    "vehicle_state_confirmations": 2,
+    "vehicle_state_moving_hysteresis_multiplier": 2.0,
+    "monitored_road_polygon": [
+      [
+        100,
+        100
+      ],
+      [
+        1180,
+        100
+      ],
+      [
+        1180,
+        650
+      ],
+      [
+        100,
+        650
+      ]
+    ],
+    "stopped_vehicle_polygon": [
+      [
+        100,
+        360
+      ],
+      [
+        1180,
+        360
+      ],
+      [
+        1180,
+        650
+      ],
+      [
+        100,
+        650
+      ]
+    ],
+    "direction_zones": [
+      {
+        "name": "near_lanes",
+        "polygon": [
+          [
+            100,
+            360
+          ],
+          [
+            1180,
+            360
+          ],
+          [
+            1180,
+            650
+          ],
+          [
+            100,
+            650
+          ]
+        ],
+        "allowed_direction": {
+          "start": [
+            200,
+            500
+          ],
+          "end": [
+            1080,
+            500
+          ]
+        }
+      },
+      {
+        "name": "far_lanes",
+        "polygon": [
+          [
+            100,
+            100
+          ],
+          [
+            1180,
+            100
+          ],
+          [
+            1180,
+            359
+          ],
+          [
+            100,
+            359
+          ]
+        ],
+        "allowed_direction": {
+          "start": [
+            1080,
+            230
+          ],
+          "end": [
+            200,
+            230
+          ]
+        }
+      }
+    ],
+    "event_thresholds": {
+      "wrong_way_min_confidence": 0.8,
+      "wrong_way_min_displacement_px": 30.0,
+      "wrong_way_min_normalized_displacement": 0.04,
+      "wrong_way_min_track_points": 6,
+      "wrong_way_min_opposite_observations": 4,
+      "stopped_vehicle_seconds": 8.0,
+      "stopped_vehicle_max_speed_px_per_sec": 3.0,
+      "stopped_vehicle_max_normalized_speed_per_sec": 0.01,
+      "stopped_vehicle_release_normalized_speed_per_sec": 0.025,
+      "stopped_vehicle_speed_smoothing_window": 5,
+      "stopped_vehicle_rearm_moving_seconds": 1.0,
+      "stopped_vehicle_require_prior_motion": true,
+      "stopped_vehicle_min_track_points": 5,
+      "congestion_min_vehicles": 16,
+      "congestion_moderate_min_vehicles": 12,
+      "congestion_min_density": 0.04,
+      "congestion_max_normalized_spacing": 0.12,
+      "congestion_max_normalized_movement": 0.12,
+      "congestion_duration_seconds": 5.0
+    },
+    "camera_calibrations": {
+      "camera-3": {
+        "camera_id": "camera-3",
+        "coordinate_space": "absolute_pixels",
+        "frame_size": [
+          944,
+          1080
+        ],
+        "road_confirmed": false,
+        "stopped_confirmed": false,
+        "direction_confirmed": false,
+        "monitored_road_polygon": [],
+        "stopped_vehicle_polygon": [],
+        "direction_zones": [],
+        "note": "CALIBRATION REQUIRED: current Camera 3 image is obscured/defocused; roadway boundaries and permitted direction cannot be justified. Legacy generic polygons are not Camera 3 calibration. Acquire a clear current road view before enabling spatial rules."
+      }
+    }
+  },
+  "event_ids": [
+    "70197f71-3dce-4982-9c22-7ddb5e8164ba"
+  ]
+}

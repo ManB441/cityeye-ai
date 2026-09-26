@@ -1,0 +1,222 @@
+{
+  "task": "P0 #3.6 Camera 3 DAYLIGHT CALIBRATION",
+  "camera": {
+    "id": "camera-3",
+    "resolution": [
+      944,
+      1080
+    ],
+    "source": "Current live DVR Camera 3 RTSP, existing VLC/OpenCV pipeline; production preview JPEG used as calibration reference",
+    "reference_frame": "calibration-frame.jpg",
+    "reference_observed_at_utc": "2026-09-18T11:16:56.642652+00:00",
+    "reference_generation": 5,
+    "reference_note": "Fresh daylight reference; old nighttime image and generic geometry not used. Embedded DVR clock differs from host clock; neither is substituted for the other."
+  },
+  "road_roi": {
+    "enabled": true,
+    "coordinates": [
+      [
+        515,
+        105
+      ],
+      [
+        610,
+        110
+      ],
+      [
+        638,
+        205
+      ],
+      [
+        595,
+        320
+      ],
+      [
+        525,
+        450
+      ],
+      [
+        390,
+        700
+      ],
+      [
+        95,
+        700
+      ],
+      [
+        80,
+        570
+      ],
+      [
+        180,
+        400
+      ],
+      [
+        355,
+        225
+      ]
+    ],
+    "reason": "Conservative interior of visibly identifiable asphalt, excluding upper parking forecourt, left frontage, right building/steps, and near cropped foreground. Not a survey of lanes or entire road width."
+  },
+  "stopped_vehicle": {
+    "enabled": true,
+    "coordinates": [
+      [
+        385,
+        260
+      ],
+      [
+        570,
+        255
+      ],
+      [
+        520,
+        400
+      ],
+      [
+        380,
+        610
+      ],
+      [
+        170,
+        610
+      ],
+      [
+        235,
+        440
+      ]
+    ],
+    "reason": "Inset roadway section where a vehicle obstructing travel is relevant; contained by road polygon and excludes off-road parking. Existing require_prior_motion=true remains mandatory. Geometry enabled; incident sequence not demonstrated.",
+    "duration_seconds": 8.0,
+    "require_prior_motion": true
+  },
+  "wrong_way": {
+    "enabled": false,
+    "direction_vector": null,
+    "zones": [],
+    "reason": "Disabled: road geometry and observed motion do not establish a unique legally permitted direction. No direction vector or real-camera incident generated."
+  },
+  "congestion": {
+    "enabled": true,
+    "reason": "Clearly identifiable conservative road polygon enables existing congestion rule only; no thresholds changed. Positive congestion-event behavior remains unvalidated.",
+    "thresholds": {
+      "congestion_min_vehicles": 16,
+      "congestion_moderate_min_vehicles": 12,
+      "congestion_min_density": 0.04,
+      "congestion_max_normalized_spacing": 0.12,
+      "congestion_max_normalized_movement": 0.12,
+      "congestion_duration_seconds": 5.0
+    }
+  },
+  "validation": {
+    "detection": {
+      "status": "PASS",
+      "scope": "Visible cars detected, not exhaustive recall validation",
+      "evidence": [
+        "live-observation/frame-5885.jpg: car #355 0.90, #359 0.89; parked #163 0.78 and #3 0.55.",
+        "live-observation/frame-6186.jpg: car #386 0.86 and #377 0.85.",
+        "live-observation/frame-6192.jpg: #386 0.93 and #377 0.77."
+      ],
+      "limitation": "Large silver foreground vehicle visibly present without a published detection box in these frames. This task does not identify whether absence originates in detector, tracker or filtering. Do not treat NORMAL as proof of an unobstructed road."
+    },
+    "tracking": {
+      "status": "PASS",
+      "scope": "Live production IDs across successive observations",
+      "evidence": [
+        "frame-6186.jpg -> frame-6192.jpg: IDs 386 and 377 persist while their positions change. Parked IDs 163 and 3 remain visible."
+      ],
+      "limitation": "Not a long-duration identity-switch or recall evaluation."
+    },
+    "ROI": {
+      "status": "PASS",
+      "scope": "Visual geometry plus real production inclusion/exclusion",
+      "evidence": [
+        "frame-5466.jpg: two parked tracked cars outside polygon, production ROI count 0.",
+        "frame-5885.jpg: four detected cars, production ROI count 1, density 0.184; interior car #359 included; off-road parked detections excluded.",
+        "frame-6186.jpg: five detected cars, production ROI count 2, density 0.345.",
+        "frame-6192.jpg: production ROI count 2, density 0.296."
+      ],
+      "limitation": "Only conservative central roadway monitored. Production uses detection/track centers; a vehicle partially intersecting the polygon can be excluded if its center lies outside. No claim of full-lane coverage."
+    },
+    "stopped_vehicle": {
+      "status": "NOT VALIDATED",
+      "reason": "No documented naturally observed tracked MOVES -> in stopped ROI -> stationary for configured 8 seconds -> ONE proposed event sequence. Foreground vehicle already present in this observation cannot be used as a positive stopped test. No fake live event created."
+    },
+    "wrong_way": {
+      "status": "NOT VALIDATED",
+      "reason": "Disabled: road geometry and observed motion do not establish a unique legally permitted direction. No direction vector or real-camera incident generated."
+    },
+    "congestion": {
+      "status": "NOT VALIDATED",
+      "reason": "Calibrated road enables existing metric/rule computation. Selected frames show NORMAL and ROI counts 0/1/2. No sustained congestion scenario observed; thresholds were not tuned or validated for event sensitivity. NORMAL is detector-derived, not guaranteed physical traffic truth."
+    }
+  },
+  "observation": {
+    "method": "Read-only sampling of actual production annotated JPEGs, metrics and health every 0.5 seconds; no replay, second model or synthetic incident",
+    "start_utc": "2026-09-18T11:55:16.362805+00:00",
+    "end_utc": "2026-09-18T11:58:16.050932+00:00",
+    "duration_seconds": 179.68812704086304,
+    "samples": 355,
+    "frame_range": [
+      5466,
+      7610
+    ],
+    "vehicle_count_range": [
+      1,
+      5
+    ],
+    "track_count_range": [
+      1,
+      6
+    ],
+    "traffic_states": [
+      "NORMAL"
+    ],
+    "health_states": [
+      "ONLINE"
+    ],
+    "evidence": "live-observation/observations.json",
+    "synchronization_limit": "JPEG and JSON files read sequentially and can differ by one publication. Exact frame-specific ROI counts and IDs cited above come from the same annotated image, not a join to neighboring JSON."
+  },
+  "activation": {
+    "enabled_after_test": true,
+    "condition": "DAYLIGHT ONLY",
+    "automatic_day_night_detection": false,
+    "operator_authorization": "Keep enabled, document manual night disable (explicit user reply).",
+    "manual_night_disable": "Set camera_calibrations.camera-3.road_confirmed=false and stopped_confirmed=false in ai/config/live_camera.json, then restart only Camera 3 worker. This disables road-dependent rules and returns traffic to UNKNOWN. Do this before nighttime operation. Restore flags only after confirming daylight and unchanged camera position/resolution.",
+    "runtime_profile_loaded": true,
+    "runtime_report": "live-observation/calibration-status.json",
+    "overall_status_explanation": "CALIBRATION_REQUIRED is expected because Wrong Way remains intentionally uncalibrated; road/stopped/congestion individually READY."
+  },
+  "safety": {
+    "protected_file_hashes_unchanged": {
+      "ai/calibration.py": true,
+      "ai/process_video.py": true,
+      "ai/event_pipeline.py": true,
+      "ai/config/bytetrack_cityeye.yaml": true,
+      "ai/event_rules.py": true,
+      "ai/trajectory.py": true
+    },
+    "non_camera_calibration_config_unchanged": true,
+    "validation_checks_preserved": [
+      "image bounds",
+      "degenerate polygons",
+      "self-intersections",
+      "zero direction vector",
+      "camera identity",
+      "resolution",
+      "polygon containment"
+    ],
+    "tests": "218 AI tests passed in 18.20 seconds; git diff --check passed. Updated actual Camera 3 profile integration assertion and tested ROI inclusion/exclusion with synthetic observations; synthetic test is not claimed as real-camera validation. Existing stopped prior-motion regression tests passed.",
+    "events_before": [
+      "70197f71-3dce-4982-9c22-7ddb5e8164ba"
+    ],
+    "events_after": [
+      "70197f71-3dce-4982-9c22-7ddb5e8164ba"
+    ],
+    "new_events": [],
+    "temporary_instrumentation": "No production instrumentation added or diagnostic capture enabled. Temporary read-only observer/overlay/report scripts ran outside repository and were removed after report generation.",
+    "commit_or_push": false
+  },
+  "next_action": "During daylight observe and preserve one naturally occurring detected/tracked moving-to-stopped sequence in the stopped ROI. Investigate the foreground vehicle missing from published detections separately before relying on stopped/congestion alerts."
+}

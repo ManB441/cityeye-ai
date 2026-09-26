@@ -1,0 +1,42 @@
+{
+  "model": {
+    "unchanged": true,
+    "value": "yolov8n.pt"
+  },
+  "confidence_threshold": {
+    "unchanged": true,
+    "value": 0.25
+  },
+  "inference_image_size": {
+    "unchanged": true,
+    "value": 960
+  },
+  "iou_threshold": {
+    "unchanged": true,
+    "value": 0.7
+  },
+  "vehicle_classes": {
+    "unchanged": true,
+    "value": [
+      "car",
+      "bus",
+      "truck",
+      "motorcycle"
+    ]
+  },
+  "event_thresholds": {
+    "unchanged": true,
+    "value": {
+      "wrong_way_min_confidence": 0.95,
+      "wrong_way_min_displacement_px": 10000.0,
+      "wrong_way_min_track_points": 30,
+      "stopped_vehicle_seconds": 60.0,
+      "stopped_vehicle_max_speed_px_per_sec": 1.0,
+      "stopped_vehicle_min_track_points": 30,
+      "congestion_min_vehicles": 99,
+      "congestion_duration_seconds": 60.0,
+      "congestion_max_track_age_seconds": 1.0,
+      "congestion_max_evaluation_gap_seconds": 1.0
+    }
+  }
+}

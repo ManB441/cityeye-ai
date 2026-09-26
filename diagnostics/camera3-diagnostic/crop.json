@@ -1,0 +1,12 @@
+{
+  "source": "raw-10.png",
+  "crop_xyxy": [
+    290,
+    0,
+    402,
+    104
+  ],
+  "scale": 4,
+  "interpolation": "nearest-neighbor",
+  "purpose": "Diagnostic visual inspection only; not traffic ROI or calibration."
+}

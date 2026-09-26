@@ -1,0 +1,54 @@
+Browser tab: 1, Title: "CityEye AI", URL: "http://localhost:5173/incidents".
+0 AXWebArea CityEye AI, URL: localhost:5173/incidents
+	1 container root
+		2 container
+			3 text CITYEYE AI Traffic Intelligence Command Center SYSTEM OPERATIONAL 9/18/2026  ·  7:18:10 AM
+			4 button (collapsed) YA yazan118899@icloud.com ADMIN, Secondary Actions: Expand
+				5 text YA
+				6 text yazan118899@icloud.com
+				7 text ADMIN
+		8 container Primary navigation
+			9 link Description: Command Center, Value: localhost:5173/command-center
+			10 link Description: Cameras, Value: localhost:5173/cameras
+			11 link Description: Incidents, Value: localhost:5173/incidents
+			12 link Description: Analytics, Value: localhost:5173/analytics
+			13 link Description: Citizen Map, Value: localhost:5173/citizen-map
+			14 link Description: User access, Value: localhost:5173/users
+		15 container
+			16 text MUNICIPAL REVIEW
+			17 heading Incidents, Value: 1
+				18 text Incidents
+			19 text AI-proposed traffic events awaiting or carrying a municipal decision.
+			20 button ALL
+			21 button NEW
+			22 button VERIFIED
+			23 button DISMISSED
+			24 button HIGH PRIORITY
+			25 container Operational incidents
+				26 text EVENT / EVIDENCE SOURCE DETECTED STATUS OPERATOR ACTION
+				27 container
+					28 button WRONG WAY Track 9 moved 51.3 pixels opposite to the configured allowed direction (direction confidence 0.93).
+						29 text WRONG WAY
+						30 text Track 9 moved 51.3 pixels opposite to the configured allowed direction (direction confidence 0.93).
+					31 text LIVE  ·  DVR Camera 3 9/17/2026, 1:11:44 PM VERIFIED
+					32 button View
+					33 button (disabled) Verify
+					34 button (disabled) Dismiss
+				35 container
+					36 button CONGESTION Heavy congestion confirmed with 24 vehicles, ROI density 0.176, and 5.0 seconds of sustained crowding.
+						43 text CONGESTION
+						44 text Heavy congestion confirmed with 24 vehicles, ROI density 0.176, and 5.0 seconds of sustained crowding.
+					45 text RECORDED DEMO  ·  Heavy Congestion Camera 5.0s video time PROPOSED
+					37 button View
+					38 button Verify
+					39 button Dismiss
+				40 container
+					41 button STOPPED VEHICLE RECORDED DEMO: pre-fix false proposal caused by brief bounding-box motion; review-workflow test only. Track 7 remained nearly stationary for 1.5 seconds; smoothed normalized movement was 0.0204 ROI diagonals/second.
+						46 text STOPPED VEHICLE
+						47 text RECORDED DEMO: pre-fix false proposal caused by brief bounding-box motion; review-workflow test only. Track 7 remained nearly stationary for 1.5 seconds; smoothed normalized movement was 0.0204 ROI diagonals/second.
+					48 text RECORDED DEMO  ·  RECORDED DEMO - P0 3.7 bbox-jitter regression 4.0s video time DISMISSED
+					42 button View
+					49 button (disabled) Verify
+					50 button (disabled) Dismiss
+
+The focused UI element is 11 link Description: Incidents, URL: localhost:5173/incidents

@@ -1,0 +1,938 @@
+[
+  {
+    "diagnostic_track_id": 1,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 408,
+    "transitions": [
+      {
+        "track_id": 1,
+        "frame": 1,
+        "timestamp": 1789733381.078368,
+        "center": [
+          720.0,
+          167.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 1,
+        "frame": 4,
+        "timestamp": 1789733383.159255,
+        "center": [
+          720.5,
+          168.0
+        ],
+        "movement_state": "STATIONARY",
+        "has_moved": false,
+        "stationary_duration": 0.5764379501342773,
+        "normalized_speed": 0.002318841168081751,
+        "smoothed_normalized_speed": 0.0021414168829234376,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 1,
+        "frame": 408,
+        "timestamp": 1789733518.614039,
+        "center": [
+          720.0,
+          168.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 2,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 5,
+    "transitions": [
+      {
+        "track_id": 2,
+        "frame": 39,
+        "timestamp": 1789733395.0532029,
+        "center": [
+          462.0,
+          279.0
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 2,
+        "frame": 40,
+        "timestamp": 1789733395.496033,
+        "center": [
+          504.0,
+          236.0
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.1664021959575287,
+        "smoothed_normalized_speed": 0.1664021959575287,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 2,
+        "frame": 41,
+        "timestamp": 1789733395.722446,
+        "center": [
+          537.0,
+          216.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.2089335382532066,
+        "smoothed_normalized_speed": 0.18766786710536765,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0.0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 6,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 2,
+    "transitions": [
+      {
+        "track_id": 6,
+        "frame": 44,
+        "timestamp": 1789733396.820482,
+        "center": [
+          466.5,
+          277.0
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0.0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 13,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 10,
+    "transitions": [
+      {
+        "track_id": 13,
+        "frame": 49,
+        "timestamp": 1789733398.755994,
+        "center": [
+          431.5,
+          130.0
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 13,
+        "frame": 51,
+        "timestamp": 1789733399.429708,
+        "center": [
+          390.5,
+          114.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.09042948658178347,
+        "smoothed_normalized_speed": 0.07653881279935718,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 20,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 13,
+    "transitions": [
+      {
+        "track_id": 20,
+        "frame": 94,
+        "timestamp": 1789733415.109261,
+        "center": [
+          463.0,
+          234.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 20,
+        "frame": 96,
+        "timestamp": 1789733415.882184,
+        "center": [
+          511.5,
+          184.5
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.1237050090272984,
+        "smoothed_normalized_speed": 0.11281466310268626,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 27,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 39,
+    "transitions": [
+      {
+        "track_id": 27,
+        "frame": 145,
+        "timestamp": 1789733433.386533,
+        "center": [
+          309.5,
+          88.0
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 27,
+        "frame": 148,
+        "timestamp": 1789733434.4058082,
+        "center": [
+          326.5,
+          93.5
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.030174911592124525,
+        "smoothed_normalized_speed": 0.027776080732862477,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 27,
+        "frame": 164,
+        "timestamp": 1789733439.157055,
+        "center": [
+          382.5,
+          142.0
+        ],
+        "movement_state": "STATIONARY",
+        "has_moved": true,
+        "stationary_duration": 0.28331685066223145,
+        "normalized_speed": 0.0,
+        "smoothed_normalized_speed": 0.0026273474649175788,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 27,
+        "frame": 173,
+        "timestamp": 1789733442.041661,
+        "center": [
+          432.0,
+          120.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.043121001225055466,
+        "smoothed_normalized_speed": 0.042016866822341,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 33,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 14,
+    "transitions": [
+      {
+        "track_id": 33,
+        "frame": 157,
+        "timestamp": 1789733437.261219,
+        "center": [
+          438.5,
+          317.0
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 33,
+        "frame": 159,
+        "timestamp": 1789733437.744329,
+        "center": [
+          493.5,
+          256.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.1865398615766345,
+        "smoothed_normalized_speed": 0.209601968506317,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0.0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 37,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 3,
+    "transitions": [
+      {
+        "track_id": 37,
+        "frame": 173,
+        "timestamp": 1789733442.041661,
+        "center": [
+          596.0,
+          75.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 57,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 18,
+    "transitions": [
+      {
+        "track_id": 57,
+        "frame": 269,
+        "timestamp": 1789733474.372086,
+        "center": [
+          534.5,
+          73.0
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 57,
+        "frame": 271,
+        "timestamp": 1789733475.046023,
+        "center": [
+          515.0,
+          87.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.054466324946991725,
+        "smoothed_normalized_speed": 0.043336134619073444,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 61,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 2,
+    "transitions": [
+      {
+        "track_id": 61,
+        "frame": 294,
+        "timestamp": 1789733481.695401,
+        "center": [
+          558.0,
+          141.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 69,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 3,
+    "transitions": [
+      {
+        "track_id": 69,
+        "frame": 325,
+        "timestamp": 1789733491.553292,
+        "center": [
+          557.5,
+          121.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 69,
+        "frame": 327,
+        "timestamp": 1789733492.217977,
+        "center": [
+          573.0,
+          86.5
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.06043465761027804,
+        "smoothed_normalized_speed": 0.07157027508778721,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 84,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 2,
+    "transitions": [
+      {
+        "track_id": 84,
+        "frame": 377,
+        "timestamp": 1789733507.486463,
+        "center": [
+          369.0,
+          378.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0.0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 86,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 3,
+    "transitions": [
+      {
+        "track_id": 86,
+        "frame": 379,
+        "timestamp": 1789733508.0309498,
+        "center": [
+          504.5,
+          228.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 86,
+        "frame": 381,
+        "timestamp": 1789733508.5607512,
+        "center": [
+          546.5,
+          190.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.07648978978611434,
+        "smoothed_normalized_speed": 0.13779018411622146,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 94,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 4,
+    "transitions": [
+      {
+        "track_id": 94,
+        "frame": 389,
+        "timestamp": 1789733511.127163,
+        "center": [
+          535.0,
+          165.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 94,
+        "frame": 391,
+        "timestamp": 1789733511.6632562,
+        "center": [
+          556.0,
+          134.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.05726802458946776,
+        "smoothed_normalized_speed": 0.08724934864559435,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 3,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 426,
+    "transitions": [
+      {
+        "track_id": 3,
+        "frame": 410,
+        "timestamp": 1789733538.322433,
+        "center": [
+          720.5,
+          169.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 3,
+        "frame": 412,
+        "timestamp": 1789733539.002613,
+        "center": [
+          720.0,
+          165.5
+        ],
+        "movement_state": "STATIONARY",
+        "has_moved": false,
+        "stationary_duration": 0.6801800727844238,
+        "normalized_speed": 0.007578887809250145,
+        "smoothed_normalized_speed": 0.007222944217390967,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 12,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 5,
+    "transitions": [
+      {
+        "track_id": 12,
+        "frame": 437,
+        "timestamp": 1789733547.127189,
+        "center": [
+          494.5,
+          107.0
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 12,
+        "frame": 439,
+        "timestamp": 1789733547.827863,
+        "center": [
+          453.0,
+          150.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.0943539515302926,
+        "smoothed_normalized_speed": 0.10441338065878208,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 25,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 1,
+    "transitions": [
+      {
+        "track_id": 25,
+        "frame": 552,
+        "timestamp": 1789733585.616726,
+        "center": [
+          531.5,
+          76.0
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 28,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 1,
+    "transitions": [
+      {
+        "track_id": 28,
+        "frame": 556,
+        "timestamp": 1789733587.138104,
+        "center": [
+          435.0,
+          131.0
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 30,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 1,
+    "transitions": [
+      {
+        "track_id": 30,
+        "frame": 559,
+        "timestamp": 1789733588.161709,
+        "center": [
+          274.5,
+          226.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 31,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 1,
+    "transitions": [
+      {
+        "track_id": 31,
+        "frame": 561,
+        "timestamp": 1789733588.8736498,
+        "center": [
+          105.5,
+          395.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 40,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 8,
+    "transitions": [
+      {
+        "track_id": 40,
+        "frame": 594,
+        "timestamp": 1789733599.574359,
+        "center": [
+          528.0,
+          81.0
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 40,
+        "frame": 596,
+        "timestamp": 1789733600.220126,
+        "center": [
+          511.0,
+          108.5
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.06138113725744348,
+        "smoothed_normalized_speed": 0.06145425187508516,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 52,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 4,
+    "transitions": [
+      {
+        "track_id": 52,
+        "frame": 617,
+        "timestamp": 1789733606.675889,
+        "center": [
+          523.0,
+          137.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 52,
+        "frame": 619,
+        "timestamp": 1789733607.3275719,
+        "center": [
+          461.5,
+          231.5
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.35249905568161843,
+        "smoothed_normalized_speed": 0.24474432414423775,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 52,
+        "frame": 620,
+        "timestamp": 1789733607.7361379,
+        "center": [
+          417.0,
+          289.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.21816450303289706,
+        "smoothed_normalized_speed": 0.21816450303289706,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0.0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 58,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 6,
+    "transitions": [
+      {
+        "track_id": 58,
+        "frame": 630,
+        "timestamp": 1789733611.076572,
+        "center": [
+          524.0,
+          138.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 58,
+        "frame": 632,
+        "timestamp": 1789733611.622856,
+        "center": [
+          511.0,
+          190.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.14831224794485898,
+        "smoothed_normalized_speed": 0.12121631668341802,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 58,
+        "frame": 635,
+        "timestamp": 1789733612.3615649,
+        "center": [
+          451.5,
+          288.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.21666654156178536,
+        "smoothed_normalized_speed": 0.1640392805434515,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0.0,
+    "events": []
+  },
+  {
+    "diagnostic_track_id": 63,
+    "namespace": "isolated live-preview observer; not production ByteTrack ID",
+    "samples": 1,
+    "transitions": [
+      {
+        "track_id": 63,
+        "frame": 744,
+        "timestamp": 1789733646.49799,
+        "center": [
+          558.5,
+          139.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": false,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_inside_roi": 0,
+    "events": []
+  }
+]

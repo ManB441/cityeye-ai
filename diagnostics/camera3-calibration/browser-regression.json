@@ -1,0 +1,27 @@
+{
+  "liveTraffic": "UNKNOWN",
+  "liveReason": "FRESH",
+  "recorded": [
+    {
+      "title": "Normal Traffic",
+      "vehicles": "15",
+      "video": "/media/scenarios/normal_traffic/annotated.mp4"
+    },
+    {
+      "title": "Heavy Congestion",
+      "vehicles": "30",
+      "video": "/media/scenarios/congestion/annotated.mp4"
+    },
+    {
+      "title": "Stopped Vehicle",
+      "vehicles": "4",
+      "video": "/media/scenarios/stopped_vehicle/annotated.mp4"
+    },
+    {
+      "title": "Rainy Traffic",
+      "vehicles": "4",
+      "video": "/media/scenarios/rainy_traffic/annotated.mp4"
+    }
+  ],
+  "pageErrors": []
+}

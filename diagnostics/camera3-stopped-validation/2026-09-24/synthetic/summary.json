@@ -1,0 +1,13 @@
+{
+  "validation_type": "SYNTHETIC ONLY",
+  "stationary_threshold": 8.0,
+  "episodes": 2,
+  "events": 2,
+  "preexisting_stationary_events": 0,
+  "rearm": "PASS",
+  "duplicate_suppression": "PASS",
+  "event_ids": [
+    "fc4d48a6-46e3-4c72-9ab6-ff861be26fba",
+    "08c344e0-d5e8-4962-834e-39ff6ec5dd40"
+  ]
+}

@@ -1,0 +1,58 @@
+[
+  {
+    "event_id": "fc4d48a6-46e3-4c72-9ab6-ff861be26fba",
+    "event_type": "STOPPED_VEHICLE",
+    "timestamp": 10.4,
+    "confidence": 1.0,
+    "severity": "MEDIUM",
+    "explanation": "Track 1 remained nearly stationary for 8.0 seconds; smoothed normalized movement was 0.0000 ROI diagonals/second.",
+    "camera_name": "SYNTHETIC REGRESSION - NOT CAMERA OBSERVATION",
+    "latitude": 31.9038,
+    "longitude": 35.2034,
+    "evidence_image": "evidence/event_10400_345c27f1_stopped_vehicle.jpg",
+    "status": "PROPOSED",
+    "details": {
+      "track_id": 1,
+      "vehicle_class": "car",
+      "stationary_duration_seconds": 8.0,
+      "movement_value": 0.0,
+      "movement_unit": "roi_diagonals_per_second",
+      "instantaneous_normalized_movement": 0.0,
+      "pixel_speed_debug": 0.0,
+      "roi_status": "INSIDE",
+      "movement_state": "STATIONARY",
+      "was_previously_moving": true,
+      "source_type": "RTSP",
+      "camera_id": "camera-3",
+      "timestamp_kind": "WALL_CLOCK_UNIX"
+    }
+  },
+  {
+    "event_id": "08c344e0-d5e8-4962-834e-39ff6ec5dd40",
+    "event_type": "STOPPED_VEHICLE",
+    "timestamp": 26.4,
+    "confidence": 1.0,
+    "severity": "MEDIUM",
+    "explanation": "Track 1 remained nearly stationary for 8.0 seconds; smoothed normalized movement was 0.0000 ROI diagonals/second.",
+    "camera_name": "SYNTHETIC REGRESSION - NOT CAMERA OBSERVATION",
+    "latitude": 31.9038,
+    "longitude": 35.2034,
+    "evidence_image": "evidence/event_26400_70d57594_stopped_vehicle.jpg",
+    "status": "PROPOSED",
+    "details": {
+      "track_id": 1,
+      "vehicle_class": "car",
+      "stationary_duration_seconds": 8.0,
+      "movement_value": 0.0,
+      "movement_unit": "roi_diagonals_per_second",
+      "instantaneous_normalized_movement": 0.0,
+      "pixel_speed_debug": 0.0,
+      "roi_status": "INSIDE",
+      "movement_state": "STATIONARY",
+      "was_previously_moving": true,
+      "source_type": "RTSP",
+      "camera_id": "camera-3",
+      "timestamp_kind": "WALL_CLOCK_UNIX"
+    }
+  }
+]

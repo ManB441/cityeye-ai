@@ -1,0 +1,41 @@
+{
+  "events": [
+    {
+      "event_id": "70197f71-3dce-4982-9c22-7ddb5e8164ba",
+      "event_type": "WRONG_WAY",
+      "timestamp": 1789668704.959,
+      "confidence": 0.9251,
+      "severity": "HIGH",
+      "explanation": "Track 9 moved 51.3 pixels opposite to the configured allowed direction (direction confidence 0.93).",
+      "camera_name": "DVR Camera 3",
+      "latitude": 31.9038,
+      "longitude": 35.2034,
+      "evidence_image": "evidence/event_1789668704959_7650a1d1_wrong_way.jpg",
+      "source_type": "LIVE_CAMERA",
+      "source_id": "camera-3",
+      "details": {
+        "track_id": 9,
+        "vehicle_class": "truck",
+        "trajectory_displacement_px": 51.347,
+        "normalized_displacement": 0.046233,
+        "direction_score": 0.9251,
+        "measured_direction": [
+          47.5,
+          -19.5
+        ],
+        "allowed_direction": [
+          -880,
+          0
+        ],
+        "direction_zone": "far_lanes",
+        "roi_status": "INSIDE",
+        "movement_state": "MOVING",
+        "source_type": "RTSP",
+        "camera_id": "camera-3",
+        "timestamp_kind": "WALL_CLOCK_UNIX"
+      },
+      "status": "VERIFIED"
+    }
+  ],
+  "total": 1
+}

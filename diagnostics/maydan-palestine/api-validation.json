@@ -1,0 +1,19 @@
+{
+  "isolated_backend": true,
+  "auth_scope": "local no-auth test mode only; production auth untouched",
+  "timeline_http": 200,
+  "frames": 6243,
+  "range_playback_http": 206,
+  "range_bytes": 4096,
+  "events": 0,
+  "summary": {
+    "status": "READY",
+    "current_vehicle_count": 6,
+    "current_people_count": 1,
+    "current_bicycle_count": 0,
+    "last_frame": 6242,
+    "total_track_records": 52689,
+    "annotated_video_available": true,
+    "message": "Summary calculated from the real tracks.csv output."
+  }
+}

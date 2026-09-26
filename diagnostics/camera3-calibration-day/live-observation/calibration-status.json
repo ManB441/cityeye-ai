@@ -1,0 +1,108 @@
+{
+  "camera_id": "camera-3",
+  "frame_size": [
+    944,
+    1080
+  ],
+  "coordinate_space": "absolute_pixels",
+  "rules": {
+    "road": {
+      "status": "READY",
+      "diagnostic": null
+    },
+    "congestion": {
+      "status": "READY",
+      "diagnostic": null
+    },
+    "person_in_road": {
+      "status": "READY",
+      "diagnostic": null
+    },
+    "stopped_vehicle": {
+      "status": "READY",
+      "diagnostic": null
+    },
+    "wrong_way": {
+      "status": "CALIBRATION_REQUIRED",
+      "diagnostic": "missing direction zones"
+    },
+    "road_blockage": {
+      "status": "CONFIGURATION_REQUIRED",
+      "diagnostic": "No approved blockage zone, movement direction or upstream-impact calibration; remains disabled."
+    }
+  },
+  "active_geometry": {
+    "road_and_congestion": [
+      [
+        515,
+        105
+      ],
+      [
+        610,
+        110
+      ],
+      [
+        638,
+        205
+      ],
+      [
+        595,
+        320
+      ],
+      [
+        525,
+        450
+      ],
+      [
+        390,
+        700
+      ],
+      [
+        95,
+        700
+      ],
+      [
+        80,
+        570
+      ],
+      [
+        180,
+        400
+      ],
+      [
+        355,
+        225
+      ]
+    ],
+    "stopped_vehicle": [
+      [
+        385,
+        260
+      ],
+      [
+        570,
+        255
+      ],
+      [
+        520,
+        400
+      ],
+      [
+        380,
+        610
+      ],
+      [
+        170,
+        610
+      ],
+      [
+        235,
+        440
+      ]
+    ]
+  },
+  "status": "CALIBRATION_REQUIRED",
+  "note": "Daylight-only conservative interior roadway calibration from the current 944x1080 Camera 3 reference. Excludes the left frontage/parked edge, upper parking forecourt and right steps/building. Wrong Way remains disabled: road shape alone does not establish a unique permitted direction. No event threshold changed; no real stopped/congestion event validation implied. Operator requested keeping the calibration enabled after daytime validation. No automatic day/night detection exists; disable road_confirmed and stopped_confirmed manually and restart Camera 3 before night operation.",
+  "checked_at": 1789732047.5459058,
+  "generation": 1
+}

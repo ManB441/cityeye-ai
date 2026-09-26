@@ -1,0 +1,94 @@
+[
+  {
+    "scenario": "congestion",
+    "sha256": "99a03bc6fc9b50db40d354e2a6ca12f06508af96799a6ccd2725397481f08668",
+    "polygon": [
+      [
+        0,
+        300
+      ],
+      [
+        3840,
+        300
+      ],
+      [
+        3840,
+        2160
+      ],
+      [
+        0,
+        2160
+      ]
+    ],
+    "source_type": "VIDEO_FILE"
+  },
+  {
+    "scenario": "normal_traffic",
+    "sha256": "5e86b52686ee04ef361801ce262b5953ea43d0e4c80fae68b536ca6666dc6db2",
+    "polygon": [
+      [
+        0,
+        540
+      ],
+      [
+        3840,
+        540
+      ],
+      [
+        3840,
+        2160
+      ],
+      [
+        0,
+        2160
+      ]
+    ],
+    "source_type": "VIDEO_FILE"
+  },
+  {
+    "scenario": "rainy_traffic",
+    "sha256": "c0a856f65d6a7188390ea4056df7e6f085f4bdb89607e7e9dff0dbd87f148470",
+    "polygon": [
+      [
+        0,
+        0
+      ],
+      [
+        1080,
+        0
+      ],
+      [
+        1080,
+        1920
+      ],
+      [
+        0,
+        1920
+      ]
+    ],
+    "source_type": "VIDEO_FILE"
+  },
+  {
+    "scenario": "stopped_vehicle",
+    "sha256": "4c5c13de9a4df7cf776d7ffba67fac2ef6017b1c5f6340e17f976451afcd641a",
+    "polygon": [
+      [
+        150,
+        280
+      ],
+      [
+        1120,
+        280
+      ],
+      [
+        1120,
+        650
+      ],
+      [
+        150,
+        650
+      ]
+    ],
+    "source_type": "VIDEO_FILE"
+  }
+]

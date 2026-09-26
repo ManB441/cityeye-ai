@@ -1,0 +1,22 @@
+{
+  "camera_id": "camera-3",
+  "source_type": "RTSP",
+  "state": "ONLINE",
+  "last_frame_at": null,
+  "last_connected_at": null,
+  "last_error": null,
+  "processing_fps": 2.8,
+  "ai_inference_fps": 2.8,
+  "reconnect_attempts": 0,
+  "generation": 0,
+  "dropped_frames": 0,
+  "heartbeat_at": null,
+  "last_visual_change_at": null,
+  "callback_sequence": 0,
+  "visual_sequence": 0,
+  "consecutive_similar_frames": 0,
+  "camera_capture_fps": 0.0,
+  "preview_publication_fps": 0.0,
+  "preview_last_frame_at": null,
+  "buffer_pressure": 0
+}
