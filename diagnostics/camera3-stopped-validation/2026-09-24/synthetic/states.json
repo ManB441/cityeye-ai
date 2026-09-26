@@ -1,0 +1,1273 @@
+[
+  {
+    "timestamp": 0.0,
+    "track_id": 1,
+    "state": "UNKNOWN",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 0.2,
+    "track_id": 1,
+    "state": "UNKNOWN",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 0.4,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 0.6000000000000001,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 0.8,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 1.0,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 1.2000000000000002,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 1.4000000000000001,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 1.6,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 1.8,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 2.0,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 2.2,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 2.4000000000000004,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 2.6,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.19999999999999973,
+    "events": []
+  },
+  {
+    "timestamp": 2.8000000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 0.3999999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 3.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 0.5999999999999996,
+    "events": []
+  },
+  {
+    "timestamp": 3.2,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 0.7999999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 3.4000000000000004,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 1.0,
+    "events": []
+  },
+  {
+    "timestamp": 3.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 1.1999999999999997,
+    "events": []
+  },
+  {
+    "timestamp": 3.8000000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 1.4,
+    "events": []
+  },
+  {
+    "timestamp": 4.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 1.5999999999999996,
+    "events": []
+  },
+  {
+    "timestamp": 4.2,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 1.7999999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 4.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 2.0,
+    "events": []
+  },
+  {
+    "timestamp": 4.6000000000000005,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 2.2,
+    "events": []
+  },
+  {
+    "timestamp": 4.800000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 2.4000000000000004,
+    "events": []
+  },
+  {
+    "timestamp": 5.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 2.5999999999999996,
+    "events": []
+  },
+  {
+    "timestamp": 5.2,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 2.8,
+    "events": []
+  },
+  {
+    "timestamp": 5.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 3.0,
+    "events": []
+  },
+  {
+    "timestamp": 5.6000000000000005,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 3.2,
+    "events": []
+  },
+  {
+    "timestamp": 5.800000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 3.4000000000000004,
+    "events": []
+  },
+  {
+    "timestamp": 6.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 3.5999999999999996,
+    "events": []
+  },
+  {
+    "timestamp": 6.2,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 3.8,
+    "events": []
+  },
+  {
+    "timestamp": 6.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 4.0,
+    "events": []
+  },
+  {
+    "timestamp": 6.6000000000000005,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 4.2,
+    "events": []
+  },
+  {
+    "timestamp": 6.800000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 4.4,
+    "events": []
+  },
+  {
+    "timestamp": 7.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 4.6,
+    "events": []
+  },
+  {
+    "timestamp": 7.2,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 4.8,
+    "events": []
+  },
+  {
+    "timestamp": 7.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 5.0,
+    "events": []
+  },
+  {
+    "timestamp": 7.6000000000000005,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 5.2,
+    "events": []
+  },
+  {
+    "timestamp": 7.800000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 5.4,
+    "events": []
+  },
+  {
+    "timestamp": 8.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 5.6,
+    "events": []
+  },
+  {
+    "timestamp": 8.200000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 5.800000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 8.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 6.0,
+    "events": []
+  },
+  {
+    "timestamp": 8.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 6.199999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 8.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 6.4,
+    "events": []
+  },
+  {
+    "timestamp": 9.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 6.6,
+    "events": []
+  },
+  {
+    "timestamp": 9.200000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 6.800000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 9.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 7.0,
+    "events": []
+  },
+  {
+    "timestamp": 9.600000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 7.200000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 9.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 7.4,
+    "events": []
+  },
+  {
+    "timestamp": 10.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 7.6,
+    "events": []
+  },
+  {
+    "timestamp": 10.200000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 7.800000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 10.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 8.0,
+    "events": [
+      "fc4d48a6-46e3-4c72-9ab6-ff861be26fba"
+    ]
+  },
+  {
+    "timestamp": 10.600000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 8.200000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 10.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 8.4,
+    "events": []
+  },
+  {
+    "timestamp": 11.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 8.6,
+    "events": []
+  },
+  {
+    "timestamp": 11.200000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 8.8,
+    "events": []
+  },
+  {
+    "timestamp": 11.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 9.0,
+    "events": []
+  },
+  {
+    "timestamp": 11.600000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 9.200000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 11.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 9.4,
+    "events": []
+  },
+  {
+    "timestamp": 12.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 9.6,
+    "events": []
+  },
+  {
+    "timestamp": 12.200000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 9.8,
+    "events": []
+  },
+  {
+    "timestamp": 12.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 10.0,
+    "events": []
+  },
+  {
+    "timestamp": 12.600000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 10.200000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 12.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 10.4,
+    "events": []
+  },
+  {
+    "timestamp": 13.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 10.6,
+    "events": []
+  },
+  {
+    "timestamp": 13.200000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 10.8,
+    "events": []
+  },
+  {
+    "timestamp": 13.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 11.0,
+    "events": []
+  },
+  {
+    "timestamp": 13.600000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 11.200000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 13.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 11.4,
+    "events": []
+  },
+  {
+    "timestamp": 14.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 11.6,
+    "events": []
+  },
+  {
+    "timestamp": 14.200000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 11.8,
+    "events": []
+  },
+  {
+    "timestamp": 14.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 12.0,
+    "events": []
+  },
+  {
+    "timestamp": 14.600000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 12.200000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 14.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 12.4,
+    "events": []
+  },
+  {
+    "timestamp": 15.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 12.6,
+    "events": []
+  },
+  {
+    "timestamp": 15.200000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 12.8,
+    "events": []
+  },
+  {
+    "timestamp": 15.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 13.0,
+    "events": []
+  },
+  {
+    "timestamp": 15.600000000000001,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 13.200000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 15.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 13.4,
+    "events": []
+  },
+  {
+    "timestamp": 16.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 13.6,
+    "events": []
+  },
+  {
+    "timestamp": 16.2,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 13.799999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 16.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 14.000000000000002,
+    "events": []
+  },
+  {
+    "timestamp": 16.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 16.8,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 17.0,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 17.2,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 17.400000000000002,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 17.6,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 17.8,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 18.0,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 18.2,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 18.400000000000002,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.0,
+    "events": []
+  },
+  {
+    "timestamp": 18.6,
+    "track_id": 1,
+    "state": "MOVING",
+    "stationary_seconds": 0.1999999999999993,
+    "events": []
+  },
+  {
+    "timestamp": 18.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 0.3999999999999986,
+    "events": []
+  },
+  {
+    "timestamp": 19.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 0.5999999999999979,
+    "events": []
+  },
+  {
+    "timestamp": 19.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 0.8000000000000007,
+    "events": []
+  },
+  {
+    "timestamp": 19.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 1.0,
+    "events": []
+  },
+  {
+    "timestamp": 19.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 1.1999999999999993,
+    "events": []
+  },
+  {
+    "timestamp": 19.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 1.3999999999999986,
+    "events": []
+  },
+  {
+    "timestamp": 20.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 1.5999999999999979,
+    "events": []
+  },
+  {
+    "timestamp": 20.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 1.8000000000000007,
+    "events": []
+  },
+  {
+    "timestamp": 20.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 2.0,
+    "events": []
+  },
+  {
+    "timestamp": 20.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 2.1999999999999993,
+    "events": []
+  },
+  {
+    "timestamp": 20.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 2.3999999999999986,
+    "events": []
+  },
+  {
+    "timestamp": 21.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 2.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 21.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 2.8000000000000007,
+    "events": []
+  },
+  {
+    "timestamp": 21.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 3.0,
+    "events": []
+  },
+  {
+    "timestamp": 21.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 3.1999999999999993,
+    "events": []
+  },
+  {
+    "timestamp": 21.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 3.3999999999999986,
+    "events": []
+  },
+  {
+    "timestamp": 22.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 3.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 22.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 3.8000000000000007,
+    "events": []
+  },
+  {
+    "timestamp": 22.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 4.0,
+    "events": []
+  },
+  {
+    "timestamp": 22.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 4.199999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 22.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 4.399999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 23.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 4.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 23.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 4.800000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 23.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 5.0,
+    "events": []
+  },
+  {
+    "timestamp": 23.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 5.199999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 23.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 5.399999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 24.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 5.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 24.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 5.800000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 24.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 6.0,
+    "events": []
+  },
+  {
+    "timestamp": 24.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 6.199999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 24.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 6.399999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 25.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 6.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 25.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 6.800000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 25.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 7.0,
+    "events": []
+  },
+  {
+    "timestamp": 25.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 7.199999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 25.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 7.399999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 26.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 7.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 26.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 7.800000000000001,
+    "events": []
+  },
+  {
+    "timestamp": 26.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 8.0,
+    "events": [
+      "08c344e0-d5e8-4962-834e-39ff6ec5dd40"
+    ]
+  },
+  {
+    "timestamp": 26.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 8.2,
+    "events": []
+  },
+  {
+    "timestamp": 26.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 8.399999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 27.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 8.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 27.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 8.8,
+    "events": []
+  },
+  {
+    "timestamp": 27.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 9.0,
+    "events": []
+  },
+  {
+    "timestamp": 27.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 9.2,
+    "events": []
+  },
+  {
+    "timestamp": 27.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 9.399999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 28.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 9.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 28.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 9.8,
+    "events": []
+  },
+  {
+    "timestamp": 28.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 10.0,
+    "events": []
+  },
+  {
+    "timestamp": 28.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 10.2,
+    "events": []
+  },
+  {
+    "timestamp": 28.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 10.399999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 29.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 10.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 29.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 10.8,
+    "events": []
+  },
+  {
+    "timestamp": 29.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 11.0,
+    "events": []
+  },
+  {
+    "timestamp": 29.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 11.2,
+    "events": []
+  },
+  {
+    "timestamp": 29.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 11.399999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 30.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 11.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 30.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 11.8,
+    "events": []
+  },
+  {
+    "timestamp": 30.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 12.0,
+    "events": []
+  },
+  {
+    "timestamp": 30.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 12.2,
+    "events": []
+  },
+  {
+    "timestamp": 30.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 12.399999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 31.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 12.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 31.200000000000003,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 12.8,
+    "events": []
+  },
+  {
+    "timestamp": 31.400000000000002,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 13.0,
+    "events": []
+  },
+  {
+    "timestamp": 31.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 13.2,
+    "events": []
+  },
+  {
+    "timestamp": 31.8,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 13.399999999999999,
+    "events": []
+  },
+  {
+    "timestamp": 32.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 13.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 32.2,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 13.8,
+    "events": []
+  },
+  {
+    "timestamp": 32.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 13.999999999999996,
+    "events": []
+  },
+  {
+    "timestamp": 32.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 14.2,
+    "events": []
+  },
+  {
+    "timestamp": 32.800000000000004,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 14.400000000000002,
+    "events": []
+  },
+  {
+    "timestamp": 33.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 14.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 33.2,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 14.8,
+    "events": []
+  },
+  {
+    "timestamp": 33.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 14.999999999999996,
+    "events": []
+  },
+  {
+    "timestamp": 33.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 15.2,
+    "events": []
+  },
+  {
+    "timestamp": 33.800000000000004,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 15.400000000000002,
+    "events": []
+  },
+  {
+    "timestamp": 34.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 15.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 34.2,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 15.8,
+    "events": []
+  },
+  {
+    "timestamp": 34.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 15.999999999999996,
+    "events": []
+  },
+  {
+    "timestamp": 34.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 16.2,
+    "events": []
+  },
+  {
+    "timestamp": 34.800000000000004,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 16.400000000000002,
+    "events": []
+  },
+  {
+    "timestamp": 35.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 16.599999999999998,
+    "events": []
+  },
+  {
+    "timestamp": 35.2,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 16.8,
+    "events": []
+  },
+  {
+    "timestamp": 35.4,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 16.999999999999996,
+    "events": []
+  },
+  {
+    "timestamp": 35.6,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 17.2,
+    "events": []
+  },
+  {
+    "timestamp": 35.800000000000004,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 17.400000000000002,
+    "events": []
+  },
+  {
+    "timestamp": 36.0,
+    "track_id": 1,
+    "state": "STATIONARY",
+    "stationary_seconds": 17.599999999999998,
+    "events": []
+  }
+]

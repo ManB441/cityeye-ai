@@ -1,0 +1,387 @@
+{
+  "task": "P0 #3.7 \u2014 Validate Stopped Vehicle End-to-End",
+  "conclusion": "End-to-end positive acceptance remains unproven. Real Camera 3 NOT VALIDATED; existing recorded scenario FAIL as a positive acceptance clip. A real false-positive bug was fixed and its negative regression passed.",
+  "camera_3_real_validation": {
+    "status": "NOT VALIDATED",
+    "moving_observed": "YES",
+    "stopped_transition_observed": "NO",
+    "ROI_valid": "YES",
+    "event_generated": "NO",
+    "evidence_generated": "NO",
+    "DB_persisted": "NO",
+    "event_UUID": null,
+    "evidence_path": null,
+    "DB_record": null,
+    "incident_status": null,
+    "duration_seconds": 300.0474410057068,
+    "start_UTC": "2026-09-18T12:09:41.078368+00:00",
+    "end_UTC": "2026-09-18T12:14:41.125809+00:00",
+    "diagnostic_AI_frames": 835,
+    "production_samples": 167,
+    "track_count": 24,
+    "production_track_evidence": [
+      {
+        "track_id": 46,
+        "frame": 15628,
+        "file": "live/production-620.jpg",
+        "confidence": 0.7
+      },
+      {
+        "track_id": 54,
+        "frame": 15684,
+        "file": "live/production-635.jpg",
+        "confidence": 0.89
+      }
+    ],
+    "diagnostic_state_examples": [
+      {
+        "track_id": 52,
+        "frame": 620,
+        "timestamp": 1789733607.7361379,
+        "center": [
+          417.0,
+          289.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.21816450303289706,
+        "smoothed_normalized_speed": 0.21816450303289706,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 58,
+        "frame": 635,
+        "timestamp": 1789733612.3615649,
+        "center": [
+          451.5,
+          288.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.21666654156178536,
+        "smoothed_normalized_speed": 0.1640392805434515,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      }
+    ],
+    "max_stationary_duration_inside_ROI": 0,
+    "method": "Read-only live preview observer running unchanged production YOLO/ByteTrack and process_video configuration in a separate process, alongside passive production outputs and event monitoring. No diagnostic event was imported as Camera 3.",
+    "limitations": [
+      "Observer IDs 52 and 58 are NOT production IDs 46 and 54. Independent timing/JPEG input means internal production movement state cannot be inferred exactly from observer state.",
+      "Production per-track stationary timers are not exposed by current runtime; the numerical timers in states.jsonl are diagnostic observations, not worker telemetry.",
+      "Five-minute observation began before the stopped-rule fix; worker was restarted after successful tests and returned ONLINE. No post-fix positive real episode is claimed.",
+      "Snapshot images are reference/validation artifacts, not generated incident evidence."
+    ],
+    "source_events_before": [
+      "70197f71-3dce-4982-9c22-7ddb5e8164ba"
+    ],
+    "source_events_after": [
+      "70197f71-3dce-4982-9c22-7ddb5e8164ba"
+    ],
+    "post_fix_production_stop_events": []
+  },
+  "recorded_scenario_validation": {
+    "status": "FAIL",
+    "reason": "Existing broken-car clip starts with the car stationary. It does not prove physical MOVING -> STOPPED. Corrected rule emits zero events; the earlier positive was bounding-box jitter.",
+    "source": "ai/sample_videos/stopped_vehicle.mp4",
+    "config": "ai/config/scenarios/stopped_vehicle.json",
+    "frames": 318,
+    "clip_seconds": 10.6,
+    "event_generated": "NO",
+    "evidence": "NO",
+    "DB_persistence": "NO",
+    "fields_scope": "These three flags mean a valid new positive event after the fix. The pre-fix proposal was persisted separately for delivery/review diagnostics, described below.",
+    "duplicate_suppression": "PASS",
+    "before_fix": {
+      "event_generated": "YES",
+      "event": {
+        "event_id": "35b9c58c-3051-4d46-a049-0aa1a916dd94",
+        "event_type": "STOPPED_VEHICLE",
+        "timestamp": 4.0,
+        "confidence": 0.9234,
+        "severity": "MEDIUM",
+        "explanation": "Track 7 remained nearly stationary for 1.5 seconds; smoothed normalized movement was 0.0204 ROI diagonals/second.",
+        "camera_name": "Pexels Broken Car Test",
+        "latitude": 0.0,
+        "longitude": 0.0,
+        "evidence_image": "evidence/event_0001_stopped_vehicle.jpg",
+        "status": "PROPOSED",
+        "details": {
+          "track_id": 7,
+          "vehicle_class": "car",
+          "stationary_duration_seconds": 1.5,
+          "movement_value": 0.020433,
+          "movement_unit": "roi_diagonals_per_second",
+          "instantaneous_normalized_movement": 0.01523,
+          "pixel_speed_debug": 15.811,
+          "roi_status": "INSIDE",
+          "movement_state": "STATIONARY",
+          "was_previously_moving": true,
+          "source_type": "VIDEO_FILE",
+          "camera_id": "Pexels Broken Car Test",
+          "timestamp_kind": "VIDEO_SECONDS"
+        }
+      },
+      "evidence": "recorded/evidence/event_0001_stopped_vehicle.jpg",
+      "classification": "False positive; RECORDED DEMO only; never Camera 3 validation"
+    },
+    "after_fix": {
+      "event_count": 0,
+      "events_file": "recorded-after/events.json",
+      "evidence_count": 0
+    },
+    "state_sequence": [
+      {
+        "track_id": 7,
+        "frame": 1,
+        "timestamp": 0.03333333333333333,
+        "center": [
+          657.5,
+          484.5
+        ],
+        "movement_state": "UNKNOWN",
+        "has_moved": false,
+        "stationary_duration": 0.0,
+        "normalized_speed": null,
+        "smoothed_normalized_speed": null,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 7,
+        "frame": 3,
+        "timestamp": 0.1,
+        "center": [
+          658.0,
+          484.0
+        ],
+        "movement_state": "STATIONARY",
+        "has_moved": false,
+        "stationary_duration": 0.06666666666666668,
+        "normalized_speed": 0.014448480276391427,
+        "smoothed_normalized_speed": 0.014448480276391428,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 7,
+        "frame": 62,
+        "timestamp": 2.066666666666667,
+        "center": [
+          670.5,
+          489.0
+        ],
+        "movement_state": "MOVING",
+        "has_moved": true,
+        "stationary_duration": 0.0,
+        "normalized_speed": 0.3088732298368564,
+        "smoothed_normalized_speed": 0.20112875023130003,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 7,
+        "frame": 77,
+        "timestamp": 2.566666666666667,
+        "center": [
+          677.5,
+          484.0
+        ],
+        "movement_state": "STATIONARY",
+        "has_moved": true,
+        "stationary_duration": 0.06666666666666687,
+        "normalized_speed": 0.02889696055278258,
+        "smoothed_normalized_speed": 0.07224240138195741,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      },
+      {
+        "track_id": 7,
+        "frame": 120,
+        "timestamp": 4.0,
+        "center": [
+          680.5,
+          482.0
+        ],
+        "movement_state": "STATIONARY",
+        "has_moved": true,
+        "stationary_duration": 1.5,
+        "normalized_speed": 0.015230035467138678,
+        "smoothed_normalized_speed": 0.020433236762552997,
+        "inside_stopped_roi": true,
+        "episode_latched_before": false
+      }
+    ],
+    "thresholds": {
+      "wrong_way_min_confidence": 0.95,
+      "wrong_way_min_displacement_px": 10000.0,
+      "wrong_way_min_track_points": 30,
+      "stopped_vehicle_seconds": 1.5,
+      "stopped_vehicle_max_speed_px_per_sec": 80.0,
+      "stopped_vehicle_max_normalized_speed_per_sec": 0.08,
+      "stopped_vehicle_release_normalized_speed_per_sec": 0.18,
+      "stopped_vehicle_speed_smoothing_window": 15,
+      "stopped_vehicle_rearm_moving_seconds": 1.0,
+      "stopped_vehicle_min_track_points": 5,
+      "congestion_min_vehicles": 99,
+      "congestion_duration_seconds": 60.0,
+      "congestion_max_track_age_seconds": 1.0,
+      "congestion_max_evaluation_gap_seconds": 1.0
+    },
+    "scope_note": "Recorded stationary duration is 1.5 seconds, while Camera 3 uses 8 seconds. No thresholds changed and this clip is not equivalent to live-camera sensitivity."
+  },
+  "pipeline": {
+    "Detection": "PASS",
+    "Tracking": "PASS",
+    "State transition": "FAIL",
+    "Event": "FAIL",
+    "Evidence": "PASS",
+    "DB persistence": "PASS",
+    "Review workflow": "PASS",
+    "Duplicate suppression": "PASS"
+  },
+  "pipeline_scope": {
+    "Detection": "Actual production and recorded vehicle boxes observed. Not exhaustive recall validation.",
+    "Tracking": "Production IDs 46/54 and recorded ID7; observer IDs explicitly separate.",
+    "State transition": "FAIL means the required genuine physical moved-then-stopped sequence was not proven; state-machine synthetic regressions pass.",
+    "Event": "FAIL means no valid new positive stopped proposal after fix in tested footage; event writing works in controlled regression.",
+    "Evidence": "PASS for actual generated pre-fix recorded proposal image, HTTP200 and UI View; no real-camera incident evidence.",
+    "DB persistence": "PASS for labelled pre-fix RECORDED_SCENARIO proposal, not a valid Camera 3 stop.",
+    "Review workflow": "Actual UI View and Dismiss by existing ADMIN; Verify and Dismiss by REVIEWER in isolated test DBs with the same recorded proposal.",
+    "Duplicate suppression": "Actual replay emitted one pre-fix proposal rather than every frame; post-fix emits zero false proposals. Automated positive stopped-episode and movement/rearm tests emit exactly one per episode. Duplicate DB ingest returns409 and preserves review status."
+  },
+  "bug_fix": {
+    "root_cause": "TrackState.has_moved becomes sticky after brief high-speed bbox jitter. StoppedVehicleRule accepted that boolean alone as prior motion. Recorded track7 exceeded release threshold0.18 for only0.0333 seconds at2.0667\u20132.1000, yet emitted at4.0 seconds.",
+    "change": "StoppedVehicleRule now qualifies initial prior motion using sustained movement above the existing release threshold for the existing rearm_moving_seconds. Counts motion before entering ROI; clears qualification after observation gaps. Global trajectory states, all other event rules, thresholds, YOLO and ByteTrack unchanged.",
+    "tradeoff": "Brief genuine motion shorter than the existing rearm interval will not qualify a first stopped episode. Sustained detector/box errors can still require further diagnosis; this does not prove perfect physical motion recognition.",
+    "files": [
+      "ai/event_rules.py",
+      "ai/tests/test_stopped_vehicle.py",
+      "ai/tests/test_event_pipeline.py"
+    ],
+    "deployed": "Camera 3 worker gracefully restarted after tests; ONLINE with original calibration/configuration.",
+    "regressions": [
+      "Short bbox motion sets has_moved but cannot qualify a stopped proposal.",
+      "Sustained motion outside ROI qualifies; a detection gap invalidates stale qualification.",
+      "Prior-motion-required stopped episode emits once; renewed movement rearms and next stop emits exactly one more.",
+      "Full recorded clip before/after: one false proposal -> zero."
+    ]
+  },
+  "delivery_and_review": {
+    "source_type": "RECORDED_SCENARIO",
+    "source_id": "stopped_vehicle",
+    "UUID": "35b9c58c-3051-4d46-a049-0aa1a916dd94",
+    "ingest_HTTP": 201,
+    "duplicate_ingest_HTTP": 409,
+    "evidence_HTTP": 200,
+    "DB_record_before_review": {
+      "event_id": "35b9c58c-3051-4d46-a049-0aa1a916dd94",
+      "event_type": "STOPPED_VEHICLE",
+      "timestamp": 4.0,
+      "confidence": 0.9234,
+      "severity": "MEDIUM",
+      "explanation": "RECORDED DEMO: pre-fix false proposal caused by brief bounding-box motion; review-workflow test only. Track 7 remained nearly stationary for 1.5 seconds; smoothed normalized movement was 0.0204 ROI diagonals/second.",
+      "camera_name": "RECORDED DEMO - P0 3.7 bbox-jitter regression",
+      "latitude": 0.0,
+      "longitude": 0.0,
+      "evidence_image": "evidence/event_0001_stopped_vehicle.jpg",
+      "source_type": "RECORDED_SCENARIO",
+      "source_id": "stopped_vehicle",
+      "details": {
+        "track_id": 7,
+        "vehicle_class": "car",
+        "stationary_duration_seconds": 1.5,
+        "movement_value": 0.020433,
+        "movement_unit": "roi_diagonals_per_second",
+        "instantaneous_normalized_movement": 0.01523,
+        "pixel_speed_debug": 15.811,
+        "roi_status": "INSIDE",
+        "movement_state": "STATIONARY",
+        "was_previously_moving": true,
+        "source_type": "VIDEO_FILE",
+        "camera_id": "Pexels Broken Car Test",
+        "timestamp_kind": "VIDEO_SECONDS",
+        "validation_scope": "RECORDED_DEMO_PRE_FIX_FALSE_PROPOSAL"
+      },
+      "status": "PROPOSED"
+    },
+    "DB_record_after_review": {
+      "event_id": "35b9c58c-3051-4d46-a049-0aa1a916dd94",
+      "event_type": "STOPPED_VEHICLE",
+      "timestamp": 4.0,
+      "confidence": 0.9234,
+      "severity": "MEDIUM",
+      "explanation": "RECORDED DEMO: pre-fix false proposal caused by brief bounding-box motion; review-workflow test only. Track 7 remained nearly stationary for 1.5 seconds; smoothed normalized movement was 0.0204 ROI diagonals/second.",
+      "camera_name": "RECORDED DEMO - P0 3.7 bbox-jitter regression",
+      "latitude": 0.0,
+      "longitude": 0.0,
+      "evidence_image": "evidence/event_0001_stopped_vehicle.jpg",
+      "source_type": "RECORDED_SCENARIO",
+      "source_id": "stopped_vehicle",
+      "details": {
+        "track_id": 7,
+        "vehicle_class": "car",
+        "stationary_duration_seconds": 1.5,
+        "movement_value": 0.020433,
+        "movement_unit": "roi_diagonals_per_second",
+        "instantaneous_normalized_movement": 0.01523,
+        "pixel_speed_debug": 15.811,
+        "roi_status": "INSIDE",
+        "movement_state": "STATIONARY",
+        "was_previously_moving": true,
+        "source_type": "VIDEO_FILE",
+        "camera_id": "Pexels Broken Car Test",
+        "timestamp_kind": "VIDEO_SECONDS",
+        "validation_scope": "RECORDED_DEMO_PRE_FIX_FALSE_PROPOSAL"
+      },
+      "status": "DISMISSED"
+    },
+    "final_status": "DISMISSED",
+    "audit_entries": [
+      {
+        "audit_id": "0ee7c5f1-9270-40f9-87c8-20ad730d9fa9",
+        "actor_user_id": "be37c02c-1903-436c-89f3-e3764fa78f8a",
+        "actor_username": "yazan118899@icloud.com",
+        "action": "INCIDENT_DISMISSED",
+        "target_type": "traffic_event",
+        "target_id": "35b9c58c-3051-4d46-a049-0aa1a916dd94",
+        "previous_value": "PROPOSED",
+        "new_value": "DISMISSED",
+        "request_id": "5f4725d0-061f-42b4-bc5e-d7f8f146bfb5",
+        "created_at": "2026-09-18 12:17:07"
+      }
+    ],
+    "UI_evidence": [
+      "command-center-proposed.png",
+      "evidence-review.png",
+      "incidents-dismissed.png",
+      "incidents-ui.txt"
+    ],
+    "reviewer_test": "recorded-review-regression.json",
+    "artifact_changes": "Replaced the stopped demo events.json with this explicitly labelled historical pre-fix proposal and copied matching generated evidence, so it is reviewable in the existing UI. Its DB status is DISMISSED. Prior demo event/evidence files are backed up locally. No new Camera 3 incident was created, and unrelated existing incidents were not reviewed."
+  },
+  "tests": {
+    "AI": "220 passed in2.58s",
+    "stopped_rearm_after_final_test_update": "23 passed in0.03s",
+    "backend_incident_auth_events": "69 passed in21.82s",
+    "reviewer_recorded_contract": "Verify and Dismiss passed in isolated temporary DBs; evidence200; duplicate409; decisions persist.",
+    "git_diff_check": "PASS"
+  },
+  "protected_baseline_hashes_unchanged": {
+    "ai/config/live_camera.json": true,
+    "ai/config/scenarios/stopped_vehicle.json": true,
+    "ai/process_video.py": true,
+    "ai/event_pipeline.py": true,
+    "ai/event_rules.py": false,
+    "ai/trajectory.py": true,
+    "ai/calibration.py": true,
+    "ai/config/bytetrack_cityeye.yaml": true,
+    "backend/app/auth.py": true,
+    "frontend/src/pages/IncidentsPage.tsx": true
+  },
+  "temporary_instrumentation": "Python wrappers only in /tmp; read-only observer monkeypatches source and state logging only inside isolated diagnostic process. No production diagnostic hooks or flags added. Scripts removed after artifact generation.",
+  "next_action": "Obtain one naturally occurring Camera 3 daylight sequence showing sustained movement, entry/presence in the existing stopped ROI, then at least8 seconds stopped, and rerun positive end-to-end acceptance."
+}

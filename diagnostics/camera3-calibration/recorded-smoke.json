@@ -1,0 +1,34 @@
+[
+  {
+    "scenario": "normal_traffic",
+    "processed_frames": 12,
+    "detection_rows": 148,
+    "config_unchanged": true,
+    "calibration_override": false,
+    "note": ""
+  },
+  {
+    "scenario": "congestion",
+    "processed_frames": 12,
+    "detection_rows": 395,
+    "config_unchanged": true,
+    "calibration_override": false,
+    "note": ""
+  },
+  {
+    "scenario": "stopped_vehicle",
+    "processed_frames": 12,
+    "detection_rows": 70,
+    "config_unchanged": true,
+    "calibration_override": false,
+    "note": ""
+  },
+  {
+    "scenario": "rainy_traffic",
+    "processed_frames": 12,
+    "detection_rows": 0,
+    "config_unchanged": true,
+    "calibration_override": false,
+    "note": "Initial rainy frames have zero detections; zero is valid, not a processing failure."
+  }
+]

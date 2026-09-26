@@ -1,0 +1,11 @@
+{
+  "captured_at": 1789722212.190887,
+  "sha256": {
+    "ai/config/live_camera.json": "198897661070f65298515dc84e31f12c3cf4afef861dae8318e547342edcc8ee",
+    "ai/config/bytetrack_cityeye.yaml": "84144761397e4b3a51cffe146f96d7aaf5a5779b2526c1b231ccb6ae8c201e56",
+    "ai/frame_source.py": "c0f071b9fad410615822294d7a427ffad1c30d5f85ed9ef8db6649a236c115ac",
+    "ai/process_video.py": "5531f545da6ad969ff36dd4ffe63d853750917fe93591084f816242d76da3bff",
+    "ai/event_pipeline.py": "3b340f866a40388bdc763b4fe6dd5b76a3f9afcf29f54815e4b461de479b7c0c",
+    "ai/calibration.py": "8f0deb148f97433b458c73faf75675581b1d4a93fbbe5cdf9923cd9c5aa588dd"
+  }
+}

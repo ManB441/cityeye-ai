@@ -1,0 +1,797 @@
+[
+  {
+    "frame_number": 1,
+    "decoded_at": 1789722344.907905,
+    "source_position_msec_opencv": 0.0,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 1.4,
+    "statistics": {
+      "mean_brightness_gray_0_255": 145.5869860326428,
+      "contrast_gray_std": 39.73563967809298,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        142.0,
+        251.0
+      ],
+      "saturation_mean_0_255": 29.576592906465788,
+      "saturation_std": 20.723611088545304,
+      "saturation_percentiles_5_50_95": [
+        4.0,
+        26.0,
+        69.0
+      ],
+      "laplacian_variance_full": 352.73344178829115,
+      "laplacian_variance_interior_without_osd": 79.31845879835693,
+      "bright_gray_ge245_percent": 1.3648579723791587,
+      "any_channel_ge250_percent": 1.8894185499058378,
+      "all_channels_ge250_percent": 0.995958882611425
+    },
+    "sha256": "59b03d5c5ddc74f922f42a9db04d72843e1bb252438a3f26c26319ca7821ce73",
+    "previous_frame_difference": null
+  },
+  {
+    "frame_number": 2,
+    "decoded_at": 1789722344.939509,
+    "source_position_msec_opencv": 81.0,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 1.481,
+    "statistics": {
+      "mean_brightness_gray_0_255": 145.5943816698054,
+      "contrast_gray_std": 39.72774403667456,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        142.0,
+        251.0
+      ],
+      "saturation_mean_0_255": 29.565908466729443,
+      "saturation_std": 20.69360655858947,
+      "saturation_percentiles_5_50_95": [
+        4.0,
+        26.0,
+        69.0
+      ],
+      "laplacian_variance_full": 352.2890383922368,
+      "laplacian_variance_interior_without_osd": 79.07415387317647,
+      "bright_gray_ge245_percent": 1.3649560577526678,
+      "any_channel_ge250_percent": 1.8895166352793473,
+      "all_channels_ge250_percent": 0.995958882611425
+    },
+    "sha256": "7e2b9767d9277804b3f3f118d98b84da3c39a0f670cf1037be9f8c032ba68b33",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.06696876961707471,
+      "changed_pixels_percent": 3.1674709667294416,
+      "pixels_any_channel_difference_gt2_percent": 2.4833254865034524
+    }
+  },
+  {
+    "frame_number": 3,
+    "decoded_at": 1789722344.940265,
+    "source_position_msec_opencv": 160.0,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 1.56,
+    "statistics": {
+      "mean_brightness_gray_0_255": 145.5899040725047,
+      "contrast_gray_std": 39.731482911516686,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        142.0,
+        251.0
+      ],
+      "saturation_mean_0_255": 29.614127236346516,
+      "saturation_std": 20.717923240097853,
+      "saturation_percentiles_5_50_95": [
+        4.0,
+        26.0,
+        69.0
+      ],
+      "laplacian_variance_full": 352.5239965207452,
+      "laplacian_variance_interior_without_osd": 79.09978965410265,
+      "bright_gray_ge245_percent": 1.3648579723791587,
+      "any_channel_ge250_percent": 1.8896147206528564,
+      "all_channels_ge250_percent": 0.995958882611425
+    },
+    "sha256": "31bc5b7f67ce8646a087f7129f79116879ba6310c6a4da81e8d4c4fa01a90d85",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.09050827840552417,
+      "changed_pixels_percent": 4.649050533584432,
+      "pixels_any_channel_difference_gt2_percent": 3.852204959196485
+    }
+  },
+  {
+    "frame_number": 4,
+    "decoded_at": 1789722344.940989,
+    "source_position_msec_opencv": 255.32222222222222,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 1.655322,
+    "statistics": {
+      "mean_brightness_gray_0_255": 145.6029886613308,
+      "contrast_gray_std": 39.72423608837798,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        142.0,
+        251.0
+      ],
+      "saturation_mean_0_255": 29.60362425455116,
+      "saturation_std": 20.728021121863815,
+      "saturation_percentiles_5_50_95": [
+        4.0,
+        26.0,
+        69.0
+      ],
+      "laplacian_variance_full": 352.11409039723816,
+      "laplacian_variance_interior_without_osd": 78.8801784040961,
+      "bright_gray_ge245_percent": 1.3655445699937225,
+      "any_channel_ge250_percent": 1.8908898305084747,
+      "all_channels_ge250_percent": 0.9974301632140615
+    },
+    "sha256": "046e0307f89e91032e5adcd908e400bd0b17140d42a8fbcdfac8ae59f07fdb77",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.07293791849759364,
+      "changed_pixels_percent": 3.727930790960452,
+      "pixels_any_channel_difference_gt2_percent": 3.000725831763967
+    }
+  },
+  {
+    "frame_number": 5,
+    "decoded_at": 1789722344.9417548,
+    "source_position_msec_opencv": 336.32222222222225,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 1.736322,
+    "statistics": {
+      "mean_brightness_gray_0_255": 145.5903562460766,
+      "contrast_gray_std": 39.731366991995436,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        142.0,
+        251.0
+      ],
+      "saturation_mean_0_255": 29.6508945386064,
+      "saturation_std": 20.728740044351262,
+      "saturation_percentiles_5_50_95": [
+        4.0,
+        26.0,
+        69.0
+      ],
+      "laplacian_variance_full": 352.2150561774279,
+      "laplacian_variance_interior_without_osd": 78.88175621588871,
+      "bright_gray_ge245_percent": 1.3642694601381042,
+      "any_channel_ge250_percent": 1.8896147206528564,
+      "all_channels_ge250_percent": 0.995860797237916
+    },
+    "sha256": "0ba9d8c2a921ea3489d886693ed8ceb3a7912bb6cc60850ab9a30166a764ae65",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.11639300847457627,
+      "changed_pixels_percent": 5.959176867545512,
+      "pixels_any_channel_difference_gt2_percent": 4.920158505963591
+    }
+  },
+  {
+    "frame_number": 6,
+    "decoded_at": 1789722344.942631,
+    "source_position_msec_opencv": 402.32222222222225,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 1.802322,
+    "statistics": {
+      "mean_brightness_gray_0_255": 145.60447171217828,
+      "contrast_gray_std": 39.72719763692375,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        142.0,
+        251.0
+      ],
+      "saturation_mean_0_255": 29.622599850910234,
+      "saturation_std": 20.722353932030522,
+      "saturation_percentiles_5_50_95": [
+        4.0,
+        26.0,
+        69.0
+      ],
+      "laplacian_variance_full": 351.53613265283326,
+      "laplacian_variance_interior_without_osd": 78.38885163221863,
+      "bright_gray_ge245_percent": 1.3668196798493408,
+      "any_channel_ge250_percent": 1.893341964846202,
+      "all_channels_ge250_percent": 0.998803358443189
+    },
+    "sha256": "969d4ba4f66c0fd8afd76c4c7ae9f08a8b18611ce8979dbdbb29f4c2ac62b958",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.0923513025737602,
+      "changed_pixels_percent": 4.586079723791588,
+      "pixels_any_channel_difference_gt2_percent": 3.484679064657878
+    }
+  },
+  {
+    "frame_number": 7,
+    "decoded_at": 1789722344.94341,
+    "source_position_msec_opencv": 480.1666666666667,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 1.880167,
+    "statistics": {
+      "mean_brightness_gray_0_255": 145.5944375784683,
+      "contrast_gray_std": 39.730647936467065,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        142.0,
+        251.0
+      ],
+      "saturation_mean_0_255": 29.72239387162586,
+      "saturation_std": 20.77719648459182,
+      "saturation_percentiles_5_50_95": [
+        4.0,
+        26.0,
+        69.0
+      ],
+      "laplacian_variance_full": 351.9844050428018,
+      "laplacian_variance_interior_without_osd": 78.63230200893668,
+      "bright_gray_ge245_percent": 1.363877118644068,
+      "any_channel_ge250_percent": 1.8911840866290017,
+      "all_channels_ge250_percent": 0.995860797237916
+    },
+    "sha256": "f80ffffeb1c02834ca6133aa910dbe354e263473db4f3cdb097d653d74a9cf67",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.1436819941410337,
+      "changed_pixels_percent": 7.678221123666039,
+      "pixels_any_channel_difference_gt2_percent": 6.26745919648462
+    }
+  },
+  {
+    "frame_number": 8,
+    "decoded_at": 1789722344.9443111,
+    "source_position_msec_opencv": 561.1666666666667,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 1.961167,
+    "statistics": {
+      "mean_brightness_gray_0_255": 145.60233443188952,
+      "contrast_gray_std": 39.7298931284731,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        142.0,
+        251.0
+      ],
+      "saturation_mean_0_255": 29.753129904268675,
+      "saturation_std": 20.805745069285546,
+      "saturation_percentiles_5_50_95": [
+        4.0,
+        26.0,
+        69.0
+      ],
+      "laplacian_variance_full": 351.5565347104516,
+      "laplacian_variance_interior_without_osd": 78.18821713097947,
+      "bright_gray_ge245_percent": 1.3653483992467044,
+      "any_channel_ge250_percent": 1.9011887947269304,
+      "all_channels_ge250_percent": 0.997920590081607
+    },
+    "sha256": "91bfca64e731f3c3ced6f1d2e3c26ebae74e7cfe6ae47dfe4f70c027ebd6a243",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.09986791169700775,
+      "changed_pixels_percent": 5.776639987445073,
+      "pixels_any_channel_difference_gt2_percent": 4.945660703075958
+    }
+  },
+  {
+    "frame_number": 9,
+    "decoded_at": 1789722344.9452422,
+    "source_position_msec_opencv": 620.1666666666666,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 2.020167,
+    "statistics": {
+      "mean_brightness_gray_0_255": 145.59878079880727,
+      "contrast_gray_std": 39.72571787085055,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        142.0,
+        251.0
+      ],
+      "saturation_mean_0_255": 29.789103695856873,
+      "saturation_std": 20.828998314353584,
+      "saturation_percentiles_5_50_95": [
+        4.0,
+        26.0,
+        69.0
+      ],
+      "laplacian_variance_full": 351.66763864536006,
+      "laplacian_variance_interior_without_osd": 78.33168207570587,
+      "bright_gray_ge245_percent": 1.363877118644068,
+      "any_channel_ge250_percent": 1.89138025737602,
+      "all_channels_ge250_percent": 0.9953703703703705
+    },
+    "sha256": "d39a337ea1484cdcb897bbadc8afec51368e3fdd745e9b6b1e83554edf0b5e54",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.15395839872358233,
+      "changed_pixels_percent": 8.733423571876962,
+      "pixels_any_channel_difference_gt2_percent": 7.603283898305084
+    }
+  },
+  {
+    "frame_number": 10,
+    "decoded_at": 1789722344.946038,
+    "source_position_msec_opencv": 721.0111111111112,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 2.121011,
+    "statistics": {
+      "mean_brightness_gray_0_255": 145.65819503295668,
+      "contrast_gray_std": 39.703966219107535,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        142.0,
+        251.0
+      ],
+      "saturation_mean_0_255": 29.756932674199625,
+      "saturation_std": 20.726499215608953,
+      "saturation_percentiles_5_50_95": [
+        4.0,
+        26.0,
+        69.0
+      ],
+      "laplacian_variance_full": 351.1655261517248,
+      "laplacian_variance_interior_without_osd": 77.73397107055939,
+      "bright_gray_ge245_percent": 1.365152228499686,
+      "any_channel_ge250_percent": 1.8916745134965476,
+      "all_channels_ge250_percent": 0.9980186754551161
+    },
+    "sha256": "c11c0a8061fc084dcd54d2099d3207a3148570228185b60633e8cfa1a75c9bbd",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.17563003504917346,
+      "changed_pixels_percent": 9.46239406779661,
+      "pixels_any_channel_difference_gt2_percent": 6.965140458254865
+    }
+  },
+  {
+    "frame_number": 11,
+    "decoded_at": 1789722344.980031,
+    "source_position_msec_opencv": 841.0111111111112,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 2.241011,
+    "statistics": {
+      "mean_brightness_gray_0_255": 145.69013163057124,
+      "contrast_gray_std": 39.717379882697244,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        142.0,
+        251.0
+      ],
+      "saturation_mean_0_255": 29.687049788135592,
+      "saturation_std": 20.774652654913726,
+      "saturation_percentiles_5_50_95": [
+        4.0,
+        26.0,
+        69.0
+      ],
+      "laplacian_variance_full": 349.10234713563,
+      "laplacian_variance_interior_without_osd": 77.32600769570558,
+      "bright_gray_ge245_percent": 1.3713316070307595,
+      "any_channel_ge250_percent": 1.9005021971123663,
+      "all_channels_ge250_percent": 1.002824858757062
+    },
+    "sha256": "769856525c5a58ff97395f7411bf6a1877a3f71a82496746e8ac930d6ae5cc1f",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.27794223425402803,
+      "changed_pixels_percent": 15.030014124293785,
+      "pixels_any_channel_difference_gt2_percent": 10.619997645951036
+    }
+  },
+  {
+    "frame_number": 12,
+    "decoded_at": 1789722344.9810402,
+    "source_position_msec_opencv": 922.0111111111111,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 2.322011,
+    "statistics": {
+      "mean_brightness_gray_0_255": 145.7021637633396,
+      "contrast_gray_std": 39.71464553660799,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        142.0,
+        251.0
+      ],
+      "saturation_mean_0_255": 30.17913822190835,
+      "saturation_std": 20.84777639870035,
+      "saturation_percentiles_5_50_95": [
+        4.0,
+        27.0,
+        69.0
+      ],
+      "laplacian_variance_full": 348.8187691712487,
+      "laplacian_variance_interior_without_osd": 77.01931827175191,
+      "bright_gray_ge245_percent": 1.3718220338983051,
+      "any_channel_ge250_percent": 1.89795197740113,
+      "all_channels_ge250_percent": 1.0031191148775895
+    },
+    "sha256": "dc7144a26a30f849dc13746e91923c550f4723ccbaaae4e6a9e78afd1c303461",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.21850249790751203,
+      "changed_pixels_percent": 12.696268832391713,
+      "pixels_any_channel_difference_gt2_percent": 11.531603107344633
+    }
+  },
+  {
+    "frame_number": 13,
+    "decoded_at": 1789722344.981979,
+    "source_position_msec_opencv": 999.8111111111112,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 2.399811,
+    "statistics": {
+      "mean_brightness_gray_0_255": 146.4483168549906,
+      "contrast_gray_std": 40.0043186217187,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        143.0,
+        253.0
+      ],
+      "saturation_mean_0_255": 31.05655994978029,
+      "saturation_std": 21.50207398423886,
+      "saturation_percentiles_5_50_95": [
+        3.0,
+        28.0,
+        70.0
+      ],
+      "laplacian_variance_full": 348.73977967076445,
+      "laplacian_variance_interior_without_osd": 78.36405826347558,
+      "bright_gray_ge245_percent": 1.4446994664155681,
+      "any_channel_ge250_percent": 1.9264948210922788,
+      "all_channels_ge250_percent": 1.0820778405524167
+    },
+    "sha256": "168d136fa7b2dc4f7bbc57f80d94a8c250066888407fd93ad71ba7e64d8718c6",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 2.4624911723163843,
+      "changed_pixels_percent": 96.27628688010044,
+      "pixels_any_channel_difference_gt2_percent": 71.30826271186442
+    }
+  },
+  {
+    "frame_number": 14,
+    "decoded_at": 1789722344.982896,
+    "source_position_msec_opencv": 1085.8111111111111,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 2.485811,
+    "statistics": {
+      "mean_brightness_gray_0_255": 146.44753315285624,
+      "contrast_gray_std": 40.004120912077205,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        143.0,
+        253.0
+      ],
+      "saturation_mean_0_255": 31.044572936283743,
+      "saturation_std": 21.468536406333378,
+      "saturation_percentiles_5_50_95": [
+        3.0,
+        28.0,
+        70.0
+      ],
+      "laplacian_variance_full": 348.4069611898859,
+      "laplacian_variance_interior_without_osd": 78.00582380584713,
+      "bright_gray_ge245_percent": 1.4442090395480227,
+      "any_channel_ge250_percent": 1.9262005649717515,
+      "all_channels_ge250_percent": 1.0817835844318895
+    },
+    "sha256": "e32f994a363ec43bdea4de10dd1a82239d4380463862289ffa978ff739074d4b",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.08317083856455325,
+      "changed_pixels_percent": 4.457685969868173,
+      "pixels_any_channel_difference_gt2_percent": 3.8126765536723166
+    }
+  },
+  {
+    "frame_number": 15,
+    "decoded_at": 1789722344.983863,
+    "source_position_msec_opencv": 1149.8111111111111,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 2.549811,
+    "statistics": {
+      "mean_brightness_gray_0_255": 146.44628158349028,
+      "contrast_gray_std": 40.00695296213086,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        143.0,
+        253.0
+      ],
+      "saturation_mean_0_255": 31.089790293471438,
+      "saturation_std": 21.505557239918986,
+      "saturation_percentiles_5_50_95": [
+        3.0,
+        28.0,
+        70.0
+      ],
+      "laplacian_variance_full": 348.42052744030275,
+      "laplacian_variance_interior_without_osd": 78.02642575418908,
+      "bright_gray_ge245_percent": 1.4446994664155681,
+      "any_channel_ge250_percent": 1.9265929064657876,
+      "all_channels_ge250_percent": 1.0820778405524167
+    },
+    "sha256": "6524271ba1b8e7038ed54c4cd647bad68cbc571346a0b291cbb8e7dc74320d70",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.138265065913371,
+      "changed_pixels_percent": 7.699505649717514,
+      "pixels_any_channel_difference_gt2_percent": 6.7580822347771505
+    }
+  },
+  {
+    "frame_number": 16,
+    "decoded_at": 1789722344.9848251,
+    "source_position_msec_opencv": 1221.6666666666667,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 2.621667,
+    "statistics": {
+      "mean_brightness_gray_0_255": 146.44048473791588,
+      "contrast_gray_std": 40.00857626388398,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        143.0,
+        253.0
+      ],
+      "saturation_mean_0_255": 31.15059930163214,
+      "saturation_std": 21.496591745200607,
+      "saturation_percentiles_5_50_95": [
+        3.0,
+        28.0,
+        70.0
+      ],
+      "laplacian_variance_full": 348.15147829693564,
+      "laplacian_variance_interior_without_osd": 77.78083837879684,
+      "bright_gray_ge245_percent": 1.444601381042059,
+      "any_channel_ge250_percent": 1.9262986503452606,
+      "all_channels_ge250_percent": 1.0820778405524167
+    },
+    "sha256": "588410875a0dd5e35a556b98765b133811c4fe0832ec03b5d423e0a3cd8b284b",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.0958264673571877,
+      "changed_pixels_percent": 5.594495448838669,
+      "pixels_any_channel_difference_gt2_percent": 4.78146578782172
+    }
+  },
+  {
+    "frame_number": 17,
+    "decoded_at": 1789722344.9858282,
+    "source_position_msec_opencv": 1301.6666666666667,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 2.701667,
+    "statistics": {
+      "mean_brightness_gray_0_255": 146.44492310106716,
+      "contrast_gray_std": 40.005543589026146,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        143.0,
+        253.0
+      ],
+      "saturation_mean_0_255": 31.114568620527308,
+      "saturation_std": 21.502640725200557,
+      "saturation_percentiles_5_50_95": [
+        3.0,
+        28.0,
+        70.0
+      ],
+      "laplacian_variance_full": 348.2051116818311,
+      "laplacian_variance_interior_without_osd": 77.812955712899,
+      "bright_gray_ge245_percent": 1.4448956371625863,
+      "any_channel_ge250_percent": 1.9267890772128058,
+      "all_channels_ge250_percent": 1.0823720966729442
+    },
+    "sha256": "98ce69319393ad59a34d465b65802cd494ed168d53d3454efa6fdb6d4a9eb560",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.14397167294413057,
+      "changed_pixels_percent": 8.230343691148775,
+      "pixels_any_channel_difference_gt2_percent": 7.208392184557439
+    }
+  },
+  {
+    "frame_number": 18,
+    "decoded_at": 1789722344.9867678,
+    "source_position_msec_opencv": 1389.6666666666667,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 2.789667,
+    "statistics": {
+      "mean_brightness_gray_0_255": 146.44501235875705,
+      "contrast_gray_std": 40.003615108258415,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        143.0,
+        253.0
+      ],
+      "saturation_mean_0_255": 31.1325888653484,
+      "saturation_std": 21.493341299489153,
+      "saturation_percentiles_5_50_95": [
+        3.0,
+        28.0,
+        70.0
+      ],
+      "laplacian_variance_full": 348.01274623252425,
+      "laplacian_variance_interior_without_osd": 77.62355086451058,
+      "bright_gray_ge245_percent": 1.4449937225360954,
+      "any_channel_ge250_percent": 1.9267890772128058,
+      "all_channels_ge250_percent": 1.0823720966729442
+    },
+    "sha256": "a23db0099e0b8d4262668098c448b478c443f1831a3337de7eec79c332b5b4d6",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.09601544517681523,
+      "changed_pixels_percent": 5.258062617702448,
+      "pixels_any_channel_difference_gt2_percent": 4.629237288135593
+    }
+  },
+  {
+    "frame_number": 19,
+    "decoded_at": 1789722344.987614,
+    "source_position_msec_opencv": 1469.5222222222224,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 2.869522,
+    "statistics": {
+      "mean_brightness_gray_0_255": 146.45412154739486,
+      "contrast_gray_std": 40.0004422164583,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        143.0,
+        253.0
+      ],
+      "saturation_mean_0_255": 31.130180869428752,
+      "saturation_std": 21.483244780883812,
+      "saturation_percentiles_5_50_95": [
+        3.0,
+        28.0,
+        70.0
+      ],
+      "laplacian_variance_full": 347.98364494095574,
+      "laplacian_variance_interior_without_osd": 77.63713273506978,
+      "bright_gray_ge245_percent": 1.4442090395480227,
+      "any_channel_ge250_percent": 1.9264948210922788,
+      "all_channels_ge250_percent": 1.0817835844318895
+    },
+    "sha256": "bc8a984364651dd3f045c550d709efee0b085c8eeaca76509082ebaaaa8e4f30",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.14572870893492362,
+      "changed_pixels_percent": 8.191599968612682,
+      "pixels_any_channel_difference_gt2_percent": 7.170236974262398
+    }
+  },
+  {
+    "frame_number": 20,
+    "decoded_at": 1789722344.988554,
+    "source_position_msec_opencv": 1560.5222222222224,
+    "width": 944,
+    "height": 1080,
+    "source_frame_sequence": "consecutive decode index in captured bitstream; not live-worker sequence",
+    "generation_during_capture": [
+      37
+    ],
+    "source_pts_seconds": 2.960522,
+    "statistics": {
+      "mean_brightness_gray_0_255": 146.4579351067169,
+      "contrast_gray_std": 39.99784064132065,
+      "gray_percentiles_1_50_99": [
+        64.0,
+        143.0,
+        253.0
+      ],
+      "saturation_mean_0_255": 31.09861111111111,
+      "saturation_std": 21.505510552033645,
+      "saturation_percentiles_5_50_95": [
+        3.0,
+        28.0,
+        70.0
+      ],
+      "laplacian_variance_full": 347.85943948835376,
+      "laplacian_variance_interior_without_osd": 77.49383679778607,
+      "bright_gray_ge245_percent": 1.4424435028248588,
+      "any_channel_ge250_percent": 1.9260043942247334,
+      "all_channels_ge250_percent": 1.0844318895166354
+    },
+    "sha256": "79e810186b97b8ddf442b1ffe1afa736c7101ee5c875007c5fa1ffafb7b758ea",
+    "previous_frame_difference": {
+      "exact_duplicate": false,
+      "mean_abs_bgr_0_255": 0.08984195176815234,
+      "changed_pixels_percent": 5.058655053358444,
+      "pixels_any_channel_difference_gt2_percent": 4.489857972379159
+    }
+  }
+]

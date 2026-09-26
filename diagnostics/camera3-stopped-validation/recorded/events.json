@@ -1,0 +1,30 @@
+[
+  {
+    "event_id": "35b9c58c-3051-4d46-a049-0aa1a916dd94",
+    "event_type": "STOPPED_VEHICLE",
+    "timestamp": 4.0,
+    "confidence": 0.9234,
+    "severity": "MEDIUM",
+    "explanation": "Track 7 remained nearly stationary for 1.5 seconds; smoothed normalized movement was 0.0204 ROI diagonals/second.",
+    "camera_name": "Pexels Broken Car Test",
+    "latitude": 0.0,
+    "longitude": 0.0,
+    "evidence_image": "evidence/event_0001_stopped_vehicle.jpg",
+    "status": "PROPOSED",
+    "details": {
+      "track_id": 7,
+      "vehicle_class": "car",
+      "stationary_duration_seconds": 1.5,
+      "movement_value": 0.020433,
+      "movement_unit": "roi_diagonals_per_second",
+      "instantaneous_normalized_movement": 0.01523,
+      "pixel_speed_debug": 15.811,
+      "roi_status": "INSIDE",
+      "movement_state": "STATIONARY",
+      "was_previously_moving": true,
+      "source_type": "VIDEO_FILE",
+      "camera_id": "Pexels Broken Car Test",
+      "timestamp_kind": "VIDEO_SECONDS"
+    }
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "camera_id": "camera-3",
+  "frame_size": [
+    944,
+    1080
+  ],
+  "coordinate_space": "absolute_pixels",
+  "rules": {
+    "road": {
+      "status": "CALIBRATION_REQUIRED",
+      "diagnostic": "missing polygon (at least three points required)"
+    },
+    "congestion": {
+      "status": "CALIBRATION_REQUIRED",
+      "diagnostic": "missing polygon (at least three points required)"
+    },
+    "person_in_road": {
+      "status": "CALIBRATION_REQUIRED",
+      "diagnostic": "missing polygon (at least three points required)"
+    },
+    "stopped_vehicle": {
+      "status": "CALIBRATION_REQUIRED",
+      "diagnostic": "missing polygon (at least three points required)"
+    },
+    "wrong_way": {
+      "status": "CALIBRATION_REQUIRED",
+      "diagnostic": "missing polygon (at least three points required)"
+    },
+    "road_blockage": {
+      "status": "CONFIGURATION_REQUIRED",
+      "diagnostic": "No approved blockage zone, movement direction or upstream-impact calibration; remains disabled."
+    }
+  },
+  "active_geometry": {},
+  "status": "CALIBRATION_REQUIRED",
+  "note": "CALIBRATION REQUIRED: current Camera 3 image is obscured/defocused; roadway boundaries and permitted direction cannot be justified. Legacy generic polygons are not Camera 3 calibration. Acquire a clear current road view before enabling spatial rules.",
+  "captured_at": 1789688357.4950888,
+  "preview_age_seconds": 0.11487221717834473,
+  "generation": 1,
+  "orientation": "portrait",
+  "aspect_ratio": 0.8740740740740741
+}

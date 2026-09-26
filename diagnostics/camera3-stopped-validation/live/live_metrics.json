@@ -1,0 +1,18 @@
+{
+  "frame": 835,
+  "timestamp": 1789733681.125809,
+  "generation": 4,
+  "current_detection_count": 1,
+  "active_vehicle_count": 1,
+  "active_track_count": 1,
+  "cars": 1,
+  "buses": 0,
+  "trucks": 0,
+  "motorcycles": 0,
+  "people": 0,
+  "bicycles": 0,
+  "traffic_state": "NORMAL",
+  "moving_vehicles": 0,
+  "stationary_vehicles": 1,
+  "unknown_movement_vehicles": 0
+}

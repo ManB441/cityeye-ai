@@ -1,0 +1,114 @@
+{
+  "frame_size": [
+    944,
+    1080
+  ],
+  "geometry": {
+    "monitored_road_polygon": [
+      [
+        100,
+        100
+      ],
+      [
+        1180,
+        100
+      ],
+      [
+        1180,
+        650
+      ],
+      [
+        100,
+        650
+      ]
+    ],
+    "stopped_vehicle_polygon": [
+      [
+        100,
+        360
+      ],
+      [
+        1180,
+        360
+      ],
+      [
+        1180,
+        650
+      ],
+      [
+        100,
+        650
+      ]
+    ],
+    "allowed_direction": null,
+    "direction_zones": [
+      {
+        "name": "near_lanes",
+        "polygon": [
+          [
+            100,
+            360
+          ],
+          [
+            1180,
+            360
+          ],
+          [
+            1180,
+            650
+          ],
+          [
+            100,
+            650
+          ]
+        ],
+        "allowed_direction": {
+          "start": [
+            200,
+            500
+          ],
+          "end": [
+            1080,
+            500
+          ]
+        }
+      },
+      {
+        "name": "far_lanes",
+        "polygon": [
+          [
+            100,
+            100
+          ],
+          [
+            1180,
+            100
+          ],
+          [
+            1180,
+            359
+          ],
+          [
+            100,
+            359
+          ]
+        ],
+        "allowed_direction": {
+          "start": [
+            1080,
+            230
+          ],
+          "end": [
+            200,
+            230
+          ]
+        }
+      }
+    ],
+    "blockage_zones": null,
+    "congestion_polygon": null,
+    "person_in_road_polygon": null,
+    "masks": null
+  },
+  "note": "Geometry only; secrets and stream URLs excluded."
+}

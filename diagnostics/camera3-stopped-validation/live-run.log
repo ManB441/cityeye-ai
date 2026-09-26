@@ -1,0 +1,38 @@
+/Users/abcd/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/f1/v21fsbh90rbdh9k_3bg94v740000gn/T/matplotlib-7nw7ol64 because there was an issue with the default path ({configdir}); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+Matplotlib is building the font cache; this may take a moment.
+Loading model: /Users/abcd/cityeye-ai/ai/yolov8n.pt
+Opening RTSP source with VLC: rtsp://diagnostic-preview-reader.invalid
+Processing camera-3 (RTSP, target 5.0 FPS)
+Camera calibration: {"camera_id": "camera-3", "frame_size": [944, 1080], "coordinate_space": "absolute_pixels", "rules": {"road": {"status": "READY", "diagnostic": null}, "congestion": {"status": "READY", "diagnostic": null}, "person_in_road": {"status": "READY", "diagnostic": null}, "stopped_vehicle": {"status": "READY", "diagnostic": null}, "wrong_way": {"status": "CALIBRATION_REQUIRED", "diagnostic": "missing direction zones"}, "road_blockage": {"status": "CONFIGURATION_REQUIRED", "diagnostic": "No approved blockage zone, movement direction or upstream-impact calibration; remains disabled."}}, "active_geometry": {"road_and_congestion": [[515, 105], [610, 110], [638, 205], [595, 320], [525, 450], [390, 700], [95, 700], [80, 570], [180, 400], [355, 225]], "stopped_vehicle": [[385, 260], [570, 255], [520, 400], [380, 610], [170, 610], [235, 440]]}, "status": "CALIBRATION_REQUIRED", "note": "Daylight-only conservative interior roadway calibration from the current 944x1080 Camera 3 reference. Excludes the left frontage/parked edge, upper parking forecourt and right steps/building. Wrong Way remains disabled: road shape alone does not establish a unique permitted direction. No event threshold changed; no real stopped/congestion event validation implied. Operator requested keeping the calibration enabled after daytime validation. No automatic day/night detection exists; disable road_confirmed and stopped_confirmed manually and restart Camera 3 before night operation."}
+RTSP generation/geometry changed; tracker and temporal event state reset safely.
+  30/0 frames (0%)
+  60/0 frames (0%)
+  90/0 frames (0%)
+  120/0 frames (0%)
+  150/0 frames (0%)
+  180/0 frames (0%)
+  210/0 frames (0%)
+  240/0 frames (0%)
+  270/0 frames (0%)
+  300/0 frames (0%)
+  330/0 frames (0%)
+  360/0 frames (0%)
+  390/0 frames (0%)
+Camera calibration: {"camera_id": "camera-3", "frame_size": [944, 1080], "coordinate_space": "absolute_pixels", "rules": {"road": {"status": "READY", "diagnostic": null}, "congestion": {"status": "READY", "diagnostic": null}, "person_in_road": {"status": "READY", "diagnostic": null}, "stopped_vehicle": {"status": "READY", "diagnostic": null}, "wrong_way": {"status": "CALIBRATION_REQUIRED", "diagnostic": "missing direction zones"}, "road_blockage": {"status": "CONFIGURATION_REQUIRED", "diagnostic": "No approved blockage zone, movement direction or upstream-impact calibration; remains disabled."}}, "active_geometry": {"road_and_congestion": [[515, 105], [610, 110], [638, 205], [595, 320], [525, 450], [390, 700], [95, 700], [80, 570], [180, 400], [355, 225]], "stopped_vehicle": [[385, 260], [570, 255], [520, 400], [380, 610], [170, 610], [235, 440]]}, "status": "CALIBRATION_REQUIRED", "note": "Daylight-only conservative interior roadway calibration from the current 944x1080 Camera 3 reference. Excludes the left frontage/parked edge, upper parking forecourt and right steps/building. Wrong Way remains disabled: road shape alone does not establish a unique permitted direction. No event threshold changed; no real stopped/congestion event validation implied. Operator requested keeping the calibration enabled after daytime validation. No automatic day/night detection exists; disable road_confirmed and stopped_confirmed manually and restart Camera 3 before night operation."}
+RTSP generation/geometry changed; tracker and temporal event state reset safely.
+  420/0 frames (0%)
+  450/0 frames (0%)
+  480/0 frames (0%)
+  510/0 frames (0%)
+  540/0 frames (0%)
+  570/0 frames (0%)
+  600/0 frames (0%)
+  630/0 frames (0%)
+  660/0 frames (0%)
+  690/0 frames (0%)
+  720/0 frames (0%)
+  750/0 frames (0%)
+  780/0 frames (0%)
+  810/0 frames (0%)
+DONE live

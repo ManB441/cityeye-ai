@@ -1,0 +1,104 @@
+{
+  "camera_id": "maydan-palestine",
+  "frame_size": [
+    1024,
+    576
+  ],
+  "coordinate_space": "absolute_pixels",
+  "rules": {
+    "road": {
+      "status": "READY",
+      "diagnostic": null
+    },
+    "congestion": {
+      "status": "CALIBRATION_REQUIRED",
+      "diagnostic": "Traffic region has no confirmed congestion calibration"
+    },
+    "person_in_road": {
+      "status": "READY",
+      "diagnostic": null
+    },
+    "stopped_vehicle": {
+      "status": "READY",
+      "diagnostic": null
+    },
+    "wrong_way": {
+      "status": "CALIBRATION_REQUIRED",
+      "diagnostic": "missing direction zones"
+    },
+    "road_blockage": {
+      "status": "CONFIGURATION_REQUIRED",
+      "diagnostic": "No approved blockage zone, movement direction or upstream-impact calibration; remains disabled."
+    }
+  },
+  "active_geometry": {
+    "road_and_congestion": [
+      [
+        390,
+        245
+      ],
+      [
+        620,
+        185
+      ],
+      [
+        750,
+        215
+      ],
+      [
+        735,
+        275
+      ],
+      [
+        810,
+        323
+      ],
+      [
+        720,
+        430
+      ],
+      [
+        550,
+        438
+      ],
+      [
+        435,
+        348
+      ],
+      [
+        310,
+        305
+      ]
+    ],
+    "stopped_vehicle": [
+      [
+        430,
+        260
+      ],
+      [
+        610,
+        220
+      ],
+      [
+        700,
+        240
+      ],
+      [
+        710,
+        300
+      ],
+      [
+        660,
+        360
+      ],
+      [
+        540,
+        365
+      ]
+    ]
+  },
+  "status": "CALIBRATION_REQUIRED",
+  "note": "RECORDED DEMO. Conservative central intersection interior observed at 0/30/60/120/180/240/300 seconds. Excludes sidewalks, buildings, islands, crossing stripes and signal queues. Stopped rule uses unchanged 60s threshold; no positive event validation implied. Multiple movements and turning paths preclude one permitted vector. Congestion is disabled: central intersection occupancy is not calibrated approach-queue density. Latitude/longitude 0,0 are legacy placeholders, not a verified location.",
+  "checked_at": 0.0,
+  "generation": 0
+}

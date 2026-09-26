@@ -1,0 +1,43 @@
+
+> cityeye-frontend@0.1.0 test
+> vitest run --cache=false
+
+
+ RUN  v2.1.9 /Users/abcd/cityeye-ai/frontend
+
+ ✓ src/components/Incident.test.tsx (2 tests) 154ms
+ ✓ src/hooks/useEvents.test.tsx (2 tests) 223ms
+ ✓ src/components/LiveMjpegImage.test.tsx (11 tests) 273ms
+stderr | src/pages/LoginPage.test.tsx > CityEye authentication motion > never claims success before confirmation and transitions within 720ms afterwards
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | src/App.test.tsx > CityEye municipal dashboard > displays real Backend events without fixture claims
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/pages/LoginPage.test.tsx (4 tests) 487ms
+   ✓ CityEye authentication motion > never claims success before confirmation and transitions within 720ms afterwards 314ms
+ ✓ src/App.test.tsx (31 tests) 1886ms
+   ✓ CityEye municipal dashboard > displays real Backend events without fixture claims 317ms
+   ✓ CityEye municipal dashboard > requires sign-in before the protected application and uses the secure session 856ms
+ ✓ src/pages/IncidentsPage.test.tsx (11 tests) 6616ms
+   ✓ refreshes recorded incidents and their open detail after an external review 2010ms
+   ✓ ignores a recorded poll started before Verify completes 2039ms
+   ✓ ignores a recorded poll started before Dismiss completes 2019ms
+ ✓ src/pages/MunicipalDashboard.test.tsx (19 tests) 18214ms
+   ✓ Live truth > invalidates existing values on generation while keeping incident history 2048ms
+   ✓ Live truth > invalidates existing values on reconnecting while keeping incident history 2031ms
+   ✓ Live truth > expires cached counts even when the next metric request stalls 510ms
+   ✓ Incident review persistence > live verify keeps proposed status on failed save and permits retry 2160ms
+   ✓ Incident review persistence > live dismiss keeps proposed status on failed save and permits retry 2148ms
+   ✓ Incident review persistence > recorded verify keeps proposed status on failed save and permits retry 2136ms
+   ✓ Incident review persistence > recorded dismiss keeps proposed status on failed save and permits retry 2170ms
+   ✓ Review and polling ordering > a late live GET cannot undo verify in the card or dialog 2043ms
+   ✓ Review and polling ordering > a late live GET cannot undo dismiss in the card or dialog 2026ms
+
+ Test Files  7 passed (7)
+      Tests  80 passed (80)
+   Start at  12:42:21
+   Duration  19.74s (transform 863ms, setup 635ms, collect 3.08s, tests 27.85s, environment 4.28s, prepare 674ms)
+

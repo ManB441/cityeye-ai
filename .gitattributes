@@ -1,0 +1,2 @@
+diagnostics/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+diagnostics/*.mp4 filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,21 @@
+/Users/abcd/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/f1/v21fsbh90rbdh9k_3bg94v740000gn/T/matplotlib-3bymcf7b because there was an issue with the default path ({configdir}); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+Matplotlib is building the font cache; this may take a moment.
+Loading model: /Users/abcd/cityeye-ai/ai/yolov8n.pt
+Processing stopped_vehicle.mp4 (VIDEO_FILE, target 30.0 FPS)
+  0/318 frames (0%)
+  30/318 frames (9%)
+  60/318 frames (19%)
+  90/318 frames (28%)
+  120/318 frames (38%)
+  150/318 frames (47%)
+  180/318 frames (57%)
+  210/318 frames (66%)
+  240/318 frames (75%)
+  270/318 frames (85%)
+  300/318 frames (94%)
+Done. 318 frames, 1640 track records.
+  Annotated video: /Users/abcd/cityeye-ai/diagnostics/camera3-stopped-validation/recorded/annotated.mp4
+  Tracks CSV:      /Users/abcd/cityeye-ai/diagnostics/camera3-stopped-validation/recorded/tracks.csv
+  Events JSON:     /Users/abcd/cityeye-ai/diagnostics/camera3-stopped-validation/recorded/events.json (1 events)
+DONE recorded

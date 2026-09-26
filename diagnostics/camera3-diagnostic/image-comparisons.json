@@ -1,0 +1,928 @@
+{
+  "summary": {
+    "frames": 20,
+    "consecutive_pairs": 19,
+    "exact_duplicate_pairs": 0,
+    "duplicate_frame_percentage": 0.0,
+    "source_pts_span_seconds": 1.5605220000000002,
+    "frame_intervals_seconds": [
+      0.08100000000000018,
+      0.07899999999999996,
+      0.0953219999999999,
+      0.08099999999999996,
+      0.06600000000000006,
+      0.07784499999999994,
+      0.08100000000000018,
+      0.05899999999999972,
+      0.10084400000000038,
+      0.11999999999999966,
+      0.08099999999999996,
+      0.07780000000000031,
+      0.08599999999999985,
+      0.06400000000000006,
+      0.07185599999999992,
+      0.08000000000000007,
+      0.08800000000000008,
+      0.07985499999999979,
+      0.09100000000000019
+    ],
+    "mean_consecutive_pixel_difference": 0.25073966696402017,
+    "mean_current_statistics": {
+      "mean_brightness_gray_0_255": 145.94998700368802,
+      "contrast_gray_std": 39.83656641163295,
+      "saturation_mean_0_255": 30.266948367859392,
+      "saturation_std": 21.051631042811557,
+      "laplacian_variance_full": 350.1743332863772,
+      "laplacian_variance_interior_without_osd": 78.18096545720263,
+      "bright_gray_ge245_percent": 1.3973732736974263,
+      "any_channel_ge250_percent": 1.9063971280602634,
+      "all_channels_ge250_percent": 1.0316031073446328
+    },
+    "previous_night_raw_preview_statistics": {
+      "mean_brightness_gray_0_255": 90.06226949937225,
+      "contrast_gray_std": 17.690387157108614,
+      "gray_percentiles_1_50_99": [
+        69.0,
+        87.0,
+        146.0
+      ],
+      "saturation_mean_0_255": 55.855290725047084,
+      "saturation_std": 9.55250827653465,
+      "saturation_percentiles_5_50_95": [
+        36.0,
+        57.0,
+        67.0
+      ],
+      "laplacian_variance_full": 240.59821956732176,
+      "laplacian_variance_interior_without_osd": 0.8823224744259484,
+      "bright_gray_ge245_percent": 0.10818816698053987,
+      "any_channel_ge250_percent": 0.10034133709981169,
+      "all_channels_ge250_percent": 0.03844946641556811
+    },
+    "independent_decoder_max_mean_abs_difference": 1.2074126386273278,
+    "independent_decoder_max_channel_difference": 3,
+    "jpeg75_mean_psnr_db": 40.52554903172084
+  },
+  "comparisons": [
+    {
+      "frame_number": 1,
+      "mean_abs_bgr": 1.1921155707260933,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.38492651413834,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6289731115296087,
+        "psnr_db": 40.52225201379385,
+        "statistics": {
+          "mean_brightness_gray_0_255": 145.57888319993722,
+          "contrast_gray_std": 39.714799500103524,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            142.0,
+            250.0
+          ],
+          "saturation_mean_0_255": 29.513217984934087,
+          "saturation_std": 20.860226706755935,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            26.0,
+            68.0
+          ],
+          "laplacian_variance_full": 341.2556439518428,
+          "laplacian_variance_interior_without_osd": 67.81929641003991,
+          "bright_gray_ge245_percent": 1.3226812617702448,
+          "any_channel_ge250_percent": 1.759063088512241,
+          "all_channels_ge250_percent": 0.9391674513496546
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-028.jpg",
+        "interior_mean_abs_bgr": 1.5581108652900688,
+        "production_frame": 58648,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-012.jpg",
+        "interior_mean_abs_bgr": 1.4660086856768273,
+        "production_frame": 58651,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 2,
+      "mean_abs_bgr": 1.190570726093325,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.395797116921145,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6222676684452815,
+        "psnr_db": 40.54259793996354,
+        "statistics": {
+          "mean_brightness_gray_0_255": 145.5868153640929,
+          "contrast_gray_std": 39.707152635137525,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            142.0,
+            250.0
+          ],
+          "saturation_mean_0_255": 29.50968887319523,
+          "saturation_std": 20.82920736669984,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            26.0,
+            68.0
+          ],
+          "laplacian_variance_full": 341.0057425119075,
+          "laplacian_variance_interior_without_osd": 67.60879120763272,
+          "bright_gray_ge245_percent": 1.3223870056497176,
+          "any_channel_ge250_percent": 1.7592592592592593,
+          "all_channels_ge250_percent": 0.9391674513496546
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-029.jpg",
+        "interior_mean_abs_bgr": 1.5550995575221238,
+        "production_frame": 58648,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-012.jpg",
+        "interior_mean_abs_bgr": 1.4901438053097344,
+        "production_frame": 58651,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 3,
+      "mean_abs_bgr": 1.190992166248169,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.391180076197976,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.62710131565181,
+        "psnr_db": 40.52640389963372,
+        "statistics": {
+          "mean_brightness_gray_0_255": 145.58191599968612,
+          "contrast_gray_std": 39.71039376170913,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            142.0,
+            250.0
+          ],
+          "saturation_mean_0_255": 29.5486052259887,
+          "saturation_std": 20.85792878230152,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            26.0,
+            68.0
+          ],
+          "laplacian_variance_full": 341.05686113387213,
+          "laplacian_variance_interior_without_osd": 67.61419454427399,
+          "bright_gray_ge245_percent": 1.3226812617702448,
+          "any_channel_ge250_percent": 1.766027150031387,
+          "all_channels_ge250_percent": 0.9390693659761455
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-030.jpg",
+        "interior_mean_abs_bgr": 1.5567133726647,
+        "production_frame": 58651,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-013.jpg",
+        "interior_mean_abs_bgr": 1.4961783021960013,
+        "production_frame": 58654,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 4,
+      "mean_abs_bgr": 1.1899625967775684,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.39694249746213,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6207489799121155,
+        "psnr_db": 40.546331978046624,
+        "statistics": {
+          "mean_brightness_gray_0_255": 145.59524874450722,
+          "contrast_gray_std": 39.70331781264681,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            142.0,
+            250.0
+          ],
+          "saturation_mean_0_255": 29.53950192247332,
+          "saturation_std": 20.861502451759375,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            26.0,
+            68.0
+          ],
+          "laplacian_variance_full": 340.9231989707643,
+          "laplacian_variance_interior_without_osd": 67.53468102672488,
+          "bright_gray_ge245_percent": 1.3235640301318268,
+          "any_channel_ge250_percent": 1.7689697112366602,
+          "all_channels_ge250_percent": 0.9401483050847457
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-030.jpg",
+        "interior_mean_abs_bgr": 1.5779203539823008,
+        "production_frame": 58651,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-013.jpg",
+        "interior_mean_abs_bgr": 1.46445509668961,
+        "production_frame": 58654,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 5,
+      "mean_abs_bgr": 1.1910098216154008,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.39105917826065,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6255862235823395,
+        "psnr_db": 40.53147995656616,
+        "statistics": {
+          "mean_brightness_gray_0_255": 145.58245350753296,
+          "contrast_gray_std": 39.71042641440909,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            142.0,
+            250.0
+          ],
+          "saturation_mean_0_255": 29.588964414626492,
+          "saturation_std": 20.869652401496666,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            26.0,
+            68.0
+          ],
+          "laplacian_variance_full": 340.7223991406515,
+          "laplacian_variance_interior_without_osd": 67.2894425264631,
+          "bright_gray_ge245_percent": 1.32209274952919,
+          "any_channel_ge250_percent": 1.7663214061519148,
+          "all_channels_ge250_percent": 0.9389712806026365
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-031.jpg",
+        "interior_mean_abs_bgr": 1.5551892822025566,
+        "production_frame": 58651,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-013.jpg",
+        "interior_mean_abs_bgr": 1.5160197476237298,
+        "production_frame": 58654,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 6,
+      "mean_abs_bgr": 1.1899531151914626,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.3978255696451,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6187575198786357,
+        "psnr_db": 40.55699430277281,
+        "statistics": {
+          "mean_brightness_gray_0_255": 145.59646107972378,
+          "contrast_gray_std": 39.706676666230145,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            142.0,
+            250.0
+          ],
+          "saturation_mean_0_255": 29.56844789704959,
+          "saturation_std": 20.8705509238418,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            26.0,
+            68.0
+          ],
+          "laplacian_variance_full": 340.58537646742224,
+          "laplacian_variance_interior_without_osd": 67.24596178120296,
+          "bright_gray_ge245_percent": 1.3244467984934087,
+          "any_channel_ge250_percent": 1.770637162586315,
+          "all_channels_ge250_percent": 0.942208097928437
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-032.jpg",
+        "interior_mean_abs_bgr": 1.551725254015077,
+        "production_frame": 58654,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-013.jpg",
+        "interior_mean_abs_bgr": 1.541945673549656,
+        "production_frame": 58654,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 7,
+      "mean_abs_bgr": 1.1907364903745554,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.392879048138354,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.623232828520611,
+        "psnr_db": 40.54067734302059,
+        "statistics": {
+          "mean_brightness_gray_0_255": 145.58629551161332,
+          "contrast_gray_std": 39.710236951533645,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            142.0,
+            250.0
+          ],
+          "saturation_mean_0_255": 29.663334706528563,
+          "saturation_std": 20.925566478481098,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            26.0,
+            68.0
+          ],
+          "laplacian_variance_full": 340.71411499187514,
+          "laplacian_variance_interior_without_osd": 67.20287367348443,
+          "bright_gray_ge245_percent": 1.32209274952919,
+          "any_channel_ge250_percent": 1.7693620527306968,
+          "all_channels_ge250_percent": 0.9395597928436911
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-033.jpg",
+        "interior_mean_abs_bgr": 1.5521472468043265,
+        "production_frame": 58654,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-014.jpg",
+        "interior_mean_abs_bgr": 1.5163089970501475,
+        "production_frame": 58658,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 8,
+      "mean_abs_bgr": 1.1905802076794307,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.39509596628281,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6186149691358025,
+        "psnr_db": 40.55771031004309,
+        "statistics": {
+          "mean_brightness_gray_0_255": 145.5946474811676,
+          "contrast_gray_std": 39.708679856119964,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            142.0,
+            250.0
+          ],
+          "saturation_mean_0_255": 29.695625392341494,
+          "saturation_std": 20.921444082896876,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            26.0,
+            68.0
+          ],
+          "laplacian_variance_full": 340.65359636668364,
+          "laplacian_variance_interior_without_osd": 66.97865530306196,
+          "bright_gray_ge245_percent": 1.3212099811676083,
+          "any_channel_ge250_percent": 1.7833882611424985,
+          "all_channels_ge250_percent": 0.9410310734463276
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-034.jpg",
+        "interior_mean_abs_bgr": 1.5480596525729269,
+        "production_frame": 58654,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-014.jpg",
+        "interior_mean_abs_bgr": 1.4619698459521469,
+        "production_frame": 58658,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 9,
+      "mean_abs_bgr": 1.189784081397782,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.39840454474519,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6206152568528982,
+        "psnr_db": 40.54600535365941,
+        "statistics": {
+          "mean_brightness_gray_0_255": 145.59076231952292,
+          "contrast_gray_std": 39.70523472820928,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            142.0,
+            250.0
+          ],
+          "saturation_mean_0_255": 29.72855461393597,
+          "saturation_std": 20.9864504852205,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            26.0,
+            68.0
+          ],
+          "laplacian_variance_full": 340.68187097552016,
+          "laplacian_variance_interior_without_osd": 67.09259214045584,
+          "bright_gray_ge245_percent": 1.3206214689265536,
+          "any_channel_ge250_percent": 1.7708333333333333,
+          "all_channels_ge250_percent": 0.939363622096673
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-035.jpg",
+        "interior_mean_abs_bgr": 1.55062356604392,
+        "production_frame": 58654,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-014.jpg",
+        "interior_mean_abs_bgr": 1.544509996722386,
+        "production_frame": 58658,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 10,
+      "mean_abs_bgr": 1.187758945386064,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.41143788781114,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6058932961916719,
+        "psnr_db": 40.583093963448135,
+        "statistics": {
+          "mean_brightness_gray_0_255": 145.65333097928436,
+          "contrast_gray_std": 39.683450559657395,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            142.0,
+            250.0
+          ],
+          "saturation_mean_0_255": 29.699871508160705,
+          "saturation_std": 20.892935917395594,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            26.0,
+            68.0
+          ],
+          "laplacian_variance_full": 340.58543603433714,
+          "laplacian_variance_interior_without_osd": 66.90913157636457,
+          "bright_gray_ge245_percent": 1.3254276522284998,
+          "any_channel_ge250_percent": 1.7689697112366602,
+          "all_channels_ge250_percent": 0.9426985247959824
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-036.jpg",
+        "interior_mean_abs_bgr": 1.5328183382497542,
+        "production_frame": 58654,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-015.jpg",
+        "interior_mean_abs_bgr": 1.6309861520812847,
+        "production_frame": 58661,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 11,
+      "mean_abs_bgr": 1.1882853368905628,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.4074298785561,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6015118225570204,
+        "psnr_db": 40.610351801591335,
+        "statistics": {
+          "mean_brightness_gray_0_255": 145.6828654661017,
+          "contrast_gray_std": 39.69689436066374,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            142.0,
+            250.0
+          ],
+          "saturation_mean_0_255": 29.625550258945385,
+          "saturation_std": 20.94223798743066,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            26.0,
+            68.0
+          ],
+          "laplacian_variance_full": 339.0404506969306,
+          "laplacian_variance_interior_without_osd": 66.83672323249606,
+          "bright_gray_ge245_percent": 1.3297434086629,
+          "any_channel_ge250_percent": 1.781230382925298,
+          "all_channels_ge250_percent": 0.9477989642184558
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-037.jpg",
+        "interior_mean_abs_bgr": 1.5298098983939692,
+        "production_frame": 58658,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-015.jpg",
+        "interior_mean_abs_bgr": 1.450596116027532,
+        "production_frame": 58661,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 12,
+      "mean_abs_bgr": 1.186345535153798,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.42211790274098,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.5995115348399247,
+        "psnr_db": 40.617133106179956,
+        "statistics": {
+          "mean_brightness_gray_0_255": 145.69788429849342,
+          "contrast_gray_std": 39.694365974596295,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            142.0,
+            250.0
+          ],
+          "saturation_mean_0_255": 30.11390262084118,
+          "saturation_std": 20.992965375217207,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            27.0,
+            69.0
+          ],
+          "laplacian_variance_full": 338.976756234813,
+          "laplacian_variance_interior_without_osd": 66.81782067418511,
+          "bright_gray_ge245_percent": 1.330528091650973,
+          "any_channel_ge250_percent": 1.7751490897677338,
+          "all_channels_ge250_percent": 0.948093220338983
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-038.jpg",
+        "interior_mean_abs_bgr": 1.5277761389708293,
+        "production_frame": 58658,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-015.jpg",
+        "interior_mean_abs_bgr": 1.594800475254015,
+        "production_frame": 58661,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 13,
+      "mean_abs_bgr": 1.2074126386273278,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.29487197786017,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6385200878844948,
+        "psnr_db": 40.46787504792289,
+        "statistics": {
+          "mean_brightness_gray_0_255": 146.44446504237288,
+          "contrast_gray_std": 39.986821232002264,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            143.0,
+            252.0
+          ],
+          "saturation_mean_0_255": 30.937398972065285,
+          "saturation_std": 21.673717064505066,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            28.0,
+            70.0
+          ],
+          "laplacian_variance_full": 338.1008768672293,
+          "laplacian_variance_interior_without_osd": 66.63407196038575,
+          "bright_gray_ge245_percent": 1.4080155367231637,
+          "any_channel_ge250_percent": 1.7929025423728813,
+          "all_channels_ge250_percent": 1.0294059949780288
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-039.jpg",
+        "interior_mean_abs_bgr": 1.563622992461488,
+        "production_frame": 58661,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-016.jpg",
+        "interior_mean_abs_bgr": 1.5254228121927238,
+        "production_frame": 58664,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 14,
+      "mean_abs_bgr": 1.2069339820046034,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.29684273370317,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6356095679012346,
+        "psnr_db": 40.47688642083254,
+        "statistics": {
+          "mean_brightness_gray_0_255": 146.44338904582548,
+          "contrast_gray_std": 39.987374182448505,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            143.0,
+            252.0
+          ],
+          "saturation_mean_0_255": 30.926609580979285,
+          "saturation_std": 21.639134454434753,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            28.0,
+            70.0
+          ],
+          "laplacian_variance_full": 337.93843058728925,
+          "laplacian_variance_interior_without_osd": 66.41840653429941,
+          "bright_gray_ge245_percent": 1.4080155367231637,
+          "any_channel_ge250_percent": 1.7927063716258633,
+          "all_channels_ge250_percent": 1.0281308851224107
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-040.jpg",
+        "interior_mean_abs_bgr": 1.5600901343821698,
+        "production_frame": 58661,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-016.jpg",
+        "interior_mean_abs_bgr": 1.4728564405113078,
+        "production_frame": 58664,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 15,
+      "mean_abs_bgr": 1.2062859646369533,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.30076916895744,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6370730016739903,
+        "psnr_db": 40.47304041099247,
+        "statistics": {
+          "mean_brightness_gray_0_255": 146.4413155210295,
+          "contrast_gray_std": 39.98979905760997,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            143.0,
+            252.0
+          ],
+          "saturation_mean_0_255": 30.983516752981796,
+          "saturation_std": 21.68176507467977,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            28.0,
+            70.0
+          ],
+          "laplacian_variance_full": 337.81081261381314,
+          "laplacian_variance_interior_without_osd": 66.40691426190662,
+          "bright_gray_ge245_percent": 1.4080155367231637,
+          "any_channel_ge250_percent": 1.7927063716258633,
+          "all_channels_ge250_percent": 1.0288174827369743
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-041.jpg",
+        "interior_mean_abs_bgr": 1.6076306948541461,
+        "production_frame": 58664,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-016.jpg",
+        "interior_mean_abs_bgr": 1.5608816781383152,
+        "production_frame": 58664,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 16,
+      "mean_abs_bgr": 1.2064229572086211,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.3002489416128,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6337678515379788,
+        "psnr_db": 40.481169808096865,
+        "statistics": {
+          "mean_brightness_gray_0_255": 146.43532642812303,
+          "contrast_gray_std": 39.991869412646594,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            143.0,
+            252.0
+          ],
+          "saturation_mean_0_255": 31.043621508160705,
+          "saturation_std": 21.677213023864006,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            28.0,
+            70.0
+          ],
+          "laplacian_variance_full": 337.7293713848942,
+          "laplacian_variance_interior_without_osd": 66.31929392124873,
+          "bright_gray_ge245_percent": 1.4080155367231637,
+          "any_channel_ge250_percent": 1.7924121155053356,
+          "all_channels_ge250_percent": 1.0287193973634652
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-041.jpg",
+        "interior_mean_abs_bgr": 1.5590961979678795,
+        "production_frame": 58664,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-017.jpg",
+        "interior_mean_abs_bgr": 1.6057284496886266,
+        "production_frame": 58668,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 17,
+      "mean_abs_bgr": 1.205731455325382,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.30287587572146,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6352659421427076,
+        "psnr_db": 40.47682330007592,
+        "statistics": {
+          "mean_brightness_gray_0_255": 146.44066129158819,
+          "contrast_gray_std": 39.987813171495915,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            143.0,
+            252.0
+          ],
+          "saturation_mean_0_255": 31.007516282172002,
+          "saturation_std": 21.676066957128583,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            28.0,
+            70.0
+          ],
+          "laplacian_variance_full": 337.6463108787981,
+          "laplacian_variance_interior_without_osd": 66.27228917149388,
+          "bright_gray_ge245_percent": 1.4080155367231637,
+          "any_channel_ge250_percent": 1.7921178593848084,
+          "all_channels_ge250_percent": 1.0290136534839924
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-042.jpg",
+        "interior_mean_abs_bgr": 1.5604346935431006,
+        "production_frame": 58664,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-017.jpg",
+        "interior_mean_abs_bgr": 1.5364331366764996,
+        "production_frame": 58668,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 18,
+      "mean_abs_bgr": 1.205432621887424,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.30510064867265,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6335955482318476,
+        "psnr_db": 40.48103295332493,
+        "statistics": {
+          "mean_brightness_gray_0_255": 146.4401414391086,
+          "contrast_gray_std": 39.98750090403628,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            143.0,
+            252.0
+          ],
+          "saturation_mean_0_255": 31.016681379472693,
+          "saturation_std": 21.65801284199965,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            28.0,
+            70.0
+          ],
+          "laplacian_variance_full": 337.5156522717361,
+          "laplacian_variance_interior_without_osd": 66.22907706422843,
+          "bright_gray_ge245_percent": 1.408211707470182,
+          "any_channel_ge250_percent": 1.7929025423728813,
+          "all_channels_ge250_percent": 1.0282289704959198
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-042.jpg",
+        "interior_mean_abs_bgr": 1.6069489511635529,
+        "production_frame": 58664,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-017.jpg",
+        "interior_mean_abs_bgr": 1.4724901671583088,
+        "production_frame": 58668,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 19,
+      "mean_abs_bgr": 1.2057922682569575,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.30129315934465,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.6325895192508892,
+        "psnr_db": 40.48543471431649,
+        "statistics": {
+          "mean_brightness_gray_0_255": 146.44965277777777,
+          "contrast_gray_std": 39.983293230056475,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            143.0,
+            252.0
+          ],
+          "saturation_mean_0_255": 31.024435028248586,
+          "saturation_std": 21.658956084786038,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            28.0,
+            70.0
+          ],
+          "laplacian_variance_full": 337.5550229902141,
+          "laplacian_variance_interior_without_osd": 66.247503100261,
+          "bright_gray_ge245_percent": 1.407230853735091,
+          "any_channel_ge250_percent": 1.7920197740112993,
+          "all_channels_ge250_percent": 1.028425141242938
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-043.jpg",
+        "interior_mean_abs_bgr": 1.558005162241888,
+        "production_frame": 58664,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-017.jpg",
+        "interior_mean_abs_bgr": 1.570130285152409,
+        "production_frame": 58668,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    },
+    {
+      "frame_number": 20,
+      "mean_abs_bgr": 1.2050353761247123,
+      "max_abs_channel_difference": 3,
+      "psnr_db": 45.3050184214014,
+      "preview_quality75_roundtrip": {
+        "mean_abs_bgr": 1.631776391504499,
+        "psnr_db": 40.48768601013536,
+        "statistics": {
+          "mean_brightness_gray_0_255": 146.45237955116133,
+          "contrast_gray_std": 39.980101964242884,
+          "gray_percentiles_1_50_99": [
+            64.0,
+            143.0,
+            252.0
+          ],
+          "saturation_mean_0_255": 30.989458764908978,
+          "saturation_std": 21.687450142346744,
+          "saturation_percentiles_5_50_95": [
+            3.0,
+            28.0,
+            70.0
+          ],
+          "laplacian_variance_full": 337.53338513200055,
+          "laplacian_variance_interior_without_osd": 66.18631109070037,
+          "bright_gray_ge245_percent": 1.4054653170119271,
+          "any_channel_ge250_percent": 1.7924121155053356,
+          "all_channels_ge250_percent": 1.0291117388575015
+        }
+      },
+      "nearest_production_preview": {
+        "filename": "production-preview-043.jpg",
+        "interior_mean_abs_bgr": 1.601731399541134,
+        "production_frame": 58664,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      },
+      "nearest_production_latest": {
+        "filename": "production-latest-017.jpg",
+        "interior_mean_abs_bgr": 1.6089409210095051,
+        "production_frame": 58668,
+        "comparison_limit": "Closest image match; no shared frame ID/PTS across worker JPEG and passive decoder, so exact simultaneity is NOT claimed."
+      }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "event_id": "35b9c58c-3051-4d46-a049-0aa1a916dd94",
+  "event_type": "STOPPED_VEHICLE",
+  "timestamp": 4.0,
+  "confidence": 0.9234,
+  "severity": "MEDIUM",
+  "explanation": "RECORDED DEMO: pre-fix false proposal caused by brief bounding-box motion; review-workflow test only. Track 7 remained nearly stationary for 1.5 seconds; smoothed normalized movement was 0.0204 ROI diagonals/second.",
+  "camera_name": "RECORDED DEMO - P0 3.7 bbox-jitter regression",
+  "latitude": 0.0,
+  "longitude": 0.0,
+  "evidence_image": "evidence/event_0001_stopped_vehicle.jpg",
+  "status": "PROPOSED",
+  "details": {
+    "track_id": 7,
+    "vehicle_class": "car",
+    "stationary_duration_seconds": 1.5,
+    "movement_value": 0.020433,
+    "movement_unit": "roi_diagonals_per_second",
+    "instantaneous_normalized_movement": 0.01523,
+    "pixel_speed_debug": 15.811,
+    "roi_status": "INSIDE",
+    "movement_state": "STATIONARY",
+    "was_previously_moving": true,
+    "source_type": "VIDEO_FILE",
+    "camera_id": "Pexels Broken Car Test",
+    "timestamp_kind": "VIDEO_SECONDS",
+    "validation_scope": "RECORDED_DEMO_PRE_FIX_FALSE_PROPOSAL"
+  },
+  "source_type": "RECORDED_SCENARIO",
+  "source_id": "stopped_vehicle"
+}

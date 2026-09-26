@@ -1,0 +1,23 @@
+{
+  "duration_seconds": 120.24448645900702,
+  "samples": 61,
+  "sample_interval_seconds": 2,
+  "states": [
+    "ONLINE"
+  ],
+  "generation_start": 127,
+  "generation_end": 127,
+  "generation_changes_observed": 0,
+  "reconnect_counter_start": 884,
+  "reconnect_counter_end": 884,
+  "reconnect_counter_delta": 0,
+  "dropped_frame_counter_delta": 0,
+  "recovery_latency_seconds": null,
+  "recovery_latency_reason": "No reconnect was observed; latency cannot be measured without an outage. No outage was induced on the only camera.",
+  "fps_mean": {
+    "camera_capture_fps": 12.028264401147355,
+    "preview_publication_fps": 10.949516620667566,
+    "ai_inference_fps": 3.9508196721311477
+  },
+  "scope": "Read-only sampling of current production worker, not deployment verification of this patch. Two minutes is not a long-duration soak. Drop counter is producer telemetry, not independent transport-loss measurement."
+}
